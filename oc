@@ -482,6 +482,14 @@ MEMORY RETRIEVAL (3-LAYER):
     oc --memory --get obs_001,obs_002         # Full details
     oc --remember -t bugfix "fixed JWT"      # New observation
 
+WORKFLOWS (cadenas de agentes):
+    oc --workflow bug-hunt ~/proyecto           # 5 fases: architect→security→planner→builder→reviewer
+    oc --workflow new-project "mi-api"          # 4 fases: architect→planner→builder→docs
+    oc --workflow debug "fix memory leak"       # 3 fases: oncall→builder→security
+    oc --workflow document ~/proyecto           # 3 fases: architect→docs→reviewer
+    oc --workflow feature "add auth" ~/api      # 4 fases: architect→planner→builder→reviewer
+    oc --workflow --interactive ...             # Pide confirmación entre fases
+
 EJEMPLOS:
     oc analyze ~/proyecto
     oc --wizard
@@ -489,13 +497,14 @@ EJEMPLOS:
     oc --init ~/microservicio
     oc --profile work
     oc build "agregar auth con JWT"
-    oc --memory "docker" -p mi-api -t decision
-    oc --remember -t feature "nueva API endpoint"
+    oc --workflow bug-hunt ~/proyecto --interactive
+    oc --workflow document .
 
 CONFIGURACIÓN:
     ~/.config/opencode/     Config global
     ~/.config/opencode/memory/  Memory bank (3-layer)
     ~/.config/opencode/profiles/  Perfiles (7 levels)
+    ~/.config/opencode/workflows/  Workflows custom (future)
 
 EOF
 }
@@ -547,6 +556,177 @@ switch_profile() {
     local profile=$1
     echo "$profile" > "${CURRENT_PROFILE}"
     success "Perfil cambiado a: $profile"
+}
+
+confirm() {
+    local prompt="${1:-Continuar?}"
+    local response
+    read -p "$prompt [y/n]: " response
+    [[ "$response" == "y" ]] || [[ "$response" == "Y" ]]
+}
+
+run_workflow() {
+    local workflow="${1:-}"
+    local target="${2:-.}"
+    local interactive="${3:-false}"
+
+    case "$workflow" in
+        bug-hunt)
+            echo -e "${BLUE}=== Bug Hunt Pipeline ===${NC}"
+            echo "Fase 1: @architect analiza el proyecto"
+            if [ "$interactive" == "true" ]; then confirm "¿Continuar?" || return 0; fi
+            opencode -p "Usa @architect con project-map. Analiza: $target. Identifica archivos críticos y posibles áreas con bugs."
+
+            echo -e "${BLUE}Fase 2: @security-auditor busca errores${NC}"
+            if [ "$interactive" == "true" ]; then confirm "¿Continuar?" || return 0; fi
+            opencode -p "Usa @security-auditor. Revisa el código en: $target. Busca:
+- Errores lógicos
+- Variables indefinidas
+- Imports rotos
+- Memory leaks
+- Edge cases no manejados
+No modifiques nada. Lista los problemas encontrados."
+
+            echo -e "${BLUE}Fase 3: @planner planifica fixes${NC}"
+            if [ "$interactive" == "true" ]; then confirm "¿Continuar?" || return 0; fi
+            opencode -p "Usa @planner. Basado en los errores encontrados, crea un plan de corrección con fases verificables."
+
+            echo -e "${BLUE}Fase 4: @builder implementa fixes${NC}"
+            if [ "$interactive" == "true" ]; then confirm "¿Continuar?" || return 0; fi
+            opencode -p "Usa @builder con safe-implementation y test-first. Implementa las correcciones planificadas en: $target"
+
+            echo -e "${BLUE}Fase 5: @reviewer verifica${NC}"
+            opencode -p "Usa @reviewer con precommit-review. Verifica que los fixes funcionan y no introducen nuevos errores."
+
+            echo -e "${GREEN}=== Bug Hunt Completado ===${NC}"
+            create_observation "bugfix" "Bug hunt completado en $target" "$target"
+            ;;
+
+        new-project)
+            echo -e "${BLUE}=== New Project Setup Pipeline ===${NC}"
+            echo "Fase 1: @architect analiza requisitos"
+            if [ "$interactive" == "true" ]; then confirm "¿Continuar?" || return 0; fi
+            opencode -p "Usa @architect. Analiza el contexto: $target. Identifica stack, dependencias y arquitectura inicial."
+
+            echo -e "${BLUE}Fase 2: @planner planifica estructura${NC}"
+            if [ "$interactive" == "true" ]; then confirm "¿Continuar?" || return 0; fi
+            opencode -p "Usa @planner. Planifica la estructura del proyecto con: $target. Incluye:
+- Estructura de directorios
+- Archivos de configuración
+- Dependencias necesarias
+- Tests iniciales"
+
+            echo -e "${BLUE}Fase 3: @builder crea scaffold${NC}"
+            if [ "$interactive" == "true" ]; then confirm "¿Continuar?" || return 0; fi
+            opencode -p "Usa @builder con safe-implementation. Crea la estructura básica del proyecto: $target"
+
+            echo -e "${BLUE}Fase 4: @docs-writer genera docs${NC}"
+            opencode -p "Usa @docs-writer. Genera documentación inicial para el proyecto: $target
+- README.md con instalación y uso
+- ARCHITECTURE.md con estructura
+- CONTRIBUTING.md si es proyecto colaborativo"
+
+            echo -e "${GREEN}=== New Project Completado ===${NC}"
+            create_observation "feature" "Proyecto inicializado: $target" "$target"
+            ;;
+
+        debug)
+            echo -e "${BLUE}=== Production Debug Pipeline ===${NC}"
+            echo "Fase 1: @oncall diagnostica"
+            if [ "$interactive" == "true" ]; then confirm "¿Continuar?" || return 0; fi
+            opencode -p "Usa @oncall. Diagnostica el problema en: $target. Clasifica por urgencia (P1/P2/P3) e identifica causa raíz."
+
+            echo -e "${BLUE}Fase 2: @builder arregla${NC}"
+            if [ "$interactive" == "true" ]; then confirm "¿Continuar?" || return 0; fi
+            opencode -p "Usa @builder con safe-implementation y test-first. Implementa la corrección para: $target"
+
+            echo -e "${BLUE}Fase 3: @security-auditor verifica${NC}"
+            opencode -p "Usa @security-auditor. Verifica que la corrección no introduce vulnerabilidades."
+
+            echo -e "${GREEN}=== Debug Completado ===${NC}"
+            create_observation "bugfix" "Debug completado en $target" "$target"
+            ;;
+
+        document)
+            echo -e "${BLUE}=== Codebase Documentation Pipeline ===${NC}"
+            echo "Fase 1: @architect análisis completo"
+            if [ "$interactive" == "true" ]; then confirm "¿Continuar?" || return 0; fi
+            opencode -p "Usa @architect con project-map. Análisis completo de: $target. Documenta:
+- Stack tecnológico
+- Estructura de archivos
+- Entry points
+- APIs
+- Dependencias
+- Configuraciones"
+
+            echo -e "${BLUE}Fase 2: @docs-writer genera documentación${NC}"
+            if [ "$interactive" == "true" ]; then confirm "¿Continuar?" || return 0; fi
+            opencode -p "Usa @docs-writer. Genera documentación completa para: $target
+Crea o actualiza:
+- README.md (propósito, instalación, uso)
+- ARCHITECTURE.md (diagrama, componentes, flujo)
+- API.md (endpoints, formatos)
+- DEPLOY.md (si aplica, instrucciones de deployment)"
+
+            echo -e "${BLUE}Fase 3: @reviewer verifica documentación${NC}"
+            opencode -p "Usa @reviewer. Verifica que la documentación es:
+- Accurate ( refleja el código real)
+- Completa (cubre casos importantes)
+- Actualizada (sin información obsoleta)
+No modifiques nada, reporta problemas."
+
+            echo -e "${GREEN}=== Documentation Completada ===${NC}"
+            create_observation "feature" "Documentación generada para $target" "$target"
+            ;;
+
+        feature)
+            echo -e "${BLUE}=== Feature Development Pipeline ===${NC}"
+            local feature_desc="${3:- nueva funcionalidad}"
+            echo "Fase 1: @architect analiza para feature: $feature_desc"
+            if [ "$interactive" == "true" ]; then confirm "¿Continuar?" || return 0; fi
+            opencode -p "Usa @architect. Analiza: $target para implementar: $feature_desc. Identifica:
+- Archivos a modificar
+- Puntos de extensión
+- Posibles conflictos con código existente"
+
+            echo -e "${BLUE}Fase 2: @planner planifica${NC}"
+            if [ "$interactive" == "true" ]; then confirm "¿Continuar?" || return 0; fi
+            opencode -p "Usa @planner. Planifica implementación de: $feature_desc en: $target"
+
+            echo -e "${BLUE}Fase 3: @builder implementa${NC}"
+            if [ "$interactive" == "true" ]; then confirm "¿Continuar?" || return 0; fi
+            opencode -p "Usa @builder con safe-implementation y test-first. Implementa: $feature_desc"
+
+            echo -e "${BLUE}Fase 4: @reviewer revisa${NC}"
+            opencode -p "Usa @reviewer con precommit-review. Revisa la implementación."
+
+            echo -e "${GREEN}=== Feature Completada ===${NC}"
+            create_observation "feature" "Feature implementada: $feature_desc" "$target"
+            ;;
+
+        "")
+            echo "Usage: oc --workflow <name> [target] [--interactive]"
+            echo "Available workflows:"
+            echo "  bug-hunt      - Find and fix bugs"
+            echo "  new-project  - Setup new project"
+            echo "  debug        - Debug production issue"
+            echo "  document     - Generate documentation"
+            echo "  feature      - Develop a feature"
+            ;;
+        *)
+            echo "Unknown workflow: $workflow"
+            echo "Available: bug-hunt, new-project, debug, document, feature"
+            ;;
+    esac
+}
+
+list_workflows() {
+    echo "Available workflows:"
+    echo "  bug-hunt      - Find and fix bugs (5 phases)"
+    echo "  new-project  - Setup new project (4 phases)"
+    echo "  debug        - Debug production issue (3 phases)"
+    echo "  document     - Generate documentation (3 phases)"
+    echo "  feature      - Develop a feature (4 phases)"
 }
 
 if [ $# -eq 0 ]; then
@@ -625,6 +805,21 @@ case "$1" in
         ;;
     --budget)
         show_budget
+        ;;
+    --workflow)
+        shift
+        local workflow="$1"
+        shift
+        local target="${1:-.}"
+        shift
+        local interactive="false"
+        if [ "$1" == "--interactive" ]; then
+            interactive="true"
+        fi
+        run_workflow "$workflow" "$target" "$interactive"
+        ;;
+    --list-workflows)
+        list_workflows
         ;;
     analyze)
         quick_analyze "${2:-.}"

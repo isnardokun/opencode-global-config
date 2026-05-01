@@ -2,6 +2,37 @@
 
 Todos los cambios notables de este proyecto se documentarán en este archivo.
 
+## [1.5.0] - 2026-05-01
+
+### Agregado
+
+#### Workflow System
+Sistema de workflows que encadenan agentes en secuencia:
+
+| Workflow | Fases | Agentes |
+|----------|-------|---------|
+| `bug-hunt` | 5 | architect → security-auditor → planner → builder → reviewer |
+| `new-project` | 4 | architect → planner → builder → docs-writer |
+| `debug` | 3 | oncall → builder → security-auditor |
+| `document` | 3 | architect → docs-writer → reviewer |
+| `feature` | 4 | architect → planner → builder → reviewer |
+
+#### Comandos
+```bash
+oc --workflow bug-hunt ~/proyecto
+oc --workflow new-project "mi-api"
+oc --workflow debug "fix error"
+oc --workflow document ~/proyecto
+oc --workflow feature "add auth" ~/proyecto
+oc --workflow --interactive bug-hunt ~/proyecto  # Con confirmación entre fases
+```
+
+#### Modo Interactivo
+`--interactive` flag para pedir confirmación entre fases.
+
+#### Workflows Custom
+Sistema extensible via `~/.config/opencode/workflows/<nombre>.json`
+
 ## [1.4.0] - 2026-05-01
 
 ### Agregado

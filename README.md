@@ -216,11 +216,49 @@ summary: Usamos Redis para sesiones
 
 ---
 
+## Workflows (Cadenas de Agentes)
+
+Sistema de workflows que encadenan agentes en secuencia para tareas completas.
+
+```bash
+oc --workflow bug-hunt ~/proyecto           # 5 fases
+oc --workflow new-project "mi-api"          # 4 fases
+oc --workflow debug "fix memory leak"      # 3 fases
+oc --workflow document ~/proyecto           # 3 fases
+oc --workflow feature "add auth" ~/api      # 4 fases
+oc --workflow --interactive bug-hunt ~/proyecto  # Con confirmación entre fases
+```
+
+### Workflows Disponibles
+
+| Workflow | Fases | Agentes |
+|----------|-------|---------|
+| `bug-hunt` | 5 | architect → security-auditor → planner → builder → reviewer |
+| `new-project` | 4 | architect → planner → builder → docs-writer |
+| `debug` | 3 | oncall → builder → security-auditor |
+| `document` | 3 | architect → docs-writer → reviewer |
+| `feature` | 4 | architect → planner → builder → reviewer |
+
+### Crear Workflow Custom
+
+```json
+// ~/.config/opencode/workflows/mi-workflow.json
+{
+  "name": "mi-workflow",
+  "phases": [
+    { "name": "Phase 1", "agent": "architect" },
+    { "name": "Phase 2", "agent": "planner" }
+  ]
+}
+```
+
+---
+
 ## Estructura
 
 ```
 opencode-global-config/
-├── oc                      # Script principal con budget tracking
+├── oc                      # Script principal con workflows y 3-layer memory
 ├── agents/
 │   ├── architect.md         # + Tradeoffs declarations
 │   ├── planner.md          # + Success criteria
