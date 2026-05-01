@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+TASK="$*"
+
+if [ -n "$TASK" ]; then
+  opencode -p "
+Usa la configuración global de OpenCode.
+
+Flujo obligatorio:
+1. @architect con project-map
+2. @planner
+3. @builder con safe-implementation y test-first
+4. @reviewer con precommit-review
+5. @builder corrige solo bloqueantes
+
+Reglas:
+- No edites sin plan.
+- No reescribas archivos completos salvo necesidad.
+- Ejecuta tests/lint/build si existen.
+- No toques .env.
+- No expongas secretos.
+
+Tarea:
+$TASK
+"
+else
+  opencode
+fi
