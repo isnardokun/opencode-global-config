@@ -1,276 +1,423 @@
 # OpenCode Global Configuration
 
-Configuración global personalizada para OpenCode CLI con agentes especializados para DevOps, seguridad y desarrollo profesional.
+Configuración global personalizada para OpenCode CLI con agentes especializados, sistema de memoria, perfiles y flujo de trabajo estructurado.
 
 ## Tabla de Contenidos
 
 - [Descripción](#descripción)
-- [Agentes](#agentes)
-- [Skills](#skills)
-- [Plugin de Seguridad](#plugin-de-seguridad)
-- [Comando Global `oc`](#comando-global-oc)
-- [Flujo de Trabajo](#flujo-de-trabajo)
-- [Instalación](#instalación)
-- [Uso](#uso)
+- [Quick Start](#quick-start)
+- [Comandos Rápidos](#comandos-rápidos)
+- [Modo Interactivo](#modo-interactivo)
+- [Modo Wizard](#modo-wizard)
+- [Memory Bank](#memory-bank)
+- [Souls/Personas](#soulspersonas)
+- [Perfiles](#perfiles)
+- [Git Hooks](#git-hooks)
+- [Inicializar Proyecto](#inicializar-proyecto)
+- [Estructura](#estructura)
+- [Inspiración](#inspiración)
 
 ---
 
 ## Descripción
 
-Este repositorio contiene una configuración global para [OpenCode CLI](https://opencode.ai) que incluye:
+Este repositorio contiene una configuración avanzada para [OpenCode CLI](https://opencode.ai) inspirada en Claude Code y proyectos de código abierto.
 
-- **8 agentes especializados** con permisos y temperature ajustados
+### Características Principales
+
+- **8 agentes especializados** con permisos y temperature optimizados
 - **4 skills** para análisis y validación
 - **1 plugin de seguridad** que bloquea comandos peligrosos
-- **1 comando global** `oc` para acceso rápido
-
-Diseñado para desarrolladores y equipos DevOps que buscan un flujo de trabajo estructurado, seguro y verificable.
+- **Sistema de Memory Bank** para persistencia entre sesiones
+- **Souls/Personas** para diferentes contextos
+- **3 perfiles** (work, research, devops)
+- **Git Hooks** para revisión automática
+- **Comandos rápidos** para acceso directo
+- **Modo Wizard** guiado paso a paso
+- **Menú interactivo** con fzf
 
 ---
 
-## Agentes
+## Quick Start
 
-### Agentes Principales (Flujo de Desarrollo)
+```bash
+# Clonar e instalar
+git clone https://github.com/isnardokun/opencode-global-config.git /tmp/opencode-config
+cp -r /tmp/opencode-config/* ~/.config/opencode/
+mkdir -p ~/.local/bin && cp /tmp/opencode-config/oc ~/.local/bin/ && chmod +x ~/.local/bin/oc
 
-| Agente | Descripción | Permisos |
-|--------|-------------|----------|
-| `@architect` | Analiza arquitectura, stack y riesgos | edit: deny, bash: deny |
-| `@planner` | Divide tareas en fases verificables | edit: deny, bash: deny |
-| `@builder` | Implementa cambios controlados | edit: allow, bash: ask |
-| `@reviewer` | Revisa bugs, seguridad y estilo | edit: deny, bash: deny |
+# Verificar
+oc --help
+```
 
-### Agentes Especializados
+---
 
-| Agente | Descripción |
-|--------|-------------|
-| `@security-auditor` | Busca vulnerabilidades, credenciales expuestas, configuraciones inseguras |
-| `@docs-writer` | Genera y mantiene documentación técnica |
-| `@devops` | Docker, Kubernetes, CI/CD, Terraform, monitoreo |
-| `@oncall` | Diagnostica y resuelve problemas de producción |
+## Comandos Rápidos
 
-### Configuración de Agentes
+```bash
+# Análisis
+oc analyze ~/proyecto       # @architect + project-map
+oc plan "tarea compleja"    # @planner
+oc build "nuevo feature"   # @builder + test-first
+oc review                  # @reviewer + precommit-review
+
+# Especializados
+oc secure                  # @security-auditor
+oc docs                    # @docs-writer
+oc devops "dockerfile"     # @devops
+oc oncall                  # @oncall
+
+# Directos
+oc "cualquier tarea"        # Envía directamente a OpenCode
+```
+
+### Alias como comandos separados
+
+```bash
+oc-analyze ~/proyecto      # Equivalente a oc analyze
+oc-build "feature"         # Equivalente a oc build
+oc-secure                  # Equivalente a oc secure
+# etc.
+```
+
+---
+
+## Modo Interactivo
+
+Menú visual con fzf para seleccionar agentes y tareas:
+
+```bash
+oc --interactive
+# o simplemente
+oc -i
+```
+
+```
+╔════════════════════════════════════════════════════════════╗
+║              OpenCode Global Config - Menú                ║
+╠════════════════════════════════════════════════════════════╣
+║  [a]  @architect    - Analizar arquitectura y riesgos    ║
+║  [p]  @planner      - Planificar tarea en fases          ║
+║  [b]  @builder      - Implementar cambios                ║
+║  [r]  @reviewer     - Revisar código                     ║
+║  [s]  @security     - Auditoría de seguridad             ║
+║  [d]  @docs         - Generar documentación              ║
+║  [v]  @devops       - Tareas DevOps                       ║
+║  [o]  @oncall       - Diagnosticar producción            ║
+║  [w]  Wizard        - Modo guiado paso a paso            ║
+║  [i]  Init          - Inicializar proyecto                ║
+║  [m]  Memory        - Buscar en memoria                  ║
+║  [t]  Memory+Task   - Recordar + nueva tarea             ║
+║  [q]  Quit                                               ║
+╚════════════════════════════════════════════════════════════╝
+```
+
+---
+
+## Modo Wizard
+
+Flujo guiado paso a paso donde cada fase requiere aprobación:
+
+```bash
+oc --wizard
+# o
+oc -w
+```
+
+El wizard pregunta en cada fase:
+1. Tipo de tarea (analizar/planificar/implementar/revisar)
+2. Descripción
+3. Ejecuta el agente correspondiente
+4. Pregunta si continuar a la siguiente fase
+5. Repite hasta completar el flujo
+
+---
+
+## Memory Bank
+
+Sistema de memoria persistente que sobrevive entre sesiones.
+
+```bash
+# Buscar en memoria
+oc --memory "docker compose"
+oc --memory "autenticación JWT"
+
+# Recordar algo para después
+oc --remember "El servidor de prod usa PostgreSQL 15"
+
+# Recordar + inmediatamente trabajar en algo
+oc -t "usuario quiere dark mode" "implementa theme toggle"
+```
+
+### Estructura del Memory Bank
+
+```
+~/.config/opencode/memory/
+├── projects/           # Memoria específica por proyecto
+├── patterns/           # Patrones detectados
+├── decisions/          # Decisiones técnicas (ADR)
+├── context/            # Contexto general
+└── README.md
+```
+
+### Formato de entradas
+
+```markdown
+---
+Fecha: 2026-05-01
+Proyecto: mi-api
+Tipo: decision
+---
+
+# Decisión: Usar Redis para caché de sesiones
+
+## Razón
+- Menor latencia que PostgreSQL
+- TTL nativo
+-集群 soporte
+
+## Alternativas
+- Memcached: menos features
+- PostgreSQL: más simple pero más lento
+
+## Decisión
+Redis
+```
+
+---
+
+## Souls/Personas
+
+Cambia el "carácter" del asistente según la situación:
+
+```bash
+# Usa un soul específico
+opencode -p "Usa el soul security-auditor. Revisa este código"
+```
+
+### Souls disponibles
+
+| Soul | Descripción |
+|------|-------------|
+| `senior-developer` | 15+ años experiencia, código limpio |
+| `security-auditor` | Ciberseguridad, CISSP, CEH |
+| `devops-sre` | SRE, IaC, Kubernetes, monitoreo |
+| `code-reviewer` | Revisor estricto con checklist |
+| `tech-lead` | Liderazgo técnico, mentoring |
+
+### Personalizar Souls
+
+Edita `souls/souls.md` para crear o modificar personalidades:
 
 ```yaml
-temperature: 0.1-0.2  # Respuestas enfocadas, baja creatividad
-model: minimax-coding-plan/MiniMax-M2.7
-mode: subagent o primary
+---
+name: mi-custom-persona
+description: Descripción
+system: |
+  Tu sistema de prompts aquí...
+---
 ```
 
-### Reglas de Seguridad por Defecto
-
-- Máximo 3 archivos por iteración
-- No modificar `.env` salvo instrucción explícita
-- No exponer secretos
-- Ejecutar tests/lint/build después de editar
-- Revisar diff antes de confirmar cambios
-
 ---
 
-## Skills
+## Perfiles
 
-Skills son módulos de conocimiento que los agentes pueden cargar para tareas específicas:
-
-| Skill | Propósito |
-|-------|-----------|
-| `project-map` | Analiza estructura, stack y entrypoints |
-| `safe-implementation` | Implementación de cambios pequeños y reversibles |
-| `test-first` | Ejecución de pruebas antes y después |
-| `precommit-review` | Auditoría final antes de commit |
-
----
-
-## Plugin de Seguridad
-
-`plugins/safety-guard.js` bloquea comandos peligrosos:
-
-- `rm -rf /`
-- `rm -rf *`
-- `sudo rm -rf`
-- `mkfs`
-- `dd if=`
-- `chmod -R 777 /`
-- `chown -R`
-- Fork bombs
-
----
-
-## Comando Global `oc`
-
-Ubicación: `~/.local/bin/oc`
+Cambia configuración según el contexto:
 
 ```bash
-# Con tarea
-oc "analiza este proyecto"
+# Cambiar perfil
+oc --profile work      # Productivo (temp 0.1, máx 3 files)
+oc --profile research  # Investigación (temp 0.3, máx 10 files)
+oc --profile devops    # DevOps (security required)
 
-# Sin tarea (interactivo)
-oc
+# Listar perfiles
+oc --list-profiles
 ```
 
-El comando `oc` ejecuta OpenCode con el flujo obligatorio:
-1. `@architect` + `project-map`
-2. `@planner`
-3. `@builder` + `safe-implementation` + `test-first`
-4. `@reviewer` + `precommit-review`
-5. `@builder` corrige bloqueantes
+### Perfiles disponibles
+
+| Perfil | Temp | Max Files | Tests | Security Review |
+|--------|------|-----------|-------|-----------------|
+| work | 0.1 | 3 | Required | Optional |
+| research | 0.3 | 10 | Optional | No |
+| devops | 0.05 | 5 | Required | Required |
+
+### Crear perfil personalizado
+
+```json
+{
+  "name": "mi-perfil",
+  "description": "Descripción",
+  "model": "minimax-coding-plan/MiniMax-M2.7",
+  "temperature": 0.15,
+  "agents": {
+    "default": ["architect", "planner", "builder", "reviewer"]
+  },
+  "rules": {
+    "maxFilesPerIteration": 5,
+    "allowEnvEdit": false,
+    "requireTests": true
+  }
+}
+```
+
+Guardar en `~/.config/opencode/profiles/mi-perfil.json`
 
 ---
 
-## Flujo de Trabajo
+## Git Hooks
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    FLUJO PRINCIPAL                       │
-├─────────────────────────────────────────────────────────┤
-│  @architect ──► @planner ──► @builder ──► @reviewer     │
-│     │             │            │            │            │
-│  Diagnóstico   Fases       Implementa    Audita         │
-│  Stack         Criterios   Tests         Cambios        │
-│  Riesgos       Riesgos     Lint/Build    Aprueba/No     │
-└─────────────────────────────────────────────────────────┘
+Integración automática con git para revisar código antes de commit/push.
 
-┌─────────────────────────────────────────────────────────┐
-│                 FLUJO ESPECIALIZADO                      │
-├─────────────────────────────────────────────────────────┤
-│  @security-auditor ──► @docs-writer ──► @devops         │
-│         │                    │              │           │
-│   Vulnerabilidades      Documentación    CI/CD, K8s     │
-│   Credenciales          API, README      Terraform      │
-│   Config                                                          │
-│                    ──► @oncall                              │
-│                         │                                  │
-│                   Producción                             │
-│                   Logs, Mitigación                        │
-└─────────────────────────────────────────────────────────┘
+### Pre-commit Hook
+
+Se ejecuta antes de cada commit:
+
+```bash
+oc --init ~/proyecto
+# Esto configura .git/hooks/pre-commit automáticamente
 ```
+
+El hook ejecuta `@reviewer` con `precommit-review` para:
+- Verificar sintaxis
+- Detectar errores comunes
+- Asegurar tests pasan
+- Revisar estilos
+
+### Pre-push Hook
+
+Se ejecuta antes de hacer push:
+
+```bash
+cp ~/.config/opencode/hooks/pre-push ~/.git/hooks/
+chmod +x ~/.git/hooks/pre-push
+```
+
+El hook ejecuta `@security-auditor` para:
+- Detectar secretos hardcodeados
+- Verificar credenciales
+- Revisar configuración insegura
 
 ---
 
-## Instalación
+## Inicializar Proyecto
 
-### Requisitos
-
-- OpenCode CLI instalado
-- Git
-- Linux/macOS
-
-### Pasos
+Crea estructura `.opencode/` local para un proyecto específico:
 
 ```bash
-# 1. Clonar repositorio
-git clone https://github.com/isnardokun/opencode-global-config.git /tmp/opencode-config
-
-# 2. Copiar configuración a ~/.config/opencode
-cp -r /tmp/opencode-config/* ~/.config/opencode/
-
-# 3. Instalar comando oc
-mkdir -p ~/.local/bin
-cp /tmp/opencode-config/oc ~/.local/bin/
-chmod +x ~/.local/bin/oc
-
-# 4. Agregar al PATH (si no existe)
-grep -q '~/.local/bin' ~/.bashrc || echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
-source ~/.bashrc
+oc --init ~/mi-proyecto
+# o
+oc init
 ```
 
-### Verificar
+Esto crea:
 
-```bash
-command -v oc
-find ~/.config/opencode -maxdepth 3 -type f | sort
+```
+mi-proyecto/.opencode/
+├── opencode.json      # Config que hereda de ~/.config/opencode/
+├── CLAUDE.md          # Documentación del proyecto
+├── agents/            # Agentes específicos del proyecto (opcional)
+├── skills/            # Skills específicas del proyecto (opcional)
+└── mcp/               # MCP servers locales (opcional)
+
+mi-proyecto/.git/hooks/
+└── pre-commit         # Hook de revisión automática
 ```
 
----
+### Configuración por proyecto
 
-## Uso
+El `opencode.json` local hereda del global pero puede sobrescribir:
 
-### Ejemplos Rápidos
-
-```bash
-# Analizar un proyecto nuevo
-oc "@architect analiza /ruta/proyecto"
-
-# Planificar una tarea compleja
-oc "@planner divide 'migrar base de datos a PostgreSQL'"
-
-# Implementar cambios
-oc "@builder crea API REST con FastAPI"
-
-# Revisión de seguridad
-oc "@security-auditor revisa este código"
-
-# Documentación
-oc "@docs-writer genera README para este proyecto"
-
-# DevOps
-oc "@devops crea dockerfile y docker-compose"
-
-# Producción
-oc "@oncall hay errores 500 en producción"
-```
-
-### Para Desarrolladores
-
-```bash
-# Análisis inicial del proyecto
-oc "@architect" + project-map
-
-# Antes de implementar
-oc "@planner"
-
-# Durante implementación
-oc "@builder" + safe-implementation + test-first
-
-# Antes de commit
-oc "@reviewer" + precommit-review
+```json
+{
+  "extends": "~/.config/opencode/opencode.json",
+  "project": {
+    "name": "mi-proyecto",
+    "stack": ["Python", "FastAPI", "PostgreSQL"],
+    "entrypoints": ["src/main.py"]
+  }
+}
 ```
 
 ---
 
-## Estructura de Archivos
+## Estructura
 
 ```
 opencode-global-config/
+├── oc                      # Script principal
 ├── agents/
-│   ├── architect.md        # Agente arquitecto
-│   ├── planner.md         # Agente planificador
-│   ├── builder.md         # Agente implementador
-│   ├── reviewer.md        # Agente revisor
+│   ├── architect.md         # Agente arquitecto
+│   ├── planner.md          # Agente planificador
+│   ├── builder.md          # Agente implementador
+│   ├── reviewer.md         # Agente revisor
 │   ├── security-auditor.md
 │   ├── docs-writer.md
 │   ├── devops.md
 │   └── oncall.md
 ├── skills/
-│   ├── project-map/SKILL.md
-│   ├── safe-implementation/SKILL.md
-│   ├── test-first/SKILL.md
-│   └── precommit-review/SKILL.md
+│   ├── project-map/
+│   ├── safe-implementation/
+│   ├── test-first/
+│   └── precommit-review/
 ├── plugins/
-│   └── safety-guard.js    # Plugin seguridad
-├── logs/                   # Directorio para logs
-├── oc                      # Comando global
-├── opencode.json          # Configuración
-├── AGENTS.md              # Reglas globales
+│   └── safety-guard.js
+├── memory/                  # Sistema de memoria
+│   ├── README.md
+│   ├── projects/
+│   ├── patterns/
+│   ├── decisions/
+│   └── context/
+├── profiles/               # Perfiles de configuración
+│   ├── work.json
+│   ├── research.json
+│   └── devops.json
+├── souls/                  # Personas/characters
+│   └── souls.md
+├── prompts/                # Templates de prompts
+├── hooks/                  # Git hooks
+│   ├── pre-commit
+│   └── pre-push
+├── mcp/                    # MCP server configs
 ├── README.md
 ├── INSTALL.md
 ├── CHANGELOG.md
-├── LICENSE
-└── .gitignore
+└── LICENSE
 ```
 
 ---
 
-## Comparación: Custom vs Built-in Agents
+## Inspiración y Fuentes
 
-| Aspecto | Custom Agents | Built-in Agents |
-|---------|--------------|-----------------|
-| Temperature | 0.1-0.2 (enfoque) | No explícito |
-| Protección .env | Regla explícita | No tiene |
-| Límite archivos | máx 3/iteración | Sin límite |
-| Verificación | tests obligatorios | Opcional |
-| Pre-commit review | Checklist completo | No tiene |
-| DevOps especializado | Sí (@devops, @oncall) | No |
+Esta configuración fue inspirada y mejorada con ideas de:
 
-**Veredicto:** Los agentes custom son significativamente más seguros y estructurados para trabajo DevOps.
+### Claude Code Leaked/Reverse Engineered
+- [AnukarOP/claude-code-leaked](https://github.com/AnukarOP/claude-code-leaked) - Full source reconstruction
+- [nblintao/awesome-claude-code-postleak-insights](https://github.com/nblintao/awesome-claude-code-postleak-insights) - High-signal analyses
+- [Piebald-AI/claude-code-system-prompts](https://github.com/Piebald-AI/claude-code-system-prompts) - 9806 stars - System prompts completos
+
+### OpenCode Enhancements
+- [joelhooks/opencode-config](https://github.com/joelhooks/opencode-config) - 350 stars - Personal config
+- [Microck/opencode-studio](https://github.com/Microck/opencode-studio) - 324 stars - Web UI
+- [sdwolf4103/opencode-agenthub](https://github.com/sdwolf4103/opencode-agenthub) - Agent orchestration
+- [pyramidheadshark/opencode-scaffold](https://github.com/pyramidheadshark/opencode-scaffold) - Bootstrap con memory-bank, MCP, hooks
+- [zhylq/yuan-skills](https://github.com/zhylq/yuan-skills) - Multi-platform skills
+
+### Memory & Persistence
+- [kunickiaj/codemem](https://github.com/kunickiaj/codemem) - Persistent memory para OpenCode
+- [dr-code/tessera](https://github.com/dr-code/tessera) - MCP server para memory
+- [swarmclawai/swarmvault](https://github.com/swarmclawai/swarmvault) - RAG knowledge base (295 stars)
+
+### Skills & Plugins Marketplace
+- [jeremylongshore/claude-code-plugins-plus-skills](https://github.com/jeremylongshore/claude-code-plugins-plus-skills) - 2077 stars - 423 plugins, 2849 skills
+- [daymade/claude-code-skills](https://github.com/daymade/claude-code-skills) - 965 stars - Marketplace
+
+### CLI Enhancements
+- [junhoyeo/tokscale](https://github.com/junhoyeo/tokscale) - 2442 stars - Token usage tracking
+- [LocalKinAI/kin-code](https://github.com/LocalKinAI/kin-code) - Soul files, MCP, sub-agents
+
+### Alternativas Claude Code
+- [ducan-ne/opencoder](https://github.com/ducan-ne/opencoder) - 376 stars - Claude Code alternative
 
 ---
 
@@ -282,14 +429,14 @@ MIT License - ver [LICENSE](LICENSE)
 
 ## Changelog
 
-Ver [CHANGELOG.md](CHANGELOG.md) para historial de cambios.
+Ver [CHANGELOG.md](CHANGELOG.md) para historial completo de cambios.
 
----
-
-## Contribuir
-
-1. Fork del repositorio
-2. Crear branch (`git checkout -b feature/nueva-funcionalidad`)
-3. Commit (`git commit -am 'Agrega nueva funcionalidad'`)
-4. Push (`git push origin feature/nueva-funcionalidad`)
-5. Crear Pull Request
+### v1.1.0 (2026-05-01)
+- Agregado: Modo wizard interactivo
+- Agregado: Menú con fzf
+- Agregado: Sistema de Memory Bank
+- Agregado: Souls/Personas
+- Agregado: 3 perfiles configurables
+- Agregado: Git hooks (pre-commit, pre-push)
+- Agregado: Comandos rápidos (oc-analyze, oc-plan, etc)
+- Agregado: Sistema oc init para proyectos

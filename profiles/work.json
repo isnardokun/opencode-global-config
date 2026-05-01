@@ -1,0 +1,15 @@
+{
+  "name": "work",
+  "description": "Perfil para trabajo profesional",
+  "model": "minimax-coding-plan/MiniMax-M2.7",
+  "temperature": 0.1,
+  "agents": {
+    "default": ["architect", "planner", "builder", "reviewer"]
+  },
+  "rules": {
+    "maxFilesPerIteration": 3,
+    "allowEnvEdit": false,
+    "allowSecret": false,
+    "requireTests": true
+  }
+}

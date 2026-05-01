@@ -1,0 +1,27 @@
+#!/bin/bash
+
+echo ""
+echo "🔍 OpenCode Pre-Commit Review"
+echo "=============================="
+
+opencode -p "
+Usa @reviewer con precommit-review.
+
+Revisa los archivos modificados en este commit.
+
+Reglas:
+- No modifiques archivos.
+- Reporta solo hallazgos.
+- Si hay errores críticos, el commit será rechazado.
+
+Resumen esperado:
+1. Archivos modificados
+2. Hallazgos críticos (bloqueantes)
+3. Hallazgos medios
+4. Pruebas ejecutadas
+5. Recomendación: aprobar/corregir
+" && echo "" && echo "✅ Pre-commit aprobado" || {
+    echo ""
+    echo "❌ Pre-commit rechazado. Corrige los errores antes de.commitir."
+    exit 1
+}

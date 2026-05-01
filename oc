@@ -1,28 +1,426 @@
 #!/usr/bin/env bash
 
-TASK="$*"
+set -e
 
-if [ -n "$TASK" ]; then
-  opencode -p "
-Usa la configuración global de OpenCode.
+OC_CONFIG="${HOME}/.config/opencode"
+OC_BIN="${HOME}/.local/bin"
+OC_MEMORY="${OC_CONFIG}/memory"
+OC_PROFILES="${OC_CONFIG}/profiles"
+CURRENT_PROFILE="${OC_CONFIG}/.current_profile"
 
-Flujo obligatorio:
-1. @architect con project-map
-2. @planner
-3. @builder con safe-implementation y test-first
-4. @reviewer con precommit-review
-5. @builder corrige solo bloqueantes
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
 
-Reglas:
-- No edites sin plan.
-- No reescribas archivos completos salvo necesidad.
-- Ejecuta tests/lint/build si existen.
-- No toques .env.
-- No expongas secretos.
+info() { echo -e "${BLUE}[INFO]${NC} $1"; }
+success() { echo -e "${GREEN}[OK]${NC} $1"; }
+warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+error() { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 
-Tarea:
-$TASK
-"
-else
-  opencode
+check_deps() {
+    local missing=()
+    for cmd in fzf opencode; do
+        command -v $cmd >/dev/null 2>&1 || missing+=($cmd)
+    done
+    if [ ${#missing[@]} -gt 0 ]; then
+        error "Dependencies missing: ${missing[*]}. Install with: dnf install fzf"
+    fi
+}
+
+check_deps
+
+show_menu() {
+    cat << 'EOF'
+╔════════════════════════════════════════════════════════════╗
+║              OpenCode Global Config - Menú                ║
+╠════════════════════════════════════════════════════════════╣
+║  [a]  @architect    - Analizar arquitectura y riesgos    ║
+║  [p]  @planner      - Planificar tarea en fases          ║
+║  [b]  @builder      - Implementar cambios                ║
+║  [r]  @reviewer     - Revisar código                     ║
+║  [s]  @security     - Auditoría de seguridad             ║
+║  [d]  @docs         - Generar documentación              ║
+║  [v]  @devops       - Tareas DevOps                       ║
+║  [o]  @oncall       - Diagnosticar producción            ║
+║  [w]  Wizard        - Modo guiado paso a paso            ║
+║  [i]  Init          - Inicializar proyecto               ║
+║  [m]  Memory        - Buscar en memoria                  ║
+║  [t]  Memory+Task   - Recordar + nueva tarea             ║
+║  [q]  Quit                                               ║
+╚════════════════════════════════════════════════════════════╝
+EOF
+}
+
+run_agent() {
+    local agent=$1
+    local task=$2
+    shift 2
+    opencode -p "Usa el agente @${agent}. $task"
+}
+
+run_wizard() {
+    echo -e "${BLUE}=== Modo Wizard - Paso a Paso ===${NC}"
+    echo ""
+
+    echo "Selecciona el tipo de tarea:"
+    echo "1) Analizar proyecto (architecture + risks)"
+    echo "2) Planificar tarea compleja"
+    echo "3) Implementar nuevo feature"
+    echo "4) Revisar código existente"
+    echo "5) Auditoría de seguridad"
+    echo "6) DevOps (Docker, CI/CD, etc)"
+    echo ""
+
+    read -p "Opción [1-6]: " option
+    echo ""
+
+    case $option in
+        1)
+            read -p "Ruta del proyecto: " path
+            echo ""
+            info "Fase 1: @architect + project-map"
+            opencode -p "Usa @architect con project-map. Analiza: $path"
+            echo ""
+            read -p "Continuar a planificación? [y/n]: " cont
+            if [[ "$cont" == "y" ]]; then
+                echo ""
+                info "Fase 2: @planner"
+                opencode -p "Usa @planner. Divide en fases verificables esta tarea: análisis de $path"
+            fi
+            ;;
+        2)
+            read -p "Describe la tarea: " task
+            echo ""
+            info "Fase 1: @planner"
+            opencode -p "Usa @planner. Divide esta tarea en fases: $task"
+            echo ""
+            read -p "Continuar a implementación? [y/n]: " cont
+            if [[ "$cont" == "y" ]]; then
+                echo ""
+                info "Fase 2: @builder"
+                opencode -p "Usa @builder con safe-implementation y test-first. Implementa: $task"
+            fi
+            ;;
+        3)
+            read -p "Descripción del feature: " feature
+            echo ""
+            info "Fase 1: @architect"
+            opencode -p "Usa @architect. Analiza el proyecto actual para implementar: $feature"
+            echo ""
+            info "Fase 2: @planner"
+            opencode -p "Usa @planner. Planifica la implementación de: $feature"
+            echo ""
+            info "Fase 3: @builder"
+            opencode -p "Usa @builder con safe-implementation y test-first. Implementa: $feature"
+            echo ""
+            info "Fase 4: @reviewer"
+            opencode -p "Usa @reviewer con precommit-review. Revisa los cambios."
+            ;;
+        4)
+            read -p "Archivos a revisar: " files
+            echo ""
+            info "Fase 1: @reviewer"
+            opencode -p "Usa @reviewer. Revisa: $files"
+            echo ""
+            read -p "Ejecutar auditoría de seguridad? [y/n]: " sec
+            if [[ "$sec" == "y" ]]; then
+                echo ""
+                info "Fase 2: @security-auditor"
+                opencode -p "Usa @security-auditor. Busca vulnerabilidades en: $files"
+            fi
+            ;;
+        5)
+            read -p "Ruta a auditar: " path
+            echo ""
+            info "Fase 1: @security-auditor"
+            opencode -p "Usa @security-auditor. Auditoría completa de: $path"
+            ;;
+        6)
+            read -p "Descripción tarea DevOps: " task
+            echo ""
+            info "Fase 1: @devops"
+            opencode -p "Usa @devops. $task"
+            ;;
+    esac
+}
+
+run_init() {
+    local target_dir="${1:-.}"
+    local opencode_dir="${target_dir}/.opencode"
+
+    if [ -d "${opencode_dir}" ]; then
+        warn "Ya existe ${opencode_dir}/"
+        read -p "Sobrescribir? [y/n]: " confirm
+        [[ "$confirm" != "y" ]] && exit 0
+        rm -rf "${opencode_dir}"
+    fi
+
+    info "Creando estructura de proyecto..."
+    mkdir -p "${opencode_dir}"/{agents,skills,mcp,hooks}
+    mkdir -p "${target_dir}/.git/hooks"
+
+    cat > "${opencode_dir}/opencode.json" << 'EOF'
+{
+  "$schema": "https://opencode.ai/config.json",
+  "extends": "~/.config/opencode/opencode.json",
+  "project": {
+    "name": "",
+    "stack": [],
+    "entrypoints": []
+  },
+  "agents": {
+    "project": "~/.opencode/agents"
+  }
+}
+EOF
+
+    cat > "${opencode_dir}/CLAUDE.md" << 'EOF'
+# Proyecto
+
+## Descripción
+Describe tu proyecto aquí.
+
+## Stack Tecnológico
+- ...
+
+## Comandos
+```bash
+npm install
+npm test
+npm run build
+```
+
+## Estructura
+```
+.
+├── src/
+├── tests/
+└── ...
+```
+
+## Notas
+- Configuración específica del proyecto
+- Convenciones
+- Contacto del equipo
+EOF
+
+    cat > "${target_dir}/.git/hooks/pre-commit" << 'HOOK'
+#!/bin/bash
+echo "Ejecutando revisión pre-commit..."
+opencode -p "Ejecuta @reviewer con precommit-review. Revisa los archivos modificados. No modifiques nada."
+HOOK
+    chmod +x "${target_dir}/.git/hooks/pre-commit"
+
+    success "Proyecto inicializado en ${opencode_dir}/"
+    success "Git hook configurado en ${target_dir}/.git/hooks/pre-commit"
+}
+
+memory_search() {
+    if [ ! -d "${OC_MEMORY}" ]; then
+        mkdir -p "${OC_MEMORY}"
+        warn "Memory bank vacío. Creado ${OC_MEMORY}/"
+        return
+    fi
+
+    local query="$*"
+    if [ -z "$query" ]; then
+        echo "Archivos en memory bank:"
+        ls -la "${OC_MEMORY}/"
+        return
+    fi
+
+    echo -e "${BLUE}Buscando en memory bank...${NC}"
+    grep -rli "$query" "${OC_MEMORY}/" 2>/dev/null || echo "No encontrado"
+}
+
+memory_save() {
+    local context="$1"
+    local timestamp=$(date +%Y%m%d-%H%M%S)
+    echo -e "---\nFecha: $(date)\nContexto: ${context}\n---\n" >> "${OC_MEMORY}/${timestamp}.md"
+    success "Guardado en ${OC_MEMORY}/${timestamp}.md"
+}
+
+run_interactive() {
+    local choice
+    choice=$(show_menu | fzf --height=15 --border --prompt="Selecciona opción: " | awk '{print $1}' | tr -d '[]')
+
+    case $choice in
+        a) run_agent "architect" "Analiza el proyecto actual sin modificar" ;;
+        p) run_agent "planner" "Divide esta tarea en fases: $(read -p 'Tarea: '; echo $REPLY)" ;;
+        b) run_agent "builder" "Implementa este cambio: $(read -p 'Cambio: '; echo $REPLY)" ;;
+        r) run_agent "reviewer" "Revisa los cambios realizados" ;;
+        s) run_agent "security-auditor" "Audita seguridad del proyecto actual" ;;
+        d) run_agent "docs-writer" "Genera/actualiza documentación del proyecto" ;;
+        v) run_agent "devops" "Tarea DevOps: $(read -p 'Descripción: '; echo $REPLY)" ;;
+        o) run_agent "oncall" "Diagnostica problema en producción" ;;
+        w) run_wizard ;;
+        i) run_init "$(pwd)" ;;
+        m) shift; memory_search "$@" ;;
+        t)
+            echo "Describe lo que quieres recordar:"
+            read -r context
+            memory_save "$context"
+            echo "Ahora describe tu tarea:"
+            read -r task
+            opencode -p "Contexto remembered: $context. Tarea: $task"
+            ;;
+        q) exit 0 ;;
+    esac
+}
+
+show_help() {
+    cat << 'EOF'
+OpenCode Global Config - Comando oc
+
+USO:
+    oc [opción] [comando] [argumentos]
+
+OPCIONES:
+    -w, --wizard         Modo guiado paso a paso
+    -i, --interactive    Menú interactivo con fzf
+    --init [ruta]        Inicializar proyecto con .opencode/
+    --memory <texto>     Buscar en memory bank
+    --remember <texto>   Guardar en memory bank
+    -p, --profile <nom>  Cambiar perfil (work/research/devops)
+    -l, --list-profiles  Listar perfiles disponibles
+    -h, --help           Mostrar esta ayuda
+
+COMANDOS RÁPIDOS:
+    oc analyze <ruta>    @architect + project-map
+    oc plan <tarea>       @planner
+    oc build <cambio>     @builder + test-first
+    oc review            @reviewer + precommit-review
+    oc secure            @security-auditor
+    oc docs              @docs-writer
+    oc devops <tarea>    @devops
+    oc oncall            @oncall
+
+EJEMPLOS:
+    oc analyze ~/proyecto
+    oc --wizard
+    oc --interactive
+    oc --init ~/microservicio
+    oc --profile work
+    oc build "agregar auth con JWT"
+
+CONFIGURACIÓN:
+    ~/.config/opencode/     Config global
+    ~/.config/opencode/memory/  Memory bank
+    ~/.config/opencode/profiles/  Perfiles
+
+EOF
+}
+
+quick_analyze() {
+    opencode -p "Usa @architect con project-map. Analiza: $1"
+}
+
+quick_plan() {
+    opencode -p "Usa @planner. Divide en fases: $1"
+}
+
+quick_build() {
+    opencode -p "Usa @builder con safe-implementation y test-first. Implementa: $1"
+}
+
+quick_review() {
+    opencode -p "Usa @reviewer con precommit-review. Revisa los cambios."
+}
+
+quick_secure() {
+    opencode -p "Usa @security-auditor. Auditoría de seguridad."
+}
+
+quick_docs() {
+    opencode -p "Usa @docs-writer. Genera documentación del proyecto."
+}
+
+quick_devops() {
+    opencode -p "Usa @devops. $1"
+}
+
+quick_oncall() {
+    opencode -p "Usa @oncall. Diagnostica el problema."
+}
+
+list_profiles() {
+    if [ ! -d "${OC_PROFILES}" ]; then
+        mkdir -p "${OC_PROFILES}"
+        echo "work"
+        echo "research"
+        echo "devops"
+        return
+    fi
+    ls "${OC_PROFILES}/"
+}
+
+switch_profile() {
+    local profile=$1
+    echo "$profile" > "${CURRENT_PROFILE}"
+    success "Perfil cambiado a: $profile"
+}
+
+if [ $# -eq 0 ]; then
+    opencode
+    exit 0
 fi
+
+case "$1" in
+    -w|--wizard)
+        run_wizard
+        ;;
+    -i|--interactive)
+        run_interactive
+        ;;
+    --init)
+        run_init "${2:-.}"
+        ;;
+    --memory)
+        shift
+        memory_search "$@"
+        ;;
+    --remember)
+        shift
+        memory_save "$*"
+        ;;
+    -p|--profile)
+        switch_profile "$2"
+        ;;
+    -l|--list-profiles)
+        list_profiles
+        ;;
+    -h|--help)
+        show_help
+        ;;
+    analyze)
+        quick_analyze "${2:-.}"
+        ;;
+    plan)
+        quick_plan "$2"
+        ;;
+    build)
+        shift
+        quick_build "$*"
+        ;;
+    review)
+        quick_review
+        ;;
+    secure)
+        quick_secure
+        ;;
+    docs)
+        quick_docs
+        ;;
+    devops)
+        shift
+        quick_devops "$*"
+        ;;
+    oncall)
+        quick_oncall
+        ;;
+    *)
+        opencode -p "$*"
+        ;;
+esac

@@ -1,0 +1,15 @@
+{
+  "name": "research",
+  "description": "Perfil para investigación y exploración",
+  "model": "minimax-coding-plan/MiniMax-M2.7-highspeed",
+  "temperature": 0.3,
+  "agents": {
+    "default": ["explore", "general"]
+  },
+  "rules": {
+    "maxFilesPerIteration": 10,
+    "allowEnvEdit": true,
+    "allowSecret": false,
+    "requireTests": false
+  }
+}

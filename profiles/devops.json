@@ -1,0 +1,16 @@
+{
+  "name": "devops",
+  "description": "Perfil para tareas DevOps e infraestructura",
+  "model": "minimax-coding-plan/MiniMax-M2.7",
+  "temperature": 0.05,
+  "agents": {
+    "default": ["devops", "security-auditor", "oncall"]
+  },
+  "rules": {
+    "maxFilesPerIteration": 5,
+    "allowEnvEdit": false,
+    "allowSecret": false,
+    "requireTests": true,
+    "requireSecurityReview": true
+  }
+}

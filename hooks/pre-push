@@ -1,0 +1,21 @@
+#!/bin/bash
+
+echo ""
+echo "🔍 OpenCode Pre-Push Review"
+echo "============================"
+
+opencode -p "
+Usa @security-auditor.
+
+Antes de hacer push, verifica:
+1. Secretos en código
+2. Credenciales hardcodeadas
+3. Tokens API expuestos
+4. Configuración insegura
+
+Si encuentra algo crítico, rechaza el push.
+" && echo "" && echo "✅ Pre-push aprobado" || {
+    echo ""
+    echo "❌ Pre-push rechazado. Seguridad comprometida."
+    exit 1
+}
