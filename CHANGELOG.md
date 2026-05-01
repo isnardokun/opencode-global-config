@@ -2,6 +2,51 @@
 
 Todos los cambios notables de este proyecto se documentarán en este archivo.
 
+## [1.4.0] - 2026-05-01
+
+### Agregado
+
+#### Memory Retrieval Skill (3-Layer Workflow)
+Inspirado en claude-mem (70.7k stars):
+- **Capa 1: search** - Resultados compactos con IDs (~50-100 tokens)
+- **Capa 2: timeline** - Contexto cronológico (~200 tokens)
+- **Capa 3: get_observations** - Detalle completo (~500-1000 tokens)
+- **~10x token savings** vs cargar todo de una vez
+
+#### Observation Format
+```markdown
+---
+id: obs_XXX
+date: 2026-05-01 14:30:00
+project: mi-api
+type: bugfix|feature|decision|note|config|refactor|review
+summary: Título corto
+tokens_est: 500
+---
+
+Contenido completo...
+```
+
+#### Privacy Tags
+`<private>...</private>` excluye contenido de resúmenes y búsquedas.
+
+#### Auto-capture Functions
+- `generate_obs_id()` - Genera IDs únicos
+- `create_observation()` - Crea observation files
+- `search_memory()` - Búsqueda con filtros
+- `get_observations()` - Carga detalles por ID
+- `get_timeline()` - Contexto cronológico
+- `capture_session()` - Captura estado de sesión
+
+#### Observation Types
+- bugfix, feature, decision, note, config
+- refactor, review, investigation, success
+
+### Modificado
+
+- Script `oc` ahora tiene 3-layer memory retrieval integrado
+- Help actualizado con nuevos comandos de memory
+
 ## [1.3.0] - 2026-05-01
 
 ### Agregado

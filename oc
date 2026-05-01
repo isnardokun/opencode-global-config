@@ -66,6 +66,139 @@ show_budget() {
     [ $turns -gt 20 ] && echo "Consider running: oc --compact"
 }
 
+generate_obs_id() {
+    date +%Y%m%d-%H%M%S-%N | head -c 12
+}
+
+create_observation() {
+    local type="${1:-note}"
+    local content="$2"
+    local project="${3:-global}"
+    local obs_id=$(generate_obs_id)
+
+    if [ -z "$content" ]; then
+        echo "Error: content is required"
+        return 1
+    fi
+
+    local obs_dir="${OC_MEMORY}/projects/${project}"
+    mkdir -p "$obs_dir"
+
+    local obs_file="${obs_dir}/${obs_id}.md"
+
+    cat > "$obs_file" << EOF
+---
+id: obs_${obs_id}
+date: $(date +%Y-%m-%d\ %H:%M:%S)
+project: ${project}
+type: ${type}
+summary: ${content:0:100}
+tokens_est: 200
+---
+
+${content}
+
+$(echo "<private>"; echo "Contenido sensible aqui"; echo "</private>")
+EOF
+
+    echo "$obs_id" > "${OC_MEMORY}/.last_obs_id"
+    success "Observation created: obs_${obs_id}"
+
+    grep -q "^<!-- INDEX_START -->" "${OC_MEMORY}/INDEX.md" && {
+        echo "obs_${obs_id} | $(date +%Y-%m-%d) | ${project} | ${type} | ${content:0:80}" >> "${OC_MEMORY}/INDEX.md"
+    }
+}
+
+search_memory() {
+    local query="${1:-}"
+    local project="${2:-}"
+    local type="${3:-}"
+
+    if [ -z "$query" ]; then
+        echo "Usage: oc --memory <query> [-p project] [-t type]"
+        return 1
+    fi
+
+    if [ ! -f "${OC_MEMORY}/INDEX.md" ]; then
+        warn "No memory index found. Use oc --remember to add observations."
+        return 1
+    fi
+
+    local results=$(grep -i "$query" "${OC_MEMORY}/INDEX.md" 2>/dev/null | head -20)
+
+    if [ -z "$results" ]; then
+        echo "No results found for: $query"
+        return 1
+    fi
+
+    echo -e "${BLUE}=== Memory Search Results ===${NC}"
+    echo "$results" | while IFS= read -r line; do
+        echo "$line"
+    done
+    echo ""
+    echo "Use --timeline <obs_id> for context or --get <id1,id2> for full details."
+}
+
+get_observations() {
+    local ids="${1:-}"
+
+    if [ -z "$ids" ]; then
+        echo "Usage: oc --get <obs_id1,obs_id2,...>"
+        return 1
+    fi
+
+    IFS=',' read -ra OBS_IDS <<< "$ids"
+
+    for obs_id in "${OBS_IDS[@]}"; do
+        obs_id=$(echo "$obs_id" | tr -d ' ')
+        local obs_file=$(find "${OC_MEMORY}" -name "${obs_id}.md" 2>/dev/null | head -1)
+
+        if [ -z "$obs_file" ]; then
+            warn "Observation not found: $obs_id"
+            continue
+        fi
+
+        echo -e "${BLUE}=== obs_${obs_id} ===${NC}"
+        cat "$obs_file"
+        echo ""
+    done
+}
+
+get_timeline() {
+    local obs_id="${1:-}"
+
+    if [ -z "$obs_id" ]; then
+        echo "Usage: oc --timeline <obs_id>"
+        return 1
+    fi
+
+    local obs_file=$(find "${OC_MEMORY}" -name "${obs_id}.md" 2>/dev/null | head -1)
+
+    if [ -z "$obs_file" ]; then
+        warn "Observation not found: $obs_id"
+        return 1
+    fi
+
+    local obs_dir=$(dirname "$obs_file")
+    local project=$(grep "^project:" "$obs_file" | cut -d':' -f2 | tr -d ' ')
+
+    echo -e "${BLUE}=== Timeline around $obs_id ===${NC}"
+    ls -t "$obs_dir"/*.md 2>/dev/null | head -5 | while read -r f; do
+        local fname=$(basename "$f" .md)
+        local summary=$(grep "^summary:" "$f" 2>/dev/null | cut -d':' -f2 | tr -d ' ')
+        local date=$(grep "^date:" "$f" 2>/dev/null | cut -d':' -f2 | tr -d ' ')
+        echo "$fname | $date | ${summary:0:80}"
+    done
+}
+
+capture_session() {
+    info "Session started: $(date)"
+    info "Project: ${PWD}"
+    echo "---" >> "${OC_MEMORY}/sessions.log"
+    echo "Session: $(date)" >> "${OC_MEMORY}/sessions.log"
+    echo "Directory: ${PWD}" >> "${OC_MEMORY}/sessions.log"
+}
+
 check_deps
 track_turn
 
@@ -319,13 +452,19 @@ OPCIONES:
     -w, --wizard         Modo guiado paso a paso
     -i, --interactive    Menú interactivo con fzf
     --init [ruta]        Inicializar proyecto con .opencode/
-    --memory <texto>     Buscar en memory bank
-    --remember <texto>   Guardar en memory bank
     -p, --profile <nom>  Cambiar perfil (work/research/devops)
     -l, --list-profiles  Listar perfiles disponibles
     --compact           Ejecutar compaction pipeline (reset turns)
     --budget            Mostrar uso de sesión
     -h, --help          Mostrar esta ayuda
+
+MEMORY (3-Layer Workflow):
+    --memory <texto>     Capa 1: Buscar en index (results compactos)
+    --timeline <obs_id>  Capa 2: Timeline cronológico
+    --get <id1,id2>      Capa 3: Detalle completo de observaciones
+    --remember <texto>   Crear observación nueva
+    --capture            Capturar estado actual de sesión
+    -t, --type <tipo>    Filtrar por tipo (bugfix|feature|decision|note|config)
 
 COMANDOS RÁPIDOS:
     oc analyze <ruta>    @architect + project-map
@@ -337,6 +476,12 @@ COMANDOS RÁPIDOS:
     oc devops <tarea>    @devops
     oc oncall            @oncall
 
+MEMORY RETRIEVAL (3-LAYER):
+    oc --memory "auth bug"                    # Search
+    oc --memory --timeline obs_001            # Timeline
+    oc --memory --get obs_001,obs_002         # Full details
+    oc --remember -t bugfix "fixed JWT"      # New observation
+
 EJEMPLOS:
     oc analyze ~/proyecto
     oc --wizard
@@ -344,11 +489,13 @@ EJEMPLOS:
     oc --init ~/microservicio
     oc --profile work
     oc build "agregar auth con JWT"
+    oc --memory "docker" -p mi-api -t decision
+    oc --remember -t feature "nueva API endpoint"
 
 CONFIGURACIÓN:
     ~/.config/opencode/     Config global
-    ~/.config/opencode/memory/  Memory bank
-    ~/.config/opencode/profiles/  Perfiles
+    ~/.config/opencode/memory/  Memory bank (3-layer)
+    ~/.config/opencode/profiles/  Perfiles (7 levels)
 
 EOF
 }
@@ -417,13 +564,45 @@ case "$1" in
     --init)
         run_init "${2:-.}"
         ;;
-    --memory)
+    -t|--type)
         shift
-        memory_search "$@"
+        local type="$1"
+        shift
+        search_memory "$*" "" "$type"
+        ;;
+    --timeline)
+        get_timeline "$2"
+        ;;
+    --get)
+        get_observations "$2"
+        ;;
+    --capture)
+        capture_session
         ;;
     --remember)
         shift
-        memory_save "$*"
+        local type="note"
+        if [ "$1" == "-t" ]; then
+            shift
+            type="$1"
+            shift
+        fi
+        create_observation "$type" "$*"
+        ;;
+    --memory)
+        shift
+        if [ "$1" == "--timeline" ]; then
+            get_timeline "$2"
+        elif [ "$1" == "--get" ]; then
+            get_observations "$2"
+        elif [ "$1" == "-t" ]; then
+            shift
+            local type="$1"
+            shift
+            search_memory "$*" "" "$type"
+        else
+            search_memory "$1" "${2:-}" "${3:-}"
+        fi
         ;;
     -p|--profile)
         switch_profile "$2"

@@ -161,9 +161,39 @@ oc --compact          # Ejecutar compaction pipeline
 
 ---
 
-## Memory Bank
+## Memory Bank (3-Layer Retrieval)
 
-Sistema de memoria persistente con búsqueda por headers (no vector DB):
+Sistema de memoria persistente con búsqueda por headers e **Progressive Disclosure** (3 camadas):
+
+```bash
+# Capa 1: Search (~50-100 tokens/resultado)
+oc --memory "docker" -p mi-api -t decision
+
+# Capa 2: Timeline (~200 tokens)
+oc --memory --timeline obs_001
+
+# Capa 3: Get full detail (~500-1000 tokens)
+oc --memory --get obs_001,obs_002
+
+# Crear observación
+oc --remember -t bugfix "Fixed JWT expiration bug"
+oc --remember "Nota general"
+```
+
+### Formato de Observations
+
+```markdown
+---
+id: obs_XXX
+date: 2026-05-01 14:30:00
+project: mi-api
+type: bugfix
+summary: Fix JWT expiration bug
+tokens_est: 500
+---
+
+Contenido completo de la observación...
+
 
 ```bash
 # Buscar
