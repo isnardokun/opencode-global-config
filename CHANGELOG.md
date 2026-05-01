@@ -2,6 +2,30 @@
 
 Todos los cambios notables de este proyecto se documentarán en este archivo.
 
+## [1.6.0] - 2026-05-01
+
+### Modificado
+
+#### Automatic Single-Pass Workflows
+- **Problema**: Workflows ejecutaban múltiples llamadas `opencode run` con timeout de 60s por fase
+- **Solución**: Un solo `opencode run` con todas las fases codificadas en el prompt
+- **Resultado**: workflows ejecutan 3-5 fases en ~3-5 min sin timeout
+
+```bash
+# Antes (timeout por fase)
+oc --workflow document ~/proyecto  # fallaba en fase 2
+
+# Ahora (single-pass)
+oc --workflow document ~/proyecto  # ✅ completa en ~3min
+```
+
+#### 5 Workflows Actualizados
+- `bug-hunt`: architect → security → planner → builder → reviewer
+- `new-project`: architect → planner → builder → docs
+- `debug`: oncall → builder → security
+- `document`: architect → docs-writer → reviewer
+- `feature`: architect → planner → builder → reviewer
+
 ## [1.5.0] - 2026-05-01
 
 ### Agregado

@@ -216,41 +216,48 @@ summary: Usamos Redis para sesiones
 
 ---
 
-## Workflows (Cadenas de Agentes)
+## Workflows (Automatic Single-Pass)
 
-Sistema de workflows que encadenan agentes en secuencia para tareas completas.
+Sistema de workflows que ejecutan **todas las fases automáticamente en una sola pasada** de OpenCode. Sin intervención del usuario.
 
 ```bash
+# Ejecución automática (sin confirmación entre fases)
 oc --workflow bug-hunt ~/proyecto           # 5 fases
 oc --workflow new-project "mi-api"          # 4 fases
 oc --workflow debug "fix memory leak"      # 3 fases
 oc --workflow document ~/proyecto           # 3 fases
 oc --workflow feature "add auth" ~/api      # 4 fases
-oc --workflow --interactive bug-hunt ~/proyecto  # Con confirmación entre fases
 ```
 
 ### Workflows Disponibles
 
-| Workflow | Fases | Agentes |
-|----------|-------|---------|
-| `bug-hunt` | 5 | architect → security-auditor → planner → builder → reviewer |
-| `new-project` | 4 | architect → planner → builder → docs-writer |
-| `debug` | 3 | oncall → builder → security-auditor |
-| `document` | 3 | architect → docs-writer → reviewer |
-| `feature` | 4 | architect → planner → builder → reviewer |
+| Workflow | Fases | Agentes | Tiempo |
+|----------|-------|---------|--------|
+| `bug-hunt` | 5 | architect → security → planner → builder → reviewer | ~5min |
+| `new-project` | 4 | architect → planner → builder → docs | ~4min |
+| `debug` | 3 | oncall → builder → security | ~3min |
+| `document` | 3 | architect → docs-writer → reviewer | ~3min |
+| `feature` | 4 | architect → planner → builder → reviewer | ~4min |
 
-### Crear Workflow Custom
+### Cómo Funciona
 
-```json
-// ~/.config/opencode/workflows/mi-workflow.json
-{
-  "name": "mi-workflow",
-  "phases": [
-    { "name": "Phase 1", "agent": "architect" },
-    { "name": "Phase 2", "agent": "planner" }
-  ]
-}
+Cada workflow envía **un solo comando `opencode run`** con todas las fases codificadas en el prompt:
+
 ```
+opencode run "Ejecuta el workflow COMPLETO de document para: $target
+
+FASE 1 - @architect con project-map:
+- Analiza el proyecto en: $target
+- Documenta: stack, estructura, entry points, APIs
+
+FASE 2 - @docs-writer genera documentación:
+- Crea README.md, ARCHITECTURE.md, API.md
+
+FASE 3 - @reviewer verifica documentación
+..."
+```
+
+El agente ejecuta todas las fases secuencialmente y crea los archivos en el proyecto objetivo.
 
 ---
 
