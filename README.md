@@ -47,7 +47,7 @@ Este repositorio contiene una configuración avanzada para [OpenCode CLI](https:
 ### Características Principales (v1.7)
 
 - **8 agentes especializados** con permisos y temperature optimizados
-- **5 skills** para análisis, implementación, validación y memoria
+- **6 skills** para análisis, implementación, validación, memoria y documentación
 - **1 plugin de seguridad** con regex hardening (whitespace-normalized matching)
 - **Sistema de Memory Bank** con 3-layer retrieval (search/timeline/get)
 - **5 workflows single-pass** (bug-hunt, new-project, debug, document, feature)
@@ -713,7 +713,8 @@ opencode-global-config/
 │   ├── safe-implementation/ # Cambios pequeños y verificables
 │   ├── test-first/          # Goal-Driven Execution
 │   ├── precommit-review/    # Revisión de diff
-│   └── memory-retrieval/    # 3-layer progressive disclosure
+│   ├── memory-retrieval/    # 3-layer progressive disclosure
+│   └── docs-writer/         # Documentación técnica
 ├── plugins/
 │   └── safety-guard.js      # Regex hardening, whitespace normalization
 ├── memory/

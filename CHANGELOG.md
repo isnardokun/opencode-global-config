@@ -27,12 +27,11 @@ Todos los cambios notables de este proyecto se documentarán en este archivo.
 
 ### Documentación
 
-- **Corregido "6 skills" → 5 skills** (el repo contiene 5 `SKILL.md`)
+- **Añadido docs-writer skill** — skill de documentación técnica para generar README, ARCHITECTURE, API y DEPLOY
+- **Corregido "6 skills" → 6 skills** — ahora con docs-writer skill incluido
 - **Eliminada tabla de compaction ficticia** — reemplazada por descripción honesta del contador de turns
 - **Actualizada sintaxis `--workflow feature`** — documenta los 2 argumentos obligatorios (descripción + path)
 - **Changelog honesto** — separado lo que v1.6 documentó vs lo que v1.7 realmente implementó
-
-## [1.6.0] - 2026-05-01
 
 ### Modificado
 
