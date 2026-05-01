@@ -1,0 +1,21 @@
+{
+  "name": "auto",
+  "description": "Modo automático con ML classifier - aprobado según historial",
+  "model": "minimax-coding-plan/MiniMax-M2.7",
+  "temperature": 0.2,
+  "agents": {
+    "default": ["architect", "planner", "builder", "reviewer", "security-auditor"]
+  },
+  "rules": {
+    "edit": "auto",
+    "bash": "auto",
+    "createFiles": "auto",
+    "deleteFiles": "ask",
+    "network": "read-only",
+    "maxFilesPerIteration": 5,
+    "allowEnvEdit": false,
+    "requireSecurityReview": true,
+    "trackDecisions": true,
+    "mlApproval": true
+  }
+}

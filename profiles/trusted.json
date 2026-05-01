@@ -1,0 +1,21 @@
+{
+  "name": "trusted",
+  "description": "Desarrollador experimentado - ediciones directas con rollback disponible",
+  "model": "minimax-coding-plan/MiniMax-M2.7-highspeed",
+  "temperature": 0.3,
+  "agents": {
+    "default": ["builder", "reviewer", "devops"]
+  },
+  "rules": {
+    "edit": "allow",
+    "bash": "allow",
+    "createFiles": "allow",
+    "deleteFiles": "allow",
+    "network": "allow",
+    "maxFilesPerIteration": 10,
+    "allowEnvEdit": false,
+    "requireTests": true,
+    "requireRollback": true,
+    "checkpointBeforeChanges": true
+  }
+}

@@ -1,16 +1,24 @@
 {
   "name": "devops",
-  "description": "Perfil para tareas DevOps e infraestructura",
+  "description": "Infraestructura - puede hacer deployments, rollback, cambios de config",
   "model": "minimax-coding-plan/MiniMax-M2.7",
   "temperature": 0.05,
   "agents": {
-    "default": ["devops", "security-auditor", "oncall"]
+    "default": ["devops", "oncall", "security-auditor"]
   },
   "rules": {
-    "maxFilesPerIteration": 5,
-    "allowEnvEdit": false,
-    "allowSecret": false,
-    "requireTests": true,
-    "requireSecurityReview": true
+    "edit": "allow",
+    "bash": "allow",
+    "createFiles": "allow",
+    "deleteFiles": "allow",
+    "network": "allow",
+    "maxFilesPerIteration": 20,
+    "allowEnvEdit": true,
+    "requireSecurityReview": true,
+    "requireCheckpoint": true,
+    "allowDestructive": "with-confirm",
+    "allowDeployments": true,
+    "allowRollback": true,
+    "documentAllChanges": true
   }
 }

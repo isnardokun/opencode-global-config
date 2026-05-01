@@ -1,0 +1,20 @@
+{
+  "name": "review",
+  "description": "Revisión - puede leer, analizar y报告ar, crear archivos de revisión",
+  "model": "minimax-coding-plan/MiniMax-M2.7",
+  "temperature": 0.1,
+  "agents": {
+    "default": ["architect", "planner", "reviewer"]
+  },
+  "rules": {
+    "edit": "deny",
+    "bash": "ask",
+    "createFiles": "limited",
+    "deleteFiles": "deny",
+    "network": "read-only",
+    "maxFilesPerIteration": 15,
+    "allowEnvEdit": false,
+    "requireTests": true,
+    "reportOnly": true
+  }
+}

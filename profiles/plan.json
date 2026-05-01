@@ -1,0 +1,19 @@
+{
+  "name": "plan",
+  "description": "Planificación - puede leer y analizar, no modificar",
+  "model": "minimax-coding-plan/MiniMax-M2.7",
+  "temperature": 0.1,
+  "agents": {
+    "default": ["architect", "planner"]
+  },
+  "rules": {
+    "edit": "deny",
+    "bash": "deny",
+    "createFiles": "deny",
+    "deleteFiles": "deny",
+    "network": "read-only",
+    "maxFilesPerIteration": 10,
+    "allowEnvEdit": false,
+    "requireExplanation": true
+  }
+}

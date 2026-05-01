@@ -1,0 +1,21 @@
+{
+  "name": "default",
+  "description": "Desarrollo general - puede editar con aprobación",
+  "model": "minimax-coding-plan/MiniMax-M2.7",
+  "temperature": 0.2,
+  "agents": {
+    "default": ["architect", "planner", "builder", "reviewer"]
+  },
+  "rules": {
+    "edit": "ask",
+    "bash": "ask",
+    "createFiles": "ask",
+    "deleteFiles": "ask",
+    "network": "read-only",
+    "maxFilesPerIteration": 3,
+    "allowEnvEdit": false,
+    "requireTests": true,
+    "requireExplanation": true,
+    "requireDiffReview": true
+  }
+}
