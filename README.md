@@ -807,6 +807,23 @@ opencode-global-config/
 
 ## Changelog
 
+### v1.7.1 (2026-05-01)
+
+#### Cross-platform & hardening
+
+- **`install.sh` — limpieza garantizada en fallos** — añadido `trap EXIT` para eliminar `/tmp` temporal incluso si el script falla; eliminado `set -e` reemplazado por chequeos explícitos
+- **`install.sh` — `opencode.json` con rutas absolutas** — el instalador genera el archivo con `$HOME` expandido; `~` en JSON no se expande en todos los sistemas
+- **`install.sh` — soporte macOS completo** — detecta y actualiza `.bash_profile` (bash macOS), `.zshrc` (zsh, default desde Catalina), y `fish/config.fish`
+- **`oc` — `generate_obs_id` usa `od` en lugar de `xxd`** — `od` es POSIX disponible en Linux y macOS sin deps extra; `xxd` no está garantizado en todas las distros
+- **`CLAUDE.md` — eliminado artefacto `密码`** (chino, residuo de generación LLM)
+- **`CLAUDE.md` — eliminada duplicación con `AGENTS.md`** — mapeo de intenciones vive solo en `AGENTS.md`; `CLAUDE.md` es ahora un resumen compacto
+- **`skills/docs-writer/SKILL.md` — corregidas code fences anidadas** — templates usaban ` ```bash ` dentro de ` ```markdown ` sin escapar, rompiendo el renderizado en GitHub
+- **`INSTALL.md` — corregida sección Actualización** — `git pull` en `~/.config/opencode` no funciona (no es un repo git); reemplazado por one-liner del instalador
+- **`INSTALL.md` — corregida sección Desinstalación** — glob `[ -d backup.* ]` no expande en bash; reemplazado por `ls -d | sort | tail -1`
+- **`INSTALL.md` — eliminados comandos inexistentes** — `opencode debug config` y `opencode agent list` reemplazados por verificación directa de archivos
+- **`README.md` — Quick Start usa instalador** — `cp -r *` copiaba README/CHANGELOG al directorio de config; ahora apunta al one-liner
+- **`README.md` — Modo Natural clarificado** — ahora explica que requiere sesión `opencode` interactiva, no un comando `oc`
+
 ### v1.7 (2026-05-01)
 
 #### Fixes críticos en `oc` script
