@@ -91,6 +91,82 @@ Inspiradas en Andrej Karpathy para reducir errores comunes de LLMs en codificaci
 
 ---
 
+## Mapeo de Intenciones (Natural Language → Agente)
+
+Cuando el usuario escribe pedidos en lenguaje natural, interpreta y usa el agente correspondiente:
+
+### Análisis y Entendimiento
+| Si el usuario dice... | Usa este agente |
+|------------------------|-----------------|
+| "analiza el proyecto" / "analyze" / "entender" | `@architect` |
+| "qué hace este código" / "explica" | `@architect` |
+| "ver stack tecnológico" / "arquitectura" | `@architect` + `project-map` |
+
+### Planificación
+| Si el usuario dice... | Usa este agente |
+|------------------------|-----------------|
+| "planificar" / "crear plan" | `@planner` |
+| "cómo implementamos" / "diseñar" | `@planner` |
+| "divide en fases" / "pasos" | `@planner` |
+
+### Implementación
+| Si el usuario dice... | Usa este agente |
+|------------------------|-----------------|
+| "implementar" / "crear" / "agregar" | `@builder` + `safe-implementation` |
+| "arreglar" / "fix" / "corregir" | `@builder` + `test-first` |
+| "modificar" / "cambiar" | `@builder` |
+| "vamos a implementar" / "build" | `@builder` |
+
+### Revisión
+| Si el usuario dice... | Usa este agente |
+|------------------------|-----------------|
+| "revisar código" / "review" | `@reviewer` + `precommit-review` |
+| "verificar" / "check" | `@reviewer` |
+| "code review" | `@reviewer` |
+
+### Seguridad
+| Si el usuario dice... | Usa este agente |
+|------------------------|-----------------|
+| "auditar" / "seguridad" | `@security-auditor` |
+| "buscar vulnerabilidades" | `@security-auditor` |
+| "revisar credenciales" | `@security-auditor` |
+
+### Documentación
+| Si el usuario dice... | Usa este agente |
+|------------------------|-----------------|
+| "documentar" / "generar docs" | `@docs-writer` |
+| "crear README" / "actualizar docs" | `@docs-writer` |
+
+### DevOps
+| Si el usuario dice... | Usa este agente |
+|------------------------|-----------------|
+| "docker" / "ci/cd" / "deploy" | `@devops` |
+| "kubernetes" / "terraform" | `@devops` |
+| "infra" / "infraestructura" | `@devops` |
+
+### Producción
+| Si el usuario dice... | Usa este agente |
+|------------------------|-----------------|
+| "producción" / "prod" / "error" | `@oncall` |
+| "debug" / "diagnosticar" | `@oncall` |
+| "logs" / "crash" / "oncall" | `@oncall` |
+
+---
+
+## Workflows Automáticos
+
+Para tareas completas, encadena agentes automáticamente:
+
+| Tarea | Pipeline |
+|-------|----------|
+| "nuevo proyecto" | `@architect` → `@planner` → `@builder` → `@docs-writer` |
+| "bug hunt" | `@architect` → `@security-auditor` → `@planner` → `@builder` → `@reviewer` |
+| "documentar" | `@architect` → `@docs-writer` → `@reviewer` |
+| "feature nueva" | `@architect` → `@planner` → `@builder` → `@reviewer` |
+| "debug prod" | `@oncall` → `@builder` → `@security-auditor` |
+
+---
+
 ## Tradeoff
 
 Estas reglas bias hacia **precisión sobre velocidad**. Para tareas triviales, usar juicio - no cada cambio necesita rigor completo. El objetivo es reducir errores costosos en trabajo no trivial.

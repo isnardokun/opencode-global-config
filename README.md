@@ -79,6 +79,41 @@ oc --help
 
 ---
 
+## Modo Natural (Nuevo!) - Recomendado
+
+Ya no necesitas comandos. Solo describe lo que quieres:
+
+```
+# Análisis
+"analiza el proyecto"
+"qué stack usa?"
+"entender la estructura"
+
+# Implementación
+"implementa autenticación con JWT"
+"crea un endpoint para usuarios"
+"agrega validación de inputs"
+
+# Revisión
+"revisame el código"
+"busca errores de seguridad"
+"verifica los cambios"
+
+# Documentación
+"genera documentación"
+"crea README para el proyecto"
+"actualiza la API docs"
+
+# Bugs
+"hay bugs en el código?"
+"arregla el error de login"
+"por qué falla el build?"
+```
+
+El sistema detecta la intención y usa el agente adecuado automáticamente.
+
+---
+
 ## Manual de Uso
 
 Casos de uso reales organizados por situación. Cada sección muestra el flujo completo desde el problema hasta la solución.

@@ -5,65 +5,123 @@
 - [OpenCode CLI](https://opencode.ai) instalado
 - Git
 - fzf (para modo interactivo)
-- Linux/macOS (Fedora 43 compatible)
+- Linux/macOS (Fedora 43+ compatible)
 
-## Instalación Rápida
+## Instalación Rápida (One-liner)
 
 ```bash
-# Clonar repositorio
+curl -fsSL https://raw.githubusercontent.com/isnardokun/opencode-global-config/main/install.sh | bash
+```
+
+## Instalación Manual
+
+```bash
+# 1. Clonar repositorio
 git clone https://github.com/isnardokun/opencode-global-config.git /tmp/opencode-config
 
-# Copiar configuración global
+# 2. Respaldar configuración existente
+[ -d ~/.config/opencode ] && cp -r ~/.config/opencode ~/.config/opencode.backup.$(date +%Y%m%d-%H%M%S)
+
+# 3. Instalar configuración global (sobrescribe agentes, skills, profiles)
 cp -r /tmp/opencode-config/* ~/.config/opencode/
 
-# Instalar comando oc y aliases
+# 4. Instalar comando oc (wrapper con workflows)
 mkdir -p ~/.local/bin
-cp /tmp/opencode-config/oc ~/.local/bin/
+cp /tmp/opencode-config/oc ~/.local/bin/oc
 chmod +x ~/.local/bin/oc
 
-# Crear symlinks para comandos rápidos
-cd ~/.local/bin
-ln -sf oc oc-analyze
-ln -sf oc oc-plan
-ln -sf oc oc-build
-ln -sf oc oc-review
-ln -sf oc oc-secure
-ln -sf oc oc-docs
-ln -sf oc oc-devops
-ln -sf oc oc-oncall
-
-# Agregar al PATH (si no existe)
+# 5. Agregar al PATH si no existe
 grep -q '~/.local/bin' ~/.bashrc || echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 source ~/.bashrc
 
-# Instalar fzf si no está
-dnf install -y fzf
+# 6. Instalar fzf (modo interactivo)
+dnf install -y fzf 2>/dev/null || brew install fzf 2>/dev/null || echo "Instala fzf manualmente"
 ```
+
+## Qué se instala
+
+### Agentes (reemplazan los internos de OpenCode)
+| Agente | Descripción | Permisos |
+|--------|-------------|----------|
+| `@architect` | Análisis de arquitectura y riesgos | read-only |
+| `@planner` | Planificación con fases verificables | read-only |
+| `@builder` | Implementación con Karpathy principles | edit + bash(ask) |
+| `@reviewer` | Code review con precommit-review | read-only |
+| `@security-auditor` | Auditoría de vulnerabilidades | read-only |
+| `@docs-writer` | Documentación técnica | edit |
+| `@devops` |Infraestructura y CI/CD | edit + bash |
+| `@oncall` | Diagnóstico de producción | bash(ask) |
+
+### Skills
+- `project-map` - Análisis de estructura de proyecto
+- `safe-implementation` - Cambios mínimos y verificables
+- `test-first` - Goal-Driven Execution
+- `precommit-review` - Revisión de diff antes de commit
+- `memory-retrieval` - 3-layer progressive disclosure
+- `docs-writer` - Documentación técnica
+
+### Sistema de Memoria
+- 3-layer retrieval: search → timeline → get
+- Observation format con tipos: bugfix, feature, decision, note, config
+- Privacy tags para contenido sensible
+
+### Perfiles (7 niveles de confianza)
+`deny` → `plan` → `review` → `default` → `auto` → `trusted` → `devops`
+
+### Intent Mapping (Natural Language → Agente)
+Ya no necesitas comandos. Solo dime:
+- "analiza el proyecto" → @architect + project-map
+- "implementa auth con JWT" → @builder + safe-implementation
+- "revisame el código" → @reviewer + precommit-review
+- "busca vulnerabilidades" → @security-auditor
+- "genera documentación" → @docs-writer
+- "diagnostica el error en prod" → @oncall
 
 ## Verificar Instalación
 
 ```bash
-# Verificar comandos
-command -v oc
-oc --help
+# Verificar que todo está cargado
+opencode debug config | grep -A2 instructions
+opencode agent list | grep -E "architect|builder|planner|reviewer|security|docs|devops|oncall"
 
-# Verificar configuración
-find ~/.config/opencode -maxdepth 3 -type f | sort
+# Probar intent mapping
+opencode run "analiza /home/tu/proyecto y dime el stack tecnológico"
 
-# Probar modo interactivo
-oc --interactive
+# Probar workflow
+oc --workflow document /home/tu/proyecto
 ```
 
-## Instalación de Git Hooks (opcional)
+## Uso
 
+### Modo Natural (recomendado)
 ```bash
-# Para un proyecto existente
-cd ~/mi-proyecto
-oc --init
+opencode
+# Luego escribe:
+"analiza el proyecto actual"
+"implementa autenticación con Google OAuth"
+"revisame los cambios antes de commit"
+"busca errores de seguridad"
+```
 
-# O manualmente
-cp ~/.config/opencode/hooks/pre-commit ~/.git/hooks/
-chmod +x ~/.git/hooks/pre-commit
+### Modo Comandos
+```bash
+oc analyze ~/proyecto           # @architect + project-map
+oc plan "nueva feature"         # @planner
+oc build "implementar X"       # @builder + test-first
+oc review                       # @reviewer + precommit-review
+oc secure                       # @security-auditor
+oc docs                         # @docs-writer
+oc devops "crear Dockerfile"    # @devops
+oc oncall                       # @oncall
+```
+
+### Workflows Automáticos
+```bash
+oc --workflow bug-hunt ~/proyecto     # 5 fases
+oc --workflow document ~/proyecto     # 3 fases
+oc --workflow feature "auth" ~/api    # 4 fases
+oc --workflow new-project "mi-api"    # 4 fases
+oc --workflow debug "fix error"       # 3 fases
 ```
 
 ## Actualización
@@ -76,41 +134,39 @@ git pull origin main
 ## Desinstalación
 
 ```bash
-# Remover configuración
+# Restaurar backup si existe
+[ -d ~/.config/opencode.backup.* ] && cp -r ~/.config/opencode.backup.*/* ~/.config/opencode/
+
+# O remover completamente
 rm -rf ~/.config/opencode
+rm -f ~/.local/bin/oc
+rm -f ~/.local/bin/oc-*
 
-# Remover comando
-rm ~/.local/bin/oc
-rm ~/.local/bin/oc-*
-
-# Remover línea de PATH de ~/.bashrc y ~/.zshrc
-# (editar manualmente)
+# Limpiar PATH del bashrc (editar manualmente)
 ```
 
 ## Solución de Problemas
 
 ### "command not found: oc"
-
 ```bash
-# Verificar que ~/.local/bin está en PATH
-echo $PATH | grep -q '.local/bin' && echo "OK" || echo "Missing"
-
-# Agregar manualmente si falta
 export PATH="$HOME/.local/bin:$PATH"
+which oc
 ```
 
-### "fzf not found"
-
+### "No such file or directory: AGENTS.md"
 ```bash
-# Fedora
-sudo dnf install fzf
+# Verificar que AGENTS.md existe
+ls -la ~/.config/opencode/AGENTS.md
 
-# macOS
-brew install fzf
+# Si no existe, reinstalar
+cp /tmp/opencode-config/AGENTS.md ~/.config/opencode/
 ```
 
-### Permiso denegado en ~/.local/bin/oc
-
+### Conflictos con configuración anterior
 ```bash
-chmod +x ~/.local/bin/oc
+# Respaldar y limpiar
+cp -r ~/.config/opencode ~/.config/opencode.backup.$(date +%Y%m%d)
+rm -rf ~/.config/opencode
+# Reinstalar
+cp -r /tmp/opencode-config/* ~/.config/opencode/
 ```

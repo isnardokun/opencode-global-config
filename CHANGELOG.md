@@ -4,6 +4,12 @@ Todos los cambios notables de este proyecto se documentarán en este archivo.
 
 ## [1.7.0] - 2026-05-01
 
+### Nuevas funcionalidades
+
+- **Intent Mapping Natural Language → Agente**: El sistema ahora detecta automáticamente qué agente usar según el pedido del usuario. Ya no necesitas memorizar comandos.
+- **Script de instalación automática** (`install.sh`): Instalación en un paso con backup automático de configuración previa.
+- **Actualización de INSTALL.md**: Documentación completa de instalación, uso natural y solución de problemas.
+
 ### Fixes críticos (`oc` script)
 
 - **Eliminado `set -e`** — causaba exit silencioso cuando `search_memory`/`check_budget` retornaban 1 (señal "no encontrado")
