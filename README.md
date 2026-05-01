@@ -66,51 +66,57 @@ Este repositorio contiene una configuración avanzada para [OpenCode CLI](https:
 ## Quick Start
 
 ```bash
-# Clonar e instalar
-git clone https://github.com/isnardokun/opencode-global-config.git /tmp/opencode-config
-cp -r /tmp/opencode-config/* ~/.config/opencode/
-mkdir -p ~/.local/bin && cp /tmp/opencode-config/oc ~/.local/bin/ && chmod +x ~/.local/bin/oc
-
-# Verificar
-oc --help
+curl -fsSL https://raw.githubusercontent.com/isnardokun/opencode-global-config/main/install.sh | bash
 ```
 
-**Requisitos:** `opencode` (requerido), `fzf` (solo para `--interactive`)
+El instalador hace backup automático, configura el PATH en bash/zsh/fish y funciona en Linux y macOS.
+
+**Requisitos:** `opencode` y `git` (requeridos), `fzf` (solo para `oc --interactive`)
+
+Ver [INSTALL.md](INSTALL.md) para instalación manual y solución de problemas.
 
 ---
 
-## Modo Natural (Nuevo!) - Recomendado
+## Modo Natural
 
-Ya no necesitas comandos. Solo describe lo que quieres:
+Dentro de una sesión `opencode`, describe lo que necesitas en lenguaje natural — el sistema detecta la intención y activa el agente correcto:
 
-```
-# Análisis
-"analiza el proyecto"
-"qué stack usa?"
-"entender la estructura"
-
-# Implementación
-"implementa autenticación con JWT"
-"crea un endpoint para usuarios"
-"agrega validación de inputs"
-
-# Revisión
-"revisame el código"
-"busca errores de seguridad"
-"verifica los cambios"
-
-# Documentación
-"genera documentación"
-"crea README para el proyecto"
-"actualiza la API docs"
-
-# Bugs
-"hay bugs en el código?"
-"arregla el error de login"
-"por qué falla el build?"
+```bash
+opencode   # abre la sesión interactiva
 ```
 
-El sistema detecta la intención y usa el agente adecuado automáticamente.
+Dentro de la sesión:
+
+```
+# Análisis (activa @architect)
+analiza el proyecto
+qué stack usa?
+entender la estructura
+
+# Implementación (activa @builder)
+implementa autenticación con JWT
+crea un endpoint para usuarios
+agrega validación de inputs
+
+# Revisión (activa @reviewer)
+revisame el código
+verifica los cambios
+
+# Seguridad (activa @security-auditor)
+busca errores de seguridad
+audita el proyecto
+
+# Documentación (activa @docs-writer)
+genera documentación
+crea README para el proyecto
+
+# Producción (activa @oncall)
+hay bugs en el código?
+por qué falla el build?
+diagnostica el error
+```
+
+El mapeo completo de intenciones está en `AGENTS.md`.
 
 ---
 

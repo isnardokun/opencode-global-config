@@ -59,10 +59,11 @@ show_budget() {
     [ "$turns" -gt 20 ] && echo "Consider running: oc --compact"
 }
 
-# Real entropy: timestamp + 4 random bytes
+# Real entropy: od is POSIX — works on Linux and macOS without xxd
 generate_obs_id() {
     local rand
-    rand=$(head -c4 /dev/urandom | xxd -p 2>/dev/null || date +%N | cut -c1-8)
+    rand=$(od -An -N4 -tx1 /dev/urandom 2>/dev/null | tr -d ' \n\t') \
+        || rand=$(printf '%08x' $(( (RANDOM << 16) | RANDOM )))
     printf '%s-%s' "$(date +%Y%m%d-%H%M%S)" "$rand"
 }
 

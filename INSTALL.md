@@ -4,14 +4,26 @@
 
 - [OpenCode CLI](https://opencode.ai) instalado
 - Git
-- fzf (para modo interactivo)
-- Linux/macOS (Fedora 43+ compatible)
+- `fzf` — solo para modo interactivo (`oc --interactive`)
+- Compatible con: Linux (Ubuntu, Fedora, Debian, Arch), macOS (Intel y Apple Silicon)
 
-## Instalación Rápida (One-liner)
+## Instalación Rápida
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/isnardokun/opencode-global-config/main/install.sh | bash
 ```
+
+El script:
+1. Verifica que `git` y `opencode` estén instalados
+2. Clona el repo en `/tmp`
+3. Hace backup de `~/.config/opencode` si existe
+4. Copia agentes, skills, perfiles, plugins y hooks
+5. Genera `opencode.json` con rutas absolutas (sin `~`)
+6. Instala el comando `oc` en `~/.local/bin`
+7. Añade `~/.local/bin` al PATH en `.bashrc`, `.bash_profile` (macOS), `.zshrc`, y fish según lo que tengas
+8. Limpia archivos temporales al salir (incluso en caso de error)
+
+---
 
 ## Instalación Manual
 
@@ -19,28 +31,51 @@ curl -fsSL https://raw.githubusercontent.com/isnardokun/opencode-global-config/m
 # 1. Clonar repositorio
 git clone https://github.com/isnardokun/opencode-global-config.git /tmp/opencode-config
 
-# 2. Respaldar configuración existente
+# 2. Respaldar configuración existente (opcional)
 [ -d ~/.config/opencode ] && cp -r ~/.config/opencode ~/.config/opencode.backup.$(date +%Y%m%d-%H%M%S)
 
-# 3. Instalar configuración global (sobrescribe agentes, skills, profiles)
-cp -r /tmp/opencode-config/* ~/.config/opencode/
+# 3. Crear directorio de configuración
+mkdir -p ~/.config/opencode
 
-# 4. Instalar comando oc (wrapper con workflows)
+# 4. Copiar solo los archivos de configuración (no README, CHANGELOG, etc.)
+for d in agents skills profiles plugins hooks memory souls; do
+    [ -d "/tmp/opencode-config/$d" ] && cp -r "/tmp/opencode-config/$d" ~/.config/opencode/
+done
+cp /tmp/opencode-config/AGENTS.md ~/.config/opencode/
+cp /tmp/opencode-config/CLAUDE.md  ~/.config/opencode/
+
+# 5. Generar opencode.json con rutas absolutas
+cat > ~/.config/opencode/opencode.json << EOF
+{
+  "\$schema": "https://opencode.ai/config.json",
+  "permission": { "skill": { "*": "allow" } },
+  "instructions": ["${HOME}/.config/opencode/AGENTS.md"],
+  "plugin":       ["${HOME}/.config/opencode/plugins/safety-guard.js"]
+}
+EOF
+
+# 6. Instalar comando oc
 mkdir -p ~/.local/bin
 cp /tmp/opencode-config/oc ~/.local/bin/oc
 chmod +x ~/.local/bin/oc
 
-# 5. Agregar al PATH si no existe
-grep -q '~/.local/bin' ~/.bashrc || echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+# 7. Agregar al PATH
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc   # Linux bash
+# echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bash_profile  # macOS bash
+# echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc          # zsh
 source ~/.bashrc
 
-# 6. Instalar fzf (modo interactivo)
-dnf install -y fzf 2>/dev/null || brew install fzf 2>/dev/null || echo "Instala fzf manualmente"
+# 8. Instalar fzf (opcional, solo para oc --interactive)
+# Linux:   sudo apt install fzf  /  sudo dnf install fzf  /  sudo pacman -S fzf
+# macOS:   brew install fzf
 ```
+
+---
 
 ## Qué se instala
 
-### Agentes (reemplazan los internos de OpenCode)
+### Agentes
+
 | Agente | Descripción | Permisos |
 |--------|-------------|----------|
 | `@architect` | Análisis de arquitectura y riesgos | read-only |
@@ -49,65 +84,77 @@ dnf install -y fzf 2>/dev/null || brew install fzf 2>/dev/null || echo "Instala 
 | `@reviewer` | Code review con precommit-review | read-only |
 | `@security-auditor` | Auditoría de vulnerabilidades | read-only |
 | `@docs-writer` | Documentación técnica | edit |
-| `@devops` |Infraestructura y CI/CD | edit + bash |
+| `@devops` | Infraestructura y CI/CD | edit + bash |
 | `@oncall` | Diagnóstico de producción | bash(ask) |
 
-### Skills
-- `project-map` - Análisis de estructura de proyecto
-- `safe-implementation` - Cambios mínimos y verificables
-- `test-first` - Goal-Driven Execution
-- `precommit-review` - Revisión de diff antes de commit
-- `memory-retrieval` - 3-layer progressive disclosure
-- `docs-writer` - Documentación técnica
+### Skills (6)
 
-### Sistema de Memoria
-- 3-layer retrieval: search → timeline → get
-- Observation format con tipos: bugfix, feature, decision, note, config
-- Privacy tags para contenido sensible
+| Skill | Función |
+|-------|---------|
+| `project-map` | Análisis de estructura de proyecto |
+| `safe-implementation` | Cambios mínimos y verificables |
+| `test-first` | Goal-Driven Execution |
+| `precommit-review` | Revisión de diff antes de commit |
+| `memory-retrieval` | 3-layer progressive disclosure |
+| `docs-writer` | Documentación técnica |
 
 ### Perfiles (7 niveles de confianza)
+
 `deny` → `plan` → `review` → `default` → `auto` → `trusted` → `devops`
 
-### Intent Mapping (Natural Language → Agente)
-Ya no necesitas comandos. Solo dime:
-- "analiza el proyecto" → @architect + project-map
-- "implementa auth con JWT" → @builder + safe-implementation
-- "revisame el código" → @reviewer + precommit-review
-- "busca vulnerabilidades" → @security-auditor
-- "genera documentación" → @docs-writer
-- "diagnostica el error en prod" → @oncall
+### Intent Mapping — Lenguaje Natural → Agente
+
+El sistema detecta la intención automáticamente dentro de sesiones `opencode`:
+
+| Lo que escribes | Agente activado |
+|-----------------|-----------------|
+| "analiza el proyecto" | `@architect` + project-map |
+| "implementa auth con JWT" | `@builder` + safe-implementation |
+| "revisame el código" | `@reviewer` + precommit-review |
+| "busca vulnerabilidades" | `@security-auditor` |
+| "genera documentación" | `@docs-writer` |
+| "diagnostica el error en prod" | `@oncall` |
+
+---
 
 ## Verificar Instalación
 
 ```bash
-# Verificar que todo está cargado
-opencode debug config | grep -A2 instructions
-opencode agent list | grep -E "architect|builder|planner|reviewer|security|docs|devops|oncall"
+# Verificar archivos instalados
+ls ~/.config/opencode/agents/
+ls ~/.config/opencode/skills/
+ls ~/.config/opencode/profiles/
+cat ~/.config/opencode/opencode.json
 
-# Probar intent mapping
-opencode run "analiza /home/tu/proyecto y dime el stack tecnológico"
+# Verificar comando oc
+which oc
+oc --help
 
-# Probar workflow
-oc --workflow document /home/tu/proyecto
+# Test rápido (desde un directorio con código)
+oc analyze .
 ```
+
+---
 
 ## Uso
 
-### Modo Natural (recomendado)
+### Modo Natural (dentro de sesión opencode)
+
 ```bash
 opencode
-# Luego escribe:
-"analiza el proyecto actual"
-"implementa autenticación con Google OAuth"
-"revisame los cambios antes de commit"
-"busca errores de seguridad"
+# Dentro de la sesión, escribe en lenguaje natural:
+# "analiza el proyecto actual"         → @architect + project-map
+# "implementa autenticación con OAuth" → @builder + safe-implementation
+# "revisame los cambios antes de commit" → @reviewer
+# "busca errores de seguridad"         → @security-auditor
 ```
 
-### Modo Comandos
+### Modo Comandos (desde terminal)
+
 ```bash
 oc analyze ~/proyecto           # @architect + project-map
 oc plan "nueva feature"         # @planner
-oc build "implementar X"       # @builder + test-first
+oc build "implementar X"        # @builder + test-first
 oc review                       # @reviewer + precommit-review
 oc secure                       # @security-auditor
 oc docs                         # @docs-writer
@@ -116,57 +163,122 @@ oc oncall                       # @oncall
 ```
 
 ### Workflows Automáticos
+
 ```bash
-oc --workflow bug-hunt ~/proyecto     # 5 fases
-oc --workflow document ~/proyecto     # 3 fases
-oc --workflow feature "auth" ~/api    # 4 fases
-oc --workflow new-project "mi-api"    # 4 fases
-oc --workflow debug "fix error"       # 3 fases
+oc --workflow bug-hunt ~/proyecto              # 5 fases
+oc --workflow document ~/proyecto              # 3 fases
+oc --workflow feature "add auth" ~/api         # 4 fases
+oc --workflow new-project "mi-api"             # 4 fases
+oc --workflow debug "descripción del error"    # 3 fases
 ```
+
+---
 
 ## Actualización
 
+Volver a correr el instalador aplica la última versión con backup automático:
+
 ```bash
-cd ~/.config/opencode
-git pull origin main
+curl -fsSL https://raw.githubusercontent.com/isnardokun/opencode-global-config/main/install.sh | bash
 ```
+
+O manualmente:
+
+```bash
+git clone --depth 1 https://github.com/isnardokun/opencode-global-config.git /tmp/oc-update
+for d in agents skills profiles plugins hooks memory souls; do
+    cp -r "/tmp/oc-update/$d" ~/.config/opencode/
+done
+cp /tmp/oc-update/AGENTS.md /tmp/oc-update/CLAUDE.md ~/.config/opencode/
+cp /tmp/oc-update/oc ~/.local/bin/oc
+rm -rf /tmp/oc-update
+```
+
+---
 
 ## Desinstalación
 
 ```bash
 # Restaurar backup si existe
-[ -d ~/.config/opencode.backup.* ] && cp -r ~/.config/opencode.backup.*/* ~/.config/opencode/
+backup=$(ls -d ~/.config/opencode.backup.* 2>/dev/null | sort | tail -1)
+if [ -n "$backup" ]; then
+    rm -rf ~/.config/opencode
+    cp -r "$backup" ~/.config/opencode
+    echo "Restaurado desde: $backup"
+fi
 
-# O remover completamente
+# O eliminar completamente
 rm -rf ~/.config/opencode
 rm -f ~/.local/bin/oc
-rm -f ~/.local/bin/oc-*
 
-# Limpiar PATH del bashrc (editar manualmente)
+# Limpiar PATH (editar manualmente ~/.bashrc, ~/.zshrc, o ~/.bash_profile)
 ```
+
+---
 
 ## Solución de Problemas
 
-### "command not found: oc"
+### `command not found: oc`
+
 ```bash
 export PATH="$HOME/.local/bin:$PATH"
 which oc
+# Si funciona, agregar la línea a tu shell config permanentemente
 ```
 
-### "No such file or directory: AGENTS.md"
-```bash
-# Verificar que AGENTS.md existe
-ls -la ~/.config/opencode/AGENTS.md
+### `No such file or directory: AGENTS.md`
 
-# Si no existe, reinstalar
-cp /tmp/opencode-config/AGENTS.md ~/.config/opencode/
+```bash
+ls ~/.config/opencode/AGENTS.md
+# Si no existe, reinstalar:
+curl -fsSL https://raw.githubusercontent.com/isnardokun/opencode-global-config/main/install.sh | bash
+```
+
+### `opencode.json` no carga los agentes
+
+```bash
+cat ~/.config/opencode/opencode.json
+# Verificar que las rutas en "instructions" y "plugin" son absolutas (no ~)
+# Si contienen ~, regenerar:
+cat > ~/.config/opencode/opencode.json << EOF
+{
+  "\$schema": "https://opencode.ai/config.json",
+  "permission": { "skill": { "*": "allow" } },
+  "instructions": ["${HOME}/.config/opencode/AGENTS.md"],
+  "plugin":       ["${HOME}/.config/opencode/plugins/safety-guard.js"]
+}
+EOF
 ```
 
 ### Conflictos con configuración anterior
+
 ```bash
-# Respaldar y limpiar
 cp -r ~/.config/opencode ~/.config/opencode.backup.$(date +%Y%m%d)
 rm -rf ~/.config/opencode
-# Reinstalar
-cp -r /tmp/opencode-config/* ~/.config/opencode/
+curl -fsSL https://raw.githubusercontent.com/isnardokun/opencode-global-config/main/install.sh | bash
+```
+
+### macOS: `oc` no encontrado después de instalar
+
+En macOS con zsh (default desde Catalina):
+
+```bash
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+### fzf no instalado (solo para `oc --interactive`)
+
+```bash
+# Ubuntu/Debian
+sudo apt install fzf
+
+# Fedora/RHEL
+sudo dnf install fzf
+
+# macOS
+brew install fzf
+
+# Arch
+sudo pacman -S fzf
 ```

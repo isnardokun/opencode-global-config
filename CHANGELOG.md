@@ -2,6 +2,41 @@
 
 Todos los cambios notables de este proyecto se documentarán en este archivo.
 
+## [1.8.0] - 2026-05-01
+
+### Cross-platform & hardening
+
+#### install.sh
+- **Añadido `trap 'rm -rf "$INSTALL_DIR"' EXIT`** — limpieza garantizada incluso si el script falla a mitad
+- **Eliminado `set -e`** — reemplazado por chequeos explícitos con mensajes de error claros
+- **Rutas absolutas en opencode.json** — el script genera el archivo con `$HOME` expandido en lugar de copiar `~` literal que JSON no expande
+- **Soporte macOS completo** — detecta y actualiza `.bash_profile` (bash en macOS), `.zshrc` (zsh, default desde Catalina), `.bashrc` (Linux), y `fish/config.fish`
+- **Verificación de instalación mejorada** — comprueba 5 artefactos (AGENTS.md, opencode.json, oc, agents/, skills/) en lugar de solo 2
+- **Suprimido `2>/dev/null` en git clone** — los errores de red ahora son visibles
+
+#### oc script
+- **`generate_obs_id` usa `od` en lugar de `xxd`** — `od` es POSIX y disponible en Linux y macOS sin dependencias extras; `xxd` no está garantizado en todas las distros
+
+#### CLAUDE.md
+- **Eliminado artefacto `密码`** (chino, residuo de generación LLM)
+- **Eliminada duplicación de intent mapping** — las tablas completas viven solo en AGENTS.md; CLAUDE.md ahora es un resumen compacto de 40 líneas
+- **Desacoplamiento CLAUDE.md / AGENTS.md** — un solo lugar para actualizar el mapeo de intenciones
+
+#### skills/docs-writer/SKILL.md
+- **Corregidas code fences anidadas** — los templates de markdown usaban ` ```markdown ` con bloques ` ```bash ` internos sin escapar, rompiendo el renderizado en GitHub; reemplazados por bloques indentados con 4 espacios
+
+#### INSTALL.md
+- **Corregida sección "Actualización"** — `git pull` en `~/.config/opencode` no funciona (no es un repo git); reemplazado por one-liner del instalador o instrucciones manuales explícitas
+- **Corregida sección "Desinstalación"** — glob `[ -d ~/.config/opencode.backup.* ]` no expande en `[ ]`; reemplazado por `ls -d` con `sort | tail -1`
+- **Eliminados comandos inexistentes** — `opencode debug config` y `opencode agent list` reemplazados por `ls` sobre los directorios instalados
+- **Corregida instalación manual** — `cp -r /tmp/opencode-config/*` copiaba archivos de docs (README, CHANGELOG) al config dir; ahora usa loop explícito sobre los directorios de config
+- **Hints de fzf multi-distro** — instrucciones para apt (Ubuntu/Debian), dnf (Fedora), pacman (Arch), brew (macOS)
+- **Añadida sección "opencode.json no carga agentes"** — con comando de regeneración de rutas
+
+#### README.md
+- **Quick Start reemplazado** — el `cp -r *` copiaba basura al config dir; ahora apunta al one-liner del instalador
+- **Modo Natural clarificado** — ahora explica explícitamente que es dentro de sesión `opencode` interactiva, no un comando `oc`
+
 ## [1.7.0] - 2026-05-01
 
 ### Nuevas funcionalidades
