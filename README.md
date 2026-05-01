@@ -8,17 +8,33 @@ Inspirado en análisis de Claude Code (VILA-Lab/Dive-into-Claude-Code) y directr
 
 - [Descripción](#descripción)
 - [Quick Start](#quick-start)
+- [Manual de Uso](#manual-de-uso)
+  - [Primera vez en un proyecto desconocido](#1-primera-vez-en-un-proyecto-desconocido)
+  - [Implementar una feature nueva](#2-implementar-una-feature-nueva)
+  - [Bug en producción](#3-bug-en-producción--respuesta-de-urgencia)
+  - [Auditoría de seguridad](#4-auditoría-de-seguridad-antes-de-deploy)
+  - [Generar documentación](#5-generar-documentación-de-un-proyecto-existente)
+  - [Nuevo proyecto desde cero](#6-arrancar-un-proyecto-nuevo-desde-cero)
+  - [Code review pre-commit](#7-code-review-antes-de-hacer-commit)
+  - [Memory Bank](#8-trabajo-con-memory-bank)
+  - [Refactor controlado](#9-refactor-controlado)
+  - [DevOps e infraestructura](#10-devops--infraestructura-y-deploys)
+  - [Perfiles — cuándo usar cada uno](#11-flujos-por-perfil--cuándo-usar-cada-uno)
+  - [Sesión larga — gestión de contexto](#12-sesión-larga--gestión-de-contexto)
+  - [Modo interactivo](#13-modo-interactivo--exploración-sin-saber-qué-necesitas)
+  - [Modo wizard](#14-modo-wizard--guía-paso-a-paso)
 - [Comandos Rápidos](#comandos-rápidos)
-- [Modo Interactivo](#modo-interactivo)
-- [Modo Wizard](#modo-wizard)
-- [Memory Bank](#memory-bank)
-- [Souls/Personas](#soulspersonas)
 - [Perfiles y Niveles de Confianza](#perfiles-y-niveles-de-confianza)
-- [Git Hooks](#git-hooks)
-- [Inicializar Proyecto](#inicializar-proyecto)
 - [Context Budget Tracking](#context-budget-tracking)
 - [Reversibility-Weighted Risk](#reversibility-weighted-risk)
+- [Memory Bank](#memory-bank)
+- [Modo Interactivo](#modo-interactivo)
+- [Modo Wizard](#modo-wizard)
 - [Workflows](#workflows)
+- [Plugin de Seguridad](#plugin-de-seguridad)
+- [Inicializar Proyecto](#inicializar-proyecto)
+- [Git Hooks](#git-hooks)
+- [Souls/Personas](#soulspersonas)
 - [Estructura](#estructura)
 - [Inspiración](#inspiración)
 
@@ -63,7 +79,365 @@ oc --help
 
 ---
 
-## Comandos Rápidos
+## Manual de Uso
+
+Casos de uso reales organizados por situación. Cada sección muestra el flujo completo desde el problema hasta la solución.
+
+---
+
+### 1. Primera vez en un proyecto desconocido
+
+Llegas a un repo que nunca has visto. Antes de tocar nada:
+
+```bash
+cd ~/proyectos/legacy-api
+
+# Entender qué hace el proyecto
+oc analyze .
+
+# Output esperado de @architect:
+# - Stack: Node.js 16, Express, MongoDB, Redis
+# - Entry points: src/index.js, src/api/routes/
+# - Archivos críticos: src/auth/middleware.js, src/db/connection.js
+# - Riesgos: dependencias desactualizadas, sin tests en /api/payments
+# - Plan sugerido: 3 fases
+```
+
+Ahora tienes contexto. Ningún archivo fue modificado (`@architect` tiene permisos de solo lectura).
+
+---
+
+### 2. Implementar una feature nueva
+
+Flujo completo: entender → planificar → implementar → revisar.
+
+```bash
+# Opción A: workflow automático (todo en una sesión)
+oc --workflow feature "agregar autenticación OAuth2 con Google" ~/mi-api
+
+# Opción B: control manual paso a paso
+oc analyze ~/mi-api                          # Entender estructura primero
+oc plan "agregar OAuth2 con Google"          # Ver plan antes de ejecutar
+oc build "implementar OAuth2 con Google"     # Ejecutar con test-first
+oc review                                    # Revisar antes de commit
+```
+
+**Cuándo usar workflow vs manual:**
+- Workflow: feature bien definida, proyecto que ya conoces
+- Manual: primera vez en el codebase, feature ambigua, quieres aprobar cada paso
+
+---
+
+### 3. Bug en producción — respuesta de urgencia
+
+```bash
+# Paso 1: activar perfil restrictivo para diagnóstico (no toca nada)
+oc --profile review
+
+# Paso 2: diagnosticar
+oc oncall
+# @oncall clasifica como P1/P2/P3, identifica causa raíz,
+# lista mitigaciones por reversibilidad
+
+# Paso 3: cuando tienes el diagnóstico, activar perfil de fix
+oc --profile trusted
+
+# Paso 4: implementar fix con test
+oc build "fix: JWT token validation rejecting valid tokens after DST change"
+
+# Paso 5: verificar
+oc review
+
+# Paso 6: guardar lo que pasó en memoria para futura referencia
+oc --remember -t bugfix "JWT falla en cambio de horario DST — usar UTC en token generation, no local time"
+```
+
+**Workflow alternativo (completo automático):**
+```bash
+oc --workflow debug "JWT token validation failing after DST change in ~/api"
+```
+
+---
+
+### 4. Auditoría de seguridad antes de deploy
+
+```bash
+# Activar perfil máximo restrictivo (zero modificaciones)
+oc --profile deny
+
+# Auditar el codebase
+oc secure
+
+# Output esperado de @security-auditor:
+# - CRÍTICO: SQL injection en /api/search?q= (sin sanitización)
+# - ALTO: JWT secret hardcodeado en config/default.js línea 23
+# - MEDIO: Rate limiting ausente en /api/auth/login
+# - BAJO: Logs exponen emails de usuarios en error handlers
+
+# Volver a perfil normal para corregir
+oc --profile default
+oc build "fix vulnerabilidades: sanitizar inputs, mover JWT secret a env var, agregar rate limiting"
+```
+
+---
+
+### 5. Generar documentación de un proyecto existente
+
+```bash
+# Proyecto con código pero sin docs
+oc --workflow document ~/mi-proyecto
+
+# Genera automáticamente:
+# - README.md (descripción, instalación, uso, ejemplos)
+# - ARCHITECTURE.md (diagrama de componentes, flujo de datos)
+# - API.md (endpoints, formatos, ejemplos de request/response)
+# - DEPLOY.md (instrucciones de deployment si detecta Docker/CI)
+```
+
+Para documentar solo parte del proyecto:
+```bash
+oc docs
+# @docs-writer trabaja sobre el directorio actual
+# Útil cuando cd a un subdirectorio específico
+```
+
+---
+
+### 6. Arrancar un proyecto nuevo desde cero
+
+```bash
+# Crear estructura base
+oc --workflow new-project "API REST para gestión de inventario con Node.js y PostgreSQL"
+
+# El workflow:
+# Fase 1: @architect decide estructura, stack, dependencias
+# Fase 2: @planner crea plan con directorios, archivos config, tests iniciales
+# Fase 3: @builder genera el scaffold
+# Fase 4: @docs-writer crea README, ARCHITECTURE, CONTRIBUTING
+
+# Después del workflow, inicializar config local de OpenCode
+oc --init .
+# Crea .opencode/opencode.json y git hook de pre-commit
+```
+
+---
+
+### 7. Code review antes de hacer commit
+
+```bash
+# Tienes cambios staged, quieres revisarlos antes de commitear
+oc review
+
+# @reviewer con precommit-review reporta:
+# - Archivos modificados
+# - Hallazgos críticos (bloqueantes)
+# - Hallazgos medios (advertencias)
+# - Tests presentes o ausentes
+# - Recomendación: aprobar / corregir
+
+# Si hay issues críticos:
+oc build "corregir: <descripción del hallazgo crítico>"
+oc review  # volver a revisar
+```
+
+El git hook instalado por `oc --init` hace esto automáticamente en cada `git commit`.
+
+---
+
+### 8. Trabajo con Memory Bank
+
+El memory bank guarda contexto entre sesiones. Útil para decisiones técnicas, bugs recurrentes, patrones del proyecto.
+
+**Guardar una decisión técnica:**
+```bash
+oc --remember -t decision "Elegimos CQRS sobre repositorio genérico porque los queries de reporting son muy complejos y necesitan optimización independiente"
+
+oc --remember -t config "Redis en producción usa db=1 para sesiones, db=2 para cache, db=3 para rate limiting — no mezclar"
+
+oc --remember -t bugfix "El worker de emails se cuelga si el subject tiene caracteres UTF-8 > 3 bytes — sanitizar antes de encolar"
+```
+
+**Recuperar contexto antes de trabajar:**
+```bash
+# Buscar todo lo relacionado con auth
+oc --memory "auth"
+
+# Resultado Capa 1 (rápido, ~80 tokens):
+# obs_20260501-143022-a1b2 | 2026-05-01 | mi-api | decision | Elegimos JWT sobre session cookies
+# obs_20260501-150344-c3d4 | 2026-05-01 | mi-api | bugfix    | JWT falla en cambio DST
+
+# Ver contexto alrededor de una observación
+oc --memory --timeline 20260501-143022-a1b2
+
+# Ver detalle completo
+oc --memory --get 20260501-143022-a1b2
+```
+
+**Flujo típico al retomar un proyecto:**
+```bash
+oc --memory "redis"       # ¿qué sé sobre redis en este proyecto?
+oc --memory "auth"        # ¿decisiones de autenticación?
+oc --memory -t bugfix ""  # ¿qué bugs ya se corrigieron?
+# Ahora tienes contexto. Empieza a trabajar.
+```
+
+---
+
+### 9. Refactor controlado
+
+Cuando necesitas refactorizar sin romper nada:
+
+```bash
+# Fase 1: entender qué toca el código a refactorizar
+oc analyze src/services/
+
+# Fase 2: planificar con criterios de éxito explícitos
+oc plan "refactorizar UserService para separar lógica de auth de lógica de perfil — tests deben pasar antes y después"
+
+# Fase 3: implementar con perfil conservador
+oc --profile default   # edit=ask — confirma cada cambio
+oc build "refactorizar UserService: extraer AuthService y ProfileService"
+
+# Fase 4: revisar diff completo
+oc review
+```
+
+---
+
+### 10. DevOps — infraestructura y deploys
+
+```bash
+# Activar perfil devops (temperature 0.05, documentación obligatoria de cambios)
+oc --profile devops
+
+# Tareas de infraestructura
+oc devops "crear Dockerfile multi-stage para la API, optimizado para producción"
+oc devops "configurar GitHub Actions CI/CD con tests, build y deploy a staging"
+oc devops "agregar health check endpoint y configurar liveness/readiness probes para Kubernetes"
+
+# Diagnóstico de producción
+oc oncall
+# @oncall con reversibility-weighted risk:
+# Acciones reversibles (restart, rollback) → aprobación mínima
+# Acciones destructivas (drop table) → requiere +1 reviewer + backup confirmado
+```
+
+---
+
+### 11. Flujos por perfil — cuándo usar cada uno
+
+```bash
+# Explorar sin riesgo (cero modificaciones posibles)
+oc --profile deny
+oc "¿qué hace este código?"
+oc analyze .
+
+# Planificación — reunión técnica, estimación, diseño
+oc --profile plan
+oc plan "migrar de MongoDB a PostgreSQL"
+# El agente produce plan detallado sin poder ejecutar nada
+
+# Code review de un PR ajeno
+oc --profile review
+oc "revisa los cambios en src/api/ y reporta problemas"
+
+# Desarrollo día a día
+oc --profile default   # pide confirmación antes de cada cambio
+
+# Confianza total — proyecto propio, bien conocido
+oc --profile trusted
+oc build "implementar paginación en todos los endpoints de listado"
+
+# Infra y scripts de automatización
+oc --profile devops
+oc devops "crear script de backup automático para PostgreSQL"
+```
+
+---
+
+### 12. Sesión larga — gestión de contexto
+
+```bash
+# Ver cuántos turns llevas en la sesión actual
+oc --budget
+# Session turns: 34
+# Consider running: oc --compact
+
+# Cuando llevas muchos turns y el contexto se vuelve ruidoso:
+# 1. Resumir manualmente lo importante en una nota
+oc --remember "Estado actual: implementando OAuth2, completadas fases 1-3, pendiente integrar con frontend"
+
+# 2. Resetear el contador
+oc --compact
+# Turn counter reset to 0.
+# Warning: para sesiones largas, resumir contexto clave manualmente antes de continuar.
+
+# 3. Continuar con contexto limpio
+oc --memory "OAuth2"   # recuperar el resumen que guardaste
+oc build "integrar OAuth2 con el frontend React"
+```
+
+---
+
+### 13. Modo interactivo — exploración sin saber qué necesitas
+
+Cuando no tienes claro qué agente usar:
+
+```bash
+oc --interactive   # requiere fzf
+
+# Aparece menú:
+# a  @architect    - Analizar arquitectura y riesgos
+# b  @builder      - Implementar cambios
+# r  @reviewer     - Revisar código
+# ...
+
+# Selecciona con flechas, Enter ejecuta
+# Los agentes que necesitan input (p, b, v) piden descripción antes de ejecutar
+```
+
+---
+
+### 14. Modo wizard — guía paso a paso
+
+Para tareas complejas con confirmación entre fases:
+
+```bash
+oc --wizard
+
+# Menú:
+# 1) Analizar proyecto
+# 2) Planificar tarea compleja
+# 3) Implementar nuevo feature
+# 4) Revisar código existente
+# 5) Auditoría de seguridad
+# 6) DevOps
+
+# Selecciona opción, ingresa descripción
+# El wizard confirma antes de pasar a cada fase siguiente
+# Puedes cancelar en cualquier punto respondiendo 'n'
+```
+
+Útil para: nuevos proyectos, features grandes, cuando quieres ver resultados de cada fase antes de continuar.
+
+---
+
+### Referencia rápida de agentes
+
+| Agente | Permisos | Cuándo usarlo |
+|--------|----------|---------------|
+| `@architect` | read-only | Entender antes de modificar |
+| `@planner` | read-only | Diseñar plan con fases verificables |
+| `@builder` | edit + bash(ask) | Implementar código |
+| `@reviewer` | read-only | Revisar diff antes de commit |
+| `@security-auditor` | read-only | Buscar vulnerabilidades |
+| `@docs-writer` | edit | Generar/actualizar documentación |
+| `@devops` | edit + bash | Infraestructura, CI/CD, scripts |
+| `@oncall` | bash(ask) | Diagnosticar y mitigar producción |
+
+---
+
+
 
 ```bash
 # Análisis
