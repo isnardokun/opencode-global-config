@@ -27,12 +27,13 @@ Inspirado en análisis de Claude Code (VILA-Lab/Dive-into-Claude-Code) y directr
 
 Este repositorio contiene una configuración avanzada para [OpenCode CLI](https://opencode.ai) inspirada en Claude Code y proyectos de código abierto.
 
-### Características Principales (v1.3)
+### Características Principales (v1.6)
 
 - **8 agentes especializados** con permisos y temperature optimizados
-- **4 skills** para análisis y validación
+- **6 skills** para análisis, implementación, validación y memoria
 - **1 plugin de seguridad** que bloquea comandos peligrosos
-- **Sistema de Memory Bank** con 5-layer compaction
+- **Sistema de Memory Bank** con 3-layer retrieval (search/timeline/get)
+- **5 workflows automáticos** (bug-hunt, new-project, debug, document, feature)
 - **Souls/Personas** para diferentes contextos
 - **7 perfiles** (deny → plan → review → default → auto → trusted → devops)
 - **Git Hooks** para revisión automática
@@ -41,6 +42,7 @@ Este repositorio contiene una configuración avanzada para [OpenCode CLI](https:
 - **Menú interactivo** con fzf
 - **Context Budget Tracking** para evitar overflow
 - **Reversibility-Weighted Risk Assessment** en @oncall
+- **Karpathy Principles** (Think, Simplicity, Surgical, Goal-Driven)
 
 ---
 
@@ -330,6 +332,20 @@ opencode-global-config/
 ---
 
 ## Changelog
+
+### v1.6 (2026-05-01)
+- **Workflows automático single-pass**: Todas las fases ejecutan en una sola llamada a `opencode run`
+- Timeout extendido a 300s para proyectos grandes
+- 5 workflows funcionando sin intervención del usuario
+
+### v1.5 (2026-05-01)
+- Sistema de workflows con 5 pipelines pre-configurados
+- Modo interactivo opcional con `--interactive`
+
+### v1.4 (2026-05-01)
+- 3-layer memory retrieval (search/timeline/get)
+- Observation format con privacy tags
+- Auto-capture functions
 
 ### v1.3 (2026-05-01)
 - 7 perfiles con Deny-First gradient
