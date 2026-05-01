@@ -18,6 +18,7 @@ Inspirado en análisis de Claude Code (VILA-Lab/Dive-into-Claude-Code) y directr
 - [Inicializar Proyecto](#inicializar-proyecto)
 - [Context Budget Tracking](#context-budget-tracking)
 - [Reversibility-Weighted Risk](#reversibility-weighted-risk)
+- [Workflows](#workflows)
 - [Estructura](#estructura)
 - [Inspiración](#inspiración)
 
@@ -27,20 +28,20 @@ Inspirado en análisis de Claude Code (VILA-Lab/Dive-into-Claude-Code) y directr
 
 Este repositorio contiene una configuración avanzada para [OpenCode CLI](https://opencode.ai) inspirada en Claude Code y proyectos de código abierto.
 
-### Características Principales (v1.6)
+### Características Principales (v1.7)
 
 - **8 agentes especializados** con permisos y temperature optimizados
-- **6 skills** para análisis, implementación, validación y memoria
-- **1 plugin de seguridad** que bloquea comandos peligrosos
+- **5 skills** para análisis, implementación, validación y memoria
+- **1 plugin de seguridad** con regex hardening (whitespace-normalized matching)
 - **Sistema de Memory Bank** con 3-layer retrieval (search/timeline/get)
-- **5 workflows automáticos** (bug-hunt, new-project, debug, document, feature)
+- **5 workflows single-pass** (bug-hunt, new-project, debug, document, feature)
 - **Souls/Personas** para diferentes contextos
-- **7 perfiles** (deny → plan → review → default → auto → trusted → devops)
+- **7 perfiles** con Deny-First gradient — perfil activo propagado a todas las llamadas
 - **Git Hooks** para revisión automática
 - **Comandos rápidos** para acceso directo
 - **Modo Wizard** guiado paso a paso
-- **Menú interactivo** con fzf
-- **Context Budget Tracking** para evitar overflow
+- **Menú interactivo** con fzf (parsing corregido)
+- **Context Budget Tracking** con contador de turns
 - **Reversibility-Weighted Risk Assessment** en @oncall
 - **Karpathy Principles** (Think, Simplicity, Surgical, Goal-Driven)
 
@@ -57,6 +58,8 @@ mkdir -p ~/.local/bin && cp /tmp/opencode-config/oc ~/.local/bin/ && chmod +x ~/
 # Verificar
 oc --help
 ```
+
+**Requisitos:** `opencode` (requerido), `fzf` (solo para `--interactive`)
 
 ---
 
@@ -75,27 +78,29 @@ oc docs                     # @docs-writer
 oc devops "dockerfile"      # @devops
 oc oncall                   # @oncall
 
-# Perfiles
-oc --profile deny          # Máximo restrictivo
-oc --profile plan          # Solo planificación
-oc --profile auto         # ML classifier approval
-oc --profile devops       # Infra con rollback
+# Perfiles (persiste para todos los comandos siguientes)
+oc --profile deny           # Máximo restrictivo
+oc --profile plan           # Solo planificación
+oc --profile devops         # Infra con rollback
+oc --list-profiles          # Ver todos disponibles
 
-# Memory y Budget
-oc --memory "query"       # Buscar en memory bank
-oc --remember "nota"      # Guardar en memory
-oc --compact              # Compaction pipeline
-oc --budget               # Ver uso de sesión
+# Memory
+oc --memory "query"         # Buscar en memory bank
+oc --remember "nota"        # Guardar en memory
+oc --budget                 # Ver turns de sesión
+oc --compact                # Resetear contador de turns
 
-# Directos
-oc "cualquier tarea"       # Envía directamente a OpenCode
+# Directo
+oc "cualquier tarea"        # Envía directamente a OpenCode
 ```
 
 ---
 
 ## Perfiles y Niveles de Confianza
 
-Sistema de 7 perfiles con Deny-First gradient (inspirado en Claude Code's 7 permission modes):
+Sistema de 7 perfiles con Deny-First gradient (inspirado en Claude Code's 7 permission modes).
+
+El perfil activo se aplica a **todos** los comandos siguientes hasta cambiar o cerrar sesión.
 
 | Perfil | Descripción | Temp | Archivos/iter | Edit | Bash | Destructive |
 |--------|-------------|------|---------------|------|------|-------------|
@@ -103,24 +108,12 @@ Sistema de 7 perfiles con Deny-First gradient (inspirado en Claude Code's 7 perm
 | `plan` | Planificación, no modificar | 0.1 | 10 | ❌ | ❌ | ❌ |
 | `review` | Lectura y análisis | 0.1 | 15 | ❌ | ask | ❌ |
 | `default` | Desarrollo general | 0.2 | 3 | ask | ask | ask |
-| `auto` | ML classifier approval | 0.2 | 5 | auto | auto | ask |
+| `auto` | Aprobación automática | 0.2 | 5 | auto | auto | ask |
 | `trusted` | Desarrollador avanzado | 0.3 | 10 | ✅ | ✅ | ✅ |
 | `devops` | Infra con rollback | 0.05 | 20 | ✅ | ✅ | ✅ + checkpoint |
 
-### Perfil Auto (ML Classifier)
-
-El perfil `auto` simula el comportamiento de Claude Code Auto Mode:
-- Approvals basados en historial de decisiones
-- Security review requerido para archivos sensibles
-- Track de decisiones para aprendizaje
-
-### Cambiar Perfil
-
 ```bash
-oc --profile work      # Productivo (equivale a default)
-oc --profile plan     # Solo planificación
-oc --profile devops   # DevOps con rollback
-oc --profile deny     # Máximo restrictivo
+oc --profile devops   # Activar perfil
 oc --list-profiles    # Ver todos disponibles
 ```
 
@@ -128,34 +121,26 @@ oc --list-profiles    # Ver todos disponibles
 
 ## Context Budget Tracking
 
-Inspirado en la arquitectura de 5-layer compaction de Claude Code:
+Contador de turns de sesión para monitorear uso de contexto.
 
 ```bash
-oc --budget           # Ver uso actual
-oc --compact          # Ejecutar compaction pipeline
+oc --budget    # Ver turns actuales
+oc --compact   # Resetear contador (recomendado hacer resumen manual en sesiones largas)
 ```
 
-### 5-Layer Compaction Pipeline
-
-| Capa | Función | Cuándo |
-|------|---------|--------|
-| **Budget Reduction** | Resumen agresivo | Turns > 50 |
-| **Snip** | Recortar secciones | Context > 70% |
-| **Microcompact** | Comprimir archivos | Context > 85% |
-| **Context Collapse** | Proyección en lectura | Context > 95% |
-| **Auto-Compact** | Full summary | Overflow |
+Advertencia automática cuando turns > 20.
 
 ---
 
 ## Reversibility-Weighted Risk
 
-@oncall ahora evalúa acciones por reversibilidad:
+`@oncall` evalúa acciones por reversibilidad:
 
-| Acción | Reversible? | Approbación |
-|--------|-------------|-------------|
+| Acción | Reversible? | Aprobación |
+|--------|-------------|------------|
 | Restart servicio | ✅ | Mínimo |
 | Clear cache | ✅ | Mínimo |
-| Rollback deployment | ✅ | средний |
+| Rollback deployment | ✅ | Confirmación |
 | Escalado | ✅ | Mínimo |
 | Edit config (runtime) | ⚠️ | Confirmación |
 | Delete datos | ❌ | +1 reviewer + backup |
@@ -165,101 +150,173 @@ oc --compact          # Ejecutar compaction pipeline
 
 ## Memory Bank (3-Layer Retrieval)
 
-Sistema de memoria persistente con búsqueda por headers e **Progressive Disclosure** (3 camadas):
+Sistema de memoria persistente con Progressive Disclosure — carga solo el contexto necesario.
 
 ```bash
 # Capa 1: Search (~50-100 tokens/resultado)
-oc --memory "docker" -p mi-api -t decision
+oc --memory "docker"
+oc --memory "auth" -t decision
 
 # Capa 2: Timeline (~200 tokens)
-oc --memory --timeline obs_001
+oc --memory --timeline 20260501-143022-a1b2c3d4
 
-# Capa 3: Get full detail (~500-1000 tokens)
-oc --memory --get obs_001,obs_002
+# Capa 3: Detalle completo (~500-1000 tokens)
+oc --memory --get 20260501-143022-a1b2c3d4
 
-# Crear observación
-oc --remember -t bugfix "Fixed JWT expiration bug"
+# Crear observaciones
 oc --remember "Nota general"
+oc --remember -t bugfix "Fixed JWT expiration bug"
+oc --remember -t decision "Usamos Redis para sesiones"
 ```
 
-### Formato de Observations
+### Tipos de observación
+
+| Tipo | Uso |
+|------|-----|
+| `note` | Notas generales (default) |
+| `bugfix` | Bugs corregidos |
+| `feature` | Features implementadas |
+| `decision` | Decisiones técnicas |
+| `config` | Cambios de configuración |
+
+### Formato interno
 
 ```markdown
 ---
-id: obs_XXX
-date: 2026-05-01 14:30:00
+id: obs_20260501-143022-a1b2c3d4
+date: 2026-05-01 14:30:22
 project: mi-api
 type: bugfix
 summary: Fix JWT expiration bug
-tokens_est: 500
+tokens_est: 200
 ---
 
-Contenido completo de la observación...
+Contenido completo...
+```
 
+---
+
+## Modo Interactivo
+
+Menú seleccionable con fzf. Requiere `fzf` instalado.
 
 ```bash
-# Buscar
-oc --memory "docker"           # Busca en headers
-oc --memory -p proyecto "auth" # Busca en proyecto específico
-
-# Guardar
-oc --remember "nota"          # Guarda en contexto global
-oc --remember -p proyecto "decisión" # Guarda en proyecto
-
-# Formato
----
-date: 2026-05-01
-project: mi-proyecto
-type: decision
-tags: [auth, jwt]
-summary: Usamos Redis para sesiones
----
+oc --interactive   # o oc -i
 ```
 
+Navega con flechas, Enter para seleccionar. Solicita confirmación antes de ejecutar agentes que requieren input.
+
 ---
 
-## Workflows (Automatic Single-Pass)
+## Modo Wizard
 
-Sistema de workflows que ejecutan **todas las fases automáticamente en una sola pasada** de OpenCode. Sin intervención del usuario.
+Guía paso a paso con confirmación entre fases.
 
 ```bash
-# Ejecución automática (sin confirmación entre fases)
-oc --workflow bug-hunt ~/proyecto           # 5 fases
-oc --workflow new-project "mi-api"          # 4 fases
-oc --workflow debug "fix memory leak"      # 3 fases
-oc --workflow document ~/proyecto           # 3 fases
-oc --workflow feature "add auth" ~/api      # 4 fases
+oc --wizard   # o oc -w
 ```
 
-### Workflows Disponibles
+Opciones: analizar proyecto, planificar tarea, implementar feature, revisar código, auditoría de seguridad, DevOps.
 
-| Workflow | Fases | Agentes | Tiempo |
-|----------|-------|---------|--------|
-| `bug-hunt` | 5 | architect → security → planner → builder → reviewer | ~5min |
-| `new-project` | 4 | architect → planner → builder → docs | ~4min |
-| `debug` | 3 | oncall → builder → security | ~3min |
-| `document` | 3 | architect → docs-writer → reviewer | ~3min |
-| `feature` | 4 | architect → planner → builder → reviewer | ~4min |
+---
 
-### Cómo Funciona
+## Workflows (Single-Pass)
 
-Cada workflow envía **un solo comando `opencode run`** con todas las fases codificadas en el prompt:
+Pipelines multi-agente que ejecutan **todas las fases en una sola sesión OpenCode**. El agente mantiene contexto completo entre fases — no hay timeout entre llamadas.
+
+```bash
+oc --workflow bug-hunt ~/proyecto              # 5 fases
+oc --workflow new-project "mi-api"             # 4 fases
+oc --workflow debug "descripción del error"    # 3 fases
+oc --workflow document ~/proyecto              # 3 fases
+oc --workflow feature "add OAuth2" ~/api       # 4 fases (descripción + path)
+```
+
+### Workflows disponibles
+
+| Workflow | Fases | Cadena de agentes |
+|----------|-------|-------------------|
+| `bug-hunt` | 5 | architect → security-auditor → planner → builder → reviewer |
+| `new-project` | 4 | architect → planner → builder → docs-writer |
+| `debug` | 3 | oncall → builder → security-auditor |
+| `document` | 3 | architect → docs-writer → reviewer |
+| `feature` | 4 | architect → planner → builder → reviewer |
+
+### Nota sobre `feature` workflow
+
+Recibe dos argumentos: descripción del feature y path del proyecto:
+
+```bash
+oc --workflow feature "add OAuth2 login" ~/myapi
+#                      ↑ descripción       ↑ path
+```
+
+### Cómo funciona (single-pass)
+
+Cada workflow construye un único prompt con todas las fases y lo envía a OpenCode en una sola llamada. El modelo ejecuta las fases secuencialmente manteniendo el contexto completo:
 
 ```
-opencode run "Ejecuta el workflow COMPLETO de document para: $target
+opencode -p "Ejecuta el workflow completo para: $target
 
 FASE 1 - @architect con project-map:
-- Analiza el proyecto en: $target
-- Documenta: stack, estructura, entry points, APIs
+  Analiza el proyecto...
 
-FASE 2 - @docs-writer genera documentación:
-- Crea README.md, ARCHITECTURE.md, API.md
+FASE 2 - @docs-writer:
+  Genera documentación...
 
-FASE 3 - @reviewer verifica documentación
-..."
+FASE 3 - @reviewer:
+  Verifica..."
 ```
 
-El agente ejecuta todas las fases secuencialmente y crea los archivos en el proyecto objetivo.
+---
+
+## Plugin de Seguridad
+
+`safety-guard.js` bloquea comandos destructivos antes de ejecución. Normaliza whitespace antes de evaluar patrones para prevenir bypasses triviales.
+
+Comandos bloqueados:
+- `rm -rf` en rutas críticas (`/`, `~`, `/home`, `/etc`, `/usr`, `/var`, `/bin`)
+- `mkfs` (formateo de filesystem)
+- `dd if=` (escritura directa a disco)
+- Fork bomb `:(){ :|:& };:`
+- Escritura directa a dispositivos de bloque (`> /dev/sda`)
+- Truncado de archivos críticos (`> /etc/passwd`, `> /etc/shadow`, etc.)
+
+---
+
+## Inicializar Proyecto
+
+```bash
+oc --init ~/mi-proyecto   # Crea .opencode/ con config base + git hook
+```
+
+Genera:
+- `.opencode/opencode.json` — config que extiende global
+- `.opencode/CLAUDE.md` — contexto del proyecto
+- `.git/hooks/pre-commit` — revisión automática con `@reviewer`
+
+---
+
+## Git Hooks
+
+```bash
+# Instalar hooks globalmente
+cp hooks/pre-commit ~/.config/opencode/hooks/
+cp hooks/pre-push   ~/.config/opencode/hooks/
+```
+
+`pre-commit` ejecuta `@reviewer` con `precommit-review` antes de cada commit. Bloquea el commit si hay hallazgos críticos.
+
+---
+
+## Souls/Personas
+
+Personas predefinidas para diferentes contextos en `souls/souls.md`:
+
+- `senior-developer` — 15+ años, código limpio y probado
+- `security-auditor` — CISSP/CEH, zero-trust mindset
+- `devops-sre` — IaC, SLOs, blameless post-mortems
+- `code-reviewer` — estándares exigentes
 
 ---
 
@@ -267,44 +324,45 @@ El agente ejecuta todas las fases secuencialmente y crea los archivos en el proy
 
 ```
 opencode-global-config/
-├── oc                      # Script principal con workflows y 3-layer memory
+├── oc                       # Script principal (v1.7)
 ├── agents/
-│   ├── architect.md         # + Tradeoffs declarations
-│   ├── planner.md          # + Success criteria
-│   ├── builder.md          # + Karpathy principles
+│   ├── architect.md         # Read-only, tradeoffs declarations
+│   ├── planner.md           # Success criteria, fases verificables
+│   ├── builder.md           # Karpathy principles (4 reglas)
 │   ├── reviewer.md
 │   ├── security-auditor.md
 │   ├── docs-writer.md
 │   ├── devops.md
-│   └── oncall.md           # + Reversibility-weighted risk
+│   └── oncall.md            # Reversibility-weighted risk
 ├── skills/
-│   ├── project-map/
-│   ├── safe-implementation/
-│   ├── test-first/          # + Goal-Driven Execution
-│   └── precommit-review/
+│   ├── project-map/         # Análisis de estructura
+│   ├── safe-implementation/ # Cambios pequeños y verificables
+│   ├── test-first/          # Goal-Driven Execution
+│   ├── precommit-review/    # Revisión de diff
+│   └── memory-retrieval/    # 3-layer progressive disclosure
 ├── plugins/
-│   └── safety-guard.js
+│   └── safety-guard.js      # Regex hardening, whitespace normalization
 ├── memory/
-│   ├── INDEX.md            # Header index
-│   ├── ARCHITECTURE.md      # 5-layer compaction
-│   ├── projects/
+│   ├── INDEX.md             # Índice de observaciones
+│   ├── ARCHITECTURE.md
+│   ├── projects/            # Observaciones por proyecto
 │   ├── decisions/
 │   └── patterns/
-├── profiles/               # 7 trust levels
+├── profiles/                # 7 niveles de confianza
 │   ├── deny.json
 │   ├── plan.json
 │   ├── review.json
 │   ├── default.json
-│   ├── auto.json           # ML classifier
+│   ├── auto.json
 │   ├── trusted.json
 │   └── devops.json
 ├── souls/
-│   └── souls.md
+│   └── souls.md             # 4 personas predefinidas
 ├── hooks/
 │   ├── pre-commit
 │   └── pre-push
-├── CLAUDE.md               # Karpathy guidelines
-├── AGENTS.md               # Reglas globales actualizadas
+├── CLAUDE.md
+├── AGENTS.md                # 4 principios Karpathy globales
 ├── README.md
 ├── INSTALL.md
 ├── CHANGELOG.md
@@ -316,43 +374,65 @@ opencode-global-config/
 ## Inspiración y Fuentes
 
 ### Análisis de Arquitectura Claude Code
-- [VILA-Lab/Dive-into-Claude-Code](https://github.com/VILA-Lab/Dive-into-Claude-Code) (929 stars) - Paper académico: "98.4% infrastructure, 1.6% AI"
-- [Piebald-AI/claude-code-system-prompts](https://github.com/Piebald-AI/claude-code-system-prompts) (9806 stars)
+- [VILA-Lab/Dive-into-Claude-Code](https://github.com/VILA-Lab/Dive-into-Claude-Code) — Paper académico: "98.4% infrastructure, 1.6% AI"
+- [Piebald-AI/claude-code-system-prompts](https://github.com/Piebald-AI/claude-code-system-prompts)
 
 ### Directrices Karpathy
-- [forrestchang/andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills) (105k stars)
+- [forrestchang/andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills)
 
 ### Memory Systems
 - [kunickiaj/codemem](https://github.com/kunickiaj/codemem)
-- [swarmclawai/swarmvault](https://github.com/swarmclawai/swarmvault) (295 stars)
+- [swarmclawai/swarmvault](https://github.com/swarmclawai/swarmvault)
 
 ### Skills & Plugins
-- [jeremylongshore/claude-code-plugins-plus-skills](https://github.com/jeremylongshore/claude-code-plugins-plus-skills) (2077 stars)
+- [jeremylongshore/claude-code-plugins-plus-skills](https://github.com/jeremylongshore/claude-code-plugins-plus-skills)
 
 ---
 
 ## Changelog
 
+### v1.7 (2026-05-01)
+
+#### Fixes críticos en `oc` script
+- **Eliminado `set -e`** del script — causaba exit silencioso cuando `search_memory` o `check_budget` retornaban 1 (no-encontrado)
+- **Corregido `local` fuera de función** en bloques `--workflow`, `--type`, `--remember`, `--memory` del `case` — generaba error `bash: local: can only be used in a function`
+- **Corregido workflow `feature`** — `feature_desc` se perdía porque `${3:-}` capturaba el flag `interactive` en lugar de la descripción; ahora dispatcher pasa 4 argumentos correctamente
+- **Corregido `run_interactive`** — fzf parsing usaba `awk '{print $1}'` sobre ASCII art con `║` como primer token; reemplazado por lista limpia `"a  @architect..."` donde `awk` extrae la letra correctamente
+- **Corregido `generate_obs_id`** — `head -c 12` truncaba a `YYYYMMDD-HH` generando colisiones; ahora usa timestamp completo + 4 bytes de `/dev/urandom`
+- **Eliminado placeholder `<private>`** falso en cada observación creada
+
+#### Mejoras funcionales
+- **Perfiles funcionales** — `switch_profile` exporta `OPENCODE_PROFILE`; todos los `quick_*`, `run_agent` y workflows leen perfil activo via `_oc_run()` wrapper
+- **`check_deps` simplificado** — solo verifica `opencode` al startup; `fzf` se verifica solo al usar `--interactive`
+- **Workflows single-pass implementados** — cada workflow envía un prompt único con todas las fases; el agente mantiene contexto completo entre fases sin timeout
+- **`--compact` honesto** — ya no imprime pipeline falso; resetea contador y advierte que el resumen manual es necesario para sesiones largas
+
+#### Seguridad (`safety-guard.js`)
+- **Reemplazado substring matching por regex** — normaliza whitespace antes de evaluar; `rm  -rf /` (espacios extra), `rm -r -f /` no pasan
+- **Ampliados patrones bloqueados** — añadidos: escritura directa a discos (`> /dev/sda`), truncado de archivos críticos (`> /etc/passwd`, `/etc/shadow`, `/etc/sudoers`), `chmod` world-writable recursivo en paths de sistema
+
+#### Documentación
+- **Corregido "6 skills"** → 5 skills (el repo tiene 5 `SKILL.md`)
+- **Eliminada tabla de "5-layer compaction"** — la compaction no está implementada en código; reemplazada por descripción honesta del contador de turns
+- **Actualizado workflow `feature`** con sintaxis correcta de 2 argumentos
+- **Eliminada referencia a `--interactive` en workflows** — el flag existe pero la documentación lo omitía inconsistentemente
+
 ### v1.6 (2026-05-01)
-- **Workflows automático single-pass**: Todas las fases ejecutan en una sola llamada a `opencode run`
-- Timeout extendido a 300s para proyectos grandes
-- 5 workflows funcionando sin intervención del usuario
+- Workflows automático single-pass (documentado, implementado en v1.7)
+- 5 workflows sin intervención del usuario
 
 ### v1.5 (2026-05-01)
 - Sistema de workflows con 5 pipelines pre-configurados
-- Modo interactivo opcional con `--interactive`
+- Flag `--interactive` para confirmación entre fases
 
 ### v1.4 (2026-05-01)
 - 3-layer memory retrieval (search/timeline/get)
-- Observation format con privacy tags
-- Auto-capture functions
+- Observation format con auto-capture
 
 ### v1.3 (2026-05-01)
 - 7 perfiles con Deny-First gradient
 - Reversibility-weighted risk en @oncall
-- Context budget tracking (turns counter)
-- 5-layer compaction pipeline
-- Memory bank con header-based retrieval
+- Context budget tracking
 
 ### v1.2 (2026-05-01)
 - Integración de 4 principios de Karpathy
@@ -361,7 +441,7 @@ opencode-global-config/
 - Wizard, interactive menu, memory bank, souls, profiles, hooks, quick commands
 
 ### v1.0 (2026-05-01)
-- Initial release - 8 agents, 4 skills, safety plugin, oc command
+- Initial release — 8 agents, 5 skills, safety plugin, oc command
 
 ---
 

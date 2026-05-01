@@ -2,6 +2,36 @@
 
 Todos los cambios notables de este proyecto se documentarán en este archivo.
 
+## [1.7.0] - 2026-05-01
+
+### Fixes críticos (`oc` script)
+
+- **Eliminado `set -e`** — causaba exit silencioso cuando `search_memory`/`check_budget` retornaban 1 (señal "no encontrado")
+- **Corregido `local` fuera de función** en bloques `--workflow`, `--type`, `--remember`, `--memory` del `case` — generaba `bash: local: can only be used in a function`
+- **Corregido workflow `feature`** — `feature_desc` capturaba el flag `--interactive` en lugar de la descripción; dispatcher ahora pasa 4 argumentos correctamente
+- **Corregido `run_interactive`** — fzf parsing extraía `║` del ASCII art del menú; reemplazado por lista limpia donde `awk '{print $1}'` extrae la letra de opción
+- **Corregido `generate_obs_id`** — `head -c 12` truncaba a `YYYYMMDD-HH` causando colisiones por hora; ahora timestamp completo + 4 bytes de `/dev/urandom`
+- **Eliminado placeholder `<private>` falso** — cada observación creada incluía boilerplate vacío "Contenido sensible aqui"
+
+### Mejoras funcionales
+
+- **Perfiles funcionales** — `switch_profile` exporta `OPENCODE_PROFILE`; wrapper `_oc_run()` propaga perfil activo a todos los comandos (`quick_*`, `run_agent`, workflows)
+- **`check_deps` simplificado** — `opencode` requerido al startup; `fzf` verificado solo al usar `--interactive`
+- **Workflows single-pass implementados** — un único prompt por workflow con todas las fases; el agente mantiene contexto completo sin timeout inter-fases
+- **`--compact` honesto** — resetea contador de turns y advierte que el resumen manual es necesario para sesiones largas (no simula pipeline inexistente)
+
+### Seguridad (`safety-guard.js`)
+
+- **Reemplazado substring matching por regex** con normalización de whitespace — `rm  -rf /` (espacios extra) y `rm -r -f /` ahora bloqueados
+- **Ampliados patrones bloqueados** — escritura directa a discos (`> /dev/sda`), truncado de archivos críticos (`> /etc/passwd`, `/etc/shadow`, `/etc/sudoers`, `/etc/hosts`), `chmod -R` world-writable en paths de sistema
+
+### Documentación
+
+- **Corregido "6 skills" → 5 skills** (el repo contiene 5 `SKILL.md`)
+- **Eliminada tabla de compaction ficticia** — reemplazada por descripción honesta del contador de turns
+- **Actualizada sintaxis `--workflow feature`** — documenta los 2 argumentos obligatorios (descripción + path)
+- **Changelog honesto** — separado lo que v1.6 documentó vs lo que v1.7 realmente implementó
+
 ## [1.6.0] - 2026-05-01
 
 ### Modificado

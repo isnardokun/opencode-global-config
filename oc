@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-set -e
-
 OC_CONFIG="${HOME}/.config/opencode"
 OC_BIN="${HOME}/.local/bin"
 OC_MEMORY="${OC_CONFIG}/memory"
@@ -17,23 +15,18 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-info() { echo -e "${BLUE}[INFO]${NC} $1"; }
+info()    { echo -e "${BLUE}[INFO]${NC} $1"; }
 success() { echo -e "${GREEN}[OK]${NC} $1"; }
-warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
-error() { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
+warn()    { echo -e "${YELLOW}[WARN]${NC} $1"; }
+error()   { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 
 track_turn() {
-    local session_id=$(date +%Y%m%d-%H%M%S)
     local turns=1
     if [ -f "${OC_SESSION_FILE}" ]; then
         turns=$(($(cat "${OC_SESSION_FILE}") + 1))
     fi
     echo "$turns" > "${OC_SESSION_FILE}"
-
-    local budget_threshold=80
-    local warn_level=$(($turns * 100 / $budget_threshold))
-
-    if [ $turns -gt 20 ]; then
+    if [ "$turns" -gt 20 ]; then
         warn "Session turns: $turns (consider context compaction)"
     fi
 }
@@ -41,21 +34,21 @@ track_turn() {
 check_budget() {
     local turns=0
     [ -f "${OC_SESSION_FILE}" ] && turns=$(cat "${OC_SESSION_FILE}")
-
-    if [ $turns -gt 50 ]; then
+    if [ "$turns" -gt 50 ]; then
         warn "High session turns ($turns). Context may need compaction."
-        return 1
     fi
-    return 0
 }
 
+# Only require opencode at startup; fzf checked on demand
 check_deps() {
-    local missing=()
-    for cmd in fzf opencode; do
-        command -v $cmd >/dev/null 2>&1 || missing+=($cmd)
-    done
-    if [ ${#missing[@]} -gt 0 ]; then
-        error "Dependencies missing: ${missing[*]}. Install with: dnf install fzf"
+    if ! command -v opencode >/dev/null 2>&1; then
+        error "opencode not found. Install from https://opencode.ai"
+    fi
+}
+
+check_fzf() {
+    if ! command -v fzf >/dev/null 2>&1; then
+        error "fzf required for interactive mode. Install: dnf install fzf"
     fi
 }
 
@@ -63,18 +56,22 @@ show_budget() {
     local turns=0
     [ -f "${OC_SESSION_FILE}" ] && turns=$(cat "${OC_SESSION_FILE}")
     echo "Session turns: $turns"
-    [ $turns -gt 20 ] && echo "Consider running: oc --compact"
+    [ "$turns" -gt 20 ] && echo "Consider running: oc --compact"
 }
 
+# Real entropy: timestamp + 4 random bytes
 generate_obs_id() {
-    date +%Y%m%d-%H%M%S-%N | head -c 12
+    local rand
+    rand=$(head -c4 /dev/urandom | xxd -p 2>/dev/null || date +%N | cut -c1-8)
+    printf '%s-%s' "$(date +%Y%m%d-%H%M%S)" "$rand"
 }
 
 create_observation() {
     local type="${1:-note}"
     local content="$2"
     local project="${3:-global}"
-    local obs_id=$(generate_obs_id)
+    local obs_id
+    obs_id=$(generate_obs_id)
 
     if [ -z "$content" ]; then
         echo "Error: content is required"
@@ -97,16 +94,14 @@ tokens_est: 200
 ---
 
 ${content}
-
-$(echo "<private>"; echo "Contenido sensible aqui"; echo "</private>")
 EOF
 
     echo "$obs_id" > "${OC_MEMORY}/.last_obs_id"
     success "Observation created: obs_${obs_id}"
 
-    grep -q "^<!-- INDEX_START -->" "${OC_MEMORY}/INDEX.md" && {
+    if grep -q "^<!-- INDEX_START -->" "${OC_MEMORY}/INDEX.md" 2>/dev/null; then
         echo "obs_${obs_id} | $(date +%Y-%m-%d) | ${project} | ${type} | ${content:0:80}" >> "${OC_MEMORY}/INDEX.md"
-    }
+    fi
 }
 
 search_memory() {
@@ -116,25 +111,26 @@ search_memory() {
 
     if [ -z "$query" ]; then
         echo "Usage: oc --memory <query> [-p project] [-t type]"
-        return 1
+        return 0
     fi
 
     if [ ! -f "${OC_MEMORY}/INDEX.md" ]; then
         warn "No memory index found. Use oc --remember to add observations."
-        return 1
+        return 0
     fi
 
-    local results=$(grep -i "$query" "${OC_MEMORY}/INDEX.md" 2>/dev/null | head -20)
+    local results
+    results=$(grep -i "$query" "${OC_MEMORY}/INDEX.md" 2>/dev/null | head -20)
 
     if [ -z "$results" ]; then
         echo "No results found for: $query"
-        return 1
+        return 0
     fi
 
     echo -e "${BLUE}=== Memory Search Results ===${NC}"
-    echo "$results" | while IFS= read -r line; do
+    while IFS= read -r line; do
         echo "$line"
-    done
+    done <<< "$results"
     echo ""
     echo "Use --timeline <obs_id> for context or --get <id1,id2> for full details."
 }
@@ -144,14 +140,15 @@ get_observations() {
 
     if [ -z "$ids" ]; then
         echo "Usage: oc --get <obs_id1,obs_id2,...>"
-        return 1
+        return 0
     fi
 
     IFS=',' read -ra OBS_IDS <<< "$ids"
 
     for obs_id in "${OBS_IDS[@]}"; do
         obs_id=$(echo "$obs_id" | tr -d ' ')
-        local obs_file=$(find "${OC_MEMORY}" -name "${obs_id}.md" 2>/dev/null | head -1)
+        local obs_file
+        obs_file=$(find "${OC_MEMORY}" -name "${obs_id}.md" 2>/dev/null | head -1)
 
         if [ -z "$obs_file" ]; then
             warn "Observation not found: $obs_id"
@@ -169,72 +166,91 @@ get_timeline() {
 
     if [ -z "$obs_id" ]; then
         echo "Usage: oc --timeline <obs_id>"
-        return 1
+        return 0
     fi
 
-    local obs_file=$(find "${OC_MEMORY}" -name "${obs_id}.md" 2>/dev/null | head -1)
+    local obs_file
+    obs_file=$(find "${OC_MEMORY}" -name "${obs_id}.md" 2>/dev/null | head -1)
 
     if [ -z "$obs_file" ]; then
         warn "Observation not found: $obs_id"
-        return 1
+        return 0
     fi
 
-    local obs_dir=$(dirname "$obs_file")
-    local project=$(grep "^project:" "$obs_file" | cut -d':' -f2 | tr -d ' ')
+    local obs_dir
+    obs_dir=$(dirname "$obs_file")
 
     echo -e "${BLUE}=== Timeline around $obs_id ===${NC}"
-    ls -t "$obs_dir"/*.md 2>/dev/null | head -5 | while read -r f; do
-        local fname=$(basename "$f" .md)
-        local summary=$(grep "^summary:" "$f" 2>/dev/null | cut -d':' -f2 | tr -d ' ')
-        local date=$(grep "^date:" "$f" 2>/dev/null | cut -d':' -f2 | tr -d ' ')
-        echo "$fname | $date | ${summary:0:80}"
-    done
+    while IFS= read -r f; do
+        local fname summary fdate
+        fname=$(basename "$f" .md)
+        summary=$(grep "^summary:" "$f" 2>/dev/null | cut -d':' -f2 | tr -d ' ')
+        fdate=$(grep "^date:" "$f" 2>/dev/null | cut -d':' -f2 | tr -d ' ')
+        echo "$fname | $fdate | ${summary:0:80}"
+    done < <(ls -t "$obs_dir"/*.md 2>/dev/null | head -5)
 }
 
 capture_session() {
     info "Session started: $(date)"
     info "Project: ${PWD}"
-    echo "---" >> "${OC_MEMORY}/sessions.log"
-    echo "Session: $(date)" >> "${OC_MEMORY}/sessions.log"
-    echo "Directory: ${PWD}" >> "${OC_MEMORY}/sessions.log"
+    mkdir -p "${OC_MEMORY}"
+    {
+        echo "---"
+        echo "Session: $(date)"
+        echo "Directory: ${PWD}"
+    } >> "${OC_MEMORY}/sessions.log"
+}
+
+get_active_profile() {
+    [ -f "${CURRENT_PROFILE}" ] && cat "${CURRENT_PROFILE}"
+}
+
+switch_profile() {
+    local profile="$1"
+    echo "$profile" > "${CURRENT_PROFILE}"
+    export OPENCODE_PROFILE="$profile"
+    success "Perfil: $profile"
+}
+
+# Read active profile and pass to opencode when set
+_oc_run() {
+    local profile
+    profile=$(get_active_profile)
+    if [ -n "$profile" ]; then
+        opencode --profile "$profile" "$@"
+    else
+        opencode "$@"
+    fi
 }
 
 check_deps
 track_turn
 
 show_menu() {
-    cat << 'EOF'
-╔════════════════════════════════════════════════════════════╗
-║              OpenCode Global Config - Menú                ║
-╠════════════════════════════════════════════════════════════╣
-║  [a]  @architect    - Analizar arquitectura y riesgos    ║
-║  [p]  @planner      - Planificar tarea en fases          ║
-║  [b]  @builder      - Implementar cambios                ║
-║  [r]  @reviewer     - Revisar código                     ║
-║  [s]  @security     - Auditoría de seguridad             ║
-║  [d]  @docs         - Generar documentación              ║
-║  [v]  @devops       - Tareas DevOps                       ║
-║  [o]  @oncall       - Diagnosticar producción            ║
-║  [w]  Wizard        - Modo guiado paso a paso            ║
-║  [i]  Init          - Inicializar proyecto               ║
-║  [m]  Memory        - Buscar en memoria                  ║
-║  [t]  Memory+Task   - Recordar + nueva tarea             ║
-║  [q]  Quit                                               ║
-╚════════════════════════════════════════════════════════════╝
-EOF
+    printf '%s\n' \
+        "a  @architect    - Analizar arquitectura y riesgos" \
+        "p  @planner      - Planificar tarea en fases" \
+        "b  @builder      - Implementar cambios" \
+        "r  @reviewer     - Revisar código" \
+        "s  @security     - Auditoría de seguridad" \
+        "d  @docs         - Generar documentación" \
+        "v  @devops       - Tareas DevOps" \
+        "o  @oncall       - Diagnosticar producción" \
+        "w  Wizard        - Modo guiado paso a paso" \
+        "i  Init          - Inicializar proyecto" \
+        "m  Memory        - Buscar en memoria" \
+        "q  Quit"
 }
 
 run_agent() {
-    local agent=$1
-    local task=$2
-    shift 2
-    opencode -p "Usa el agente @${agent}. $task"
+    local agent="$1"
+    local task="$2"
+    _oc_run -p "Usa el agente @${agent}. $task"
 }
 
 run_wizard() {
     echo -e "${BLUE}=== Modo Wizard - Paso a Paso ===${NC}"
     echo ""
-
     echo "Selecciona el tipo de tarea:"
     echo "1) Analizar proyecto (architecture + risks)"
     echo "2) Planificar tarea compleja"
@@ -244,75 +260,75 @@ run_wizard() {
     echo "6) DevOps (Docker, CI/CD, etc)"
     echo ""
 
-    read -p "Opción [1-6]: " option
+    read -rp "Opción [1-6]: " option
     echo ""
 
     case $option in
         1)
-            read -p "Ruta del proyecto: " path
+            read -rp "Ruta del proyecto: " path
             echo ""
             info "Fase 1: @architect + project-map"
-            opencode -p "Usa @architect con project-map. Analiza: $path"
+            _oc_run -p "Usa @architect con project-map. Analiza: $path"
             echo ""
-            read -p "Continuar a planificación? [y/n]: " cont
+            read -rp "Continuar a planificación? [y/n]: " cont
             if [[ "$cont" == "y" ]]; then
                 echo ""
                 info "Fase 2: @planner"
-                opencode -p "Usa @planner. Divide en fases verificables esta tarea: análisis de $path"
+                _oc_run -p "Usa @planner. Divide en fases verificables esta tarea: análisis de $path"
             fi
             ;;
         2)
-            read -p "Describe la tarea: " task
+            read -rp "Describe la tarea: " task
             echo ""
             info "Fase 1: @planner"
-            opencode -p "Usa @planner. Divide esta tarea en fases: $task"
+            _oc_run -p "Usa @planner. Divide esta tarea en fases: $task"
             echo ""
-            read -p "Continuar a implementación? [y/n]: " cont
+            read -rp "Continuar a implementación? [y/n]: " cont
             if [[ "$cont" == "y" ]]; then
                 echo ""
                 info "Fase 2: @builder"
-                opencode -p "Usa @builder con safe-implementation y test-first. Implementa: $task"
+                _oc_run -p "Usa @builder con safe-implementation y test-first. Implementa: $task"
             fi
             ;;
         3)
-            read -p "Descripción del feature: " feature
+            read -rp "Descripción del feature: " feature
             echo ""
             info "Fase 1: @architect"
-            opencode -p "Usa @architect. Analiza el proyecto actual para implementar: $feature"
+            _oc_run -p "Usa @architect. Analiza el proyecto actual para implementar: $feature"
             echo ""
             info "Fase 2: @planner"
-            opencode -p "Usa @planner. Planifica la implementación de: $feature"
+            _oc_run -p "Usa @planner. Planifica la implementación de: $feature"
             echo ""
             info "Fase 3: @builder"
-            opencode -p "Usa @builder con safe-implementation y test-first. Implementa: $feature"
+            _oc_run -p "Usa @builder con safe-implementation y test-first. Implementa: $feature"
             echo ""
             info "Fase 4: @reviewer"
-            opencode -p "Usa @reviewer con precommit-review. Revisa los cambios."
+            _oc_run -p "Usa @reviewer con precommit-review. Revisa los cambios."
             ;;
         4)
-            read -p "Archivos a revisar: " files
+            read -rp "Archivos a revisar: " files
             echo ""
             info "Fase 1: @reviewer"
-            opencode -p "Usa @reviewer. Revisa: $files"
+            _oc_run -p "Usa @reviewer. Revisa: $files"
             echo ""
-            read -p "Ejecutar auditoría de seguridad? [y/n]: " sec
+            read -rp "Ejecutar auditoría de seguridad? [y/n]: " sec
             if [[ "$sec" == "y" ]]; then
                 echo ""
                 info "Fase 2: @security-auditor"
-                opencode -p "Usa @security-auditor. Busca vulnerabilidades en: $files"
+                _oc_run -p "Usa @security-auditor. Busca vulnerabilidades en: $files"
             fi
             ;;
         5)
-            read -p "Ruta a auditar: " path
+            read -rp "Ruta a auditar: " path
             echo ""
             info "Fase 1: @security-auditor"
-            opencode -p "Usa @security-auditor. Auditoría completa de: $path"
+            _oc_run -p "Usa @security-auditor. Auditoría completa de: $path"
             ;;
         6)
-            read -p "Descripción tarea DevOps: " task
+            read -rp "Descripción tarea DevOps: " task
             echo ""
             info "Fase 1: @devops"
-            opencode -p "Usa @devops. $task"
+            _oc_run -p "Usa @devops. $task"
             ;;
     esac
 }
@@ -323,7 +339,7 @@ run_init() {
 
     if [ -d "${opencode_dir}" ]; then
         warn "Ya existe ${opencode_dir}/"
-        read -p "Sobrescribir? [y/n]: " confirm
+        read -rp "Sobrescribir? [y/n]: " confirm
         [[ "$confirm" != "y" ]] && exit 0
         rm -rf "${opencode_dir}"
     fi
@@ -392,14 +408,14 @@ memory_search() {
     if [ ! -d "${OC_MEMORY}" ]; then
         mkdir -p "${OC_MEMORY}"
         warn "Memory bank vacío. Creado ${OC_MEMORY}/"
-        return
+        return 0
     fi
 
     local query="$*"
     if [ -z "$query" ]; then
         echo "Archivos en memory bank:"
         ls -la "${OC_MEMORY}/"
-        return
+        return 0
     fi
 
     echo -e "${BLUE}Buscando en memory bank...${NC}"
@@ -408,34 +424,41 @@ memory_search() {
 
 memory_save() {
     local context="$1"
-    local timestamp=$(date +%Y%m%d-%H%M%S)
-    echo -e "---\nFecha: $(date)\nContexto: ${context}\n---\n" >> "${OC_MEMORY}/${timestamp}.md"
+    local timestamp
+    timestamp=$(date +%Y%m%d-%H%M%S)
+    mkdir -p "${OC_MEMORY}"
+    printf -- '---\nFecha: %s\nContexto: %s\n---\n\n' "$(date)" "$context" >> "${OC_MEMORY}/${timestamp}.md"
     success "Guardado en ${OC_MEMORY}/${timestamp}.md"
 }
 
 run_interactive() {
+    check_fzf
     local choice
-    choice=$(show_menu | fzf --height=15 --border --prompt="Selecciona opción: " | awk '{print $1}' | tr -d '[]')
+    choice=$(show_menu | fzf --height=14 --border --prompt="Selecciona: " | awk '{print $1}')
 
-    case $choice in
+    case "$choice" in
         a) run_agent "architect" "Analiza el proyecto actual sin modificar" ;;
-        p) run_agent "planner" "Divide esta tarea en fases: $(read -p 'Tarea: '; echo $REPLY)" ;;
-        b) run_agent "builder" "Implementa este cambio: $(read -p 'Cambio: '; echo $REPLY)" ;;
+        p)
+            read -rp "Tarea: " task
+            run_agent "planner" "Divide esta tarea en fases: $task"
+            ;;
+        b)
+            read -rp "Cambio a implementar: " cambio
+            run_agent "builder" "Implementa este cambio: $cambio"
+            ;;
         r) run_agent "reviewer" "Revisa los cambios realizados" ;;
         s) run_agent "security-auditor" "Audita seguridad del proyecto actual" ;;
         d) run_agent "docs-writer" "Genera/actualiza documentación del proyecto" ;;
-        v) run_agent "devops" "Tarea DevOps: $(read -p 'Descripción: '; echo $REPLY)" ;;
+        v)
+            read -rp "Descripción DevOps: " desc
+            run_agent "devops" "Tarea DevOps: $desc"
+            ;;
         o) run_agent "oncall" "Diagnostica problema en producción" ;;
         w) run_wizard ;;
         i) run_init "$(pwd)" ;;
-        m) shift; memory_search "$@" ;;
-        t)
-            echo "Describe lo que quieres recordar:"
-            read -r context
-            memory_save "$context"
-            echo "Ahora describe tu tarea:"
-            read -r task
-            opencode -p "Contexto remembered: $context. Tarea: $task"
+        m)
+            read -rp "Query: " query
+            search_memory "$query"
             ;;
         q) exit 0 ;;
     esac
@@ -452,93 +475,86 @@ OPCIONES:
     -w, --wizard         Modo guiado paso a paso
     -i, --interactive    Menú interactivo con fzf
     --init [ruta]        Inicializar proyecto con .opencode/
-    -p, --profile <nom>  Cambiar perfil (work/research/devops)
+    -p, --profile <nom>  Cambiar perfil activo (persiste en sesión)
     -l, --list-profiles  Listar perfiles disponibles
-    --compact           Ejecutar compaction pipeline (reset turns)
-    --budget            Mostrar uso de sesión
-    -h, --help          Mostrar esta ayuda
+    --compact            Resetear contador de turns de sesión
+    --budget             Ver uso de turns en sesión actual
+    -h, --help           Mostrar esta ayuda
 
 MEMORY (3-Layer Workflow):
-    --memory <texto>     Capa 1: Buscar en index (results compactos)
+    --memory <texto>     Capa 1: Buscar en index (resultados compactos)
     --timeline <obs_id>  Capa 2: Timeline cronológico
     --get <id1,id2>      Capa 3: Detalle completo de observaciones
     --remember <texto>   Crear observación nueva
+    --remember -t <tipo> <texto>  Observación con tipo explícito
     --capture            Capturar estado actual de sesión
-    -t, --type <tipo>    Filtrar por tipo (bugfix|feature|decision|note|config)
+    -t <tipo> <query>    Filtrar búsqueda por tipo (bugfix|feature|decision|note|config)
 
 COMANDOS RÁPIDOS:
     oc analyze <ruta>    @architect + project-map
-    oc plan <tarea>       @planner
-    oc build <cambio>     @builder + test-first
+    oc plan <tarea>      @planner
+    oc build <cambio>    @builder + test-first
     oc review            @reviewer + precommit-review
     oc secure            @security-auditor
     oc docs              @docs-writer
     oc devops <tarea>    @devops
     oc oncall            @oncall
 
-MEMORY RETRIEVAL (3-LAYER):
-    oc --memory "auth bug"                    # Search
-    oc --memory --timeline obs_001            # Timeline
-    oc --memory --get obs_001,obs_002         # Full details
-    oc --remember -t bugfix "fixed JWT"      # New observation
-
-WORKFLOWS (cadenas de agentes):
-    oc --workflow bug-hunt ~/proyecto           # 5 fases: architect→security→planner→builder→reviewer
-    oc --workflow new-project "mi-api"          # 4 fases: architect→planner→builder→docs
-    oc --workflow debug "fix memory leak"       # 3 fases: oncall→builder→security
-    oc --workflow document ~/proyecto           # 3 fases: architect→docs→reviewer
-    oc --workflow feature "add auth" ~/api      # 4 fases: architect→planner→builder→reviewer
-    oc --workflow --interactive ...             # Pide confirmación entre fases
+WORKFLOWS (single-pass, todas las fases en una sesión):
+    oc --workflow bug-hunt ~/proyecto        # 5 fases
+    oc --workflow new-project "mi-api"       # 4 fases
+    oc --workflow debug "fix memory leak"    # 3 fases
+    oc --workflow document ~/proyecto        # 3 fases
+    oc --workflow feature "add auth" ~/api   # 4 fases
 
 EJEMPLOS:
     oc analyze ~/proyecto
     oc --wizard
     oc --interactive
     oc --init ~/microservicio
-    oc --profile work
+    oc --profile devops
     oc build "agregar auth con JWT"
-    oc --workflow bug-hunt ~/proyecto --interactive
-    oc --workflow document .
+    oc --workflow bug-hunt ~/proyecto
+    oc --workflow feature "add OAuth2" ~/api
 
 CONFIGURACIÓN:
-    ~/.config/opencode/     Config global
-    ~/.config/opencode/memory/  Memory bank (3-layer)
+    ~/.config/opencode/           Config global
+    ~/.config/opencode/memory/    Memory bank (3-layer)
     ~/.config/opencode/profiles/  Perfiles (7 levels)
-    ~/.config/opencode/workflows/  Workflows custom (future)
 
 EOF
 }
 
 quick_analyze() {
-    opencode -p "Usa @architect con project-map. Analiza: $1"
+    _oc_run -p "Usa @architect con project-map. Analiza: $1"
 }
 
 quick_plan() {
-    opencode -p "Usa @planner. Divide en fases: $1"
+    _oc_run -p "Usa @planner. Divide en fases: $1"
 }
 
 quick_build() {
-    opencode -p "Usa @builder con safe-implementation y test-first. Implementa: $1"
+    _oc_run -p "Usa @builder con safe-implementation y test-first. Implementa: $1"
 }
 
 quick_review() {
-    opencode -p "Usa @reviewer con precommit-review. Revisa los cambios."
+    _oc_run -p "Usa @reviewer con precommit-review. Revisa los cambios."
 }
 
 quick_secure() {
-    opencode -p "Usa @security-auditor. Auditoría de seguridad."
+    _oc_run -p "Usa @security-auditor. Auditoría de seguridad."
 }
 
 quick_docs() {
-    opencode -p "Usa @docs-writer. Genera documentación del proyecto."
+    _oc_run -p "Usa @docs-writer. Genera documentación del proyecto."
 }
 
 quick_devops() {
-    opencode -p "Usa @devops. $1"
+    _oc_run -p "Usa @devops. $1"
 }
 
 quick_oncall() {
-    opencode -p "Usa @oncall. Diagnostica el problema."
+    _oc_run -p "Usa @oncall. Diagnostica el problema."
 }
 
 list_profiles() {
@@ -547,21 +563,15 @@ list_profiles() {
         echo "work"
         echo "research"
         echo "devops"
-        return
+        return 0
     fi
     ls "${OC_PROFILES}/"
-}
-
-switch_profile() {
-    local profile=$1
-    echo "$profile" > "${CURRENT_PROFILE}"
-    success "Perfil cambiado a: $profile"
 }
 
 confirm() {
     local prompt="${1:-Continuar?}"
     local response
-    read -p "$prompt [y/n]: " response
+    read -rp "$prompt [y/n]: " response
     [[ "$response" == "y" ]] || [[ "$response" == "Y" ]]
 }
 
@@ -569,149 +579,170 @@ run_workflow() {
     local workflow="${1:-}"
     local target="${2:-.}"
     local interactive="${3:-false}"
+    local feature_desc="${4:-nueva funcionalidad}"
 
     case "$workflow" in
         bug-hunt)
-            echo -e "${BLUE}=== Bug Hunt Pipeline ===${NC}"
-            echo "Fase 1: @architect analiza el proyecto"
-            if [ "$interactive" == "true" ]; then confirm "¿Continuar?" || return 0; fi
-            opencode -p "Usa @architect con project-map. Analiza: $target. Identifica archivos críticos y posibles áreas con bugs."
+            echo -e "${BLUE}=== Bug Hunt Pipeline (single-pass) ===${NC}"
+            if [ "$interactive" == "true" ]; then confirm "¿Iniciar?" || return 0; fi
+            _oc_run -p "Ejecuta el siguiente workflow completo para: $target
 
-            echo -e "${BLUE}Fase 2: @security-auditor busca errores${NC}"
-            if [ "$interactive" == "true" ]; then confirm "¿Continuar?" || return 0; fi
-            opencode -p "Usa @security-auditor. Revisa el código en: $target. Busca:
-- Errores lógicos
-- Variables indefinidas
-- Imports rotos
-- Memory leaks
-- Edge cases no manejados
-No modifiques nada. Lista los problemas encontrados."
+FASE 1 - @architect con project-map:
+Analiza el proyecto en: $target
+Identifica archivos críticos y posibles áreas con bugs.
+Reporta: stack detectado, estructura, riesgos.
 
-            echo -e "${BLUE}Fase 3: @planner planifica fixes${NC}"
-            if [ "$interactive" == "true" ]; then confirm "¿Continuar?" || return 0; fi
-            opencode -p "Usa @planner. Basado en los errores encontrados, crea un plan de corrección con fases verificables."
+FASE 2 - @security-auditor:
+Revisa el código buscando: errores lógicos, variables indefinidas, imports rotos, memory leaks, edge cases no manejados.
+No modifiques nada. Lista todos los problemas encontrados con severidad.
 
-            echo -e "${BLUE}Fase 4: @builder implementa fixes${NC}"
-            if [ "$interactive" == "true" ]; then confirm "¿Continuar?" || return 0; fi
-            opencode -p "Usa @builder con safe-implementation y test-first. Implementa las correcciones planificadas en: $target"
+FASE 3 - @planner:
+Basado en los problemas encontrados, crea plan de corrección con fases verificables.
+Ordena por prioridad: crítico → alto → bajo.
 
-            echo -e "${BLUE}Fase 5: @reviewer verifica${NC}"
-            opencode -p "Usa @reviewer con precommit-review. Verifica que los fixes funcionan y no introducen nuevos errores."
+FASE 4 - @builder con safe-implementation y test-first:
+Implementa las correcciones planificadas en: $target
+Máximo 3 archivos por iteración. Agrega tests para cada fix.
 
+FASE 5 - @reviewer con precommit-review:
+Verifica que los fixes funcionan correctamente.
+Confirma que no se introdujeron nuevos errores.
+Reporta resultado final.
+
+Ejecuta todas las fases en secuencia. Reporta resultados de cada fase antes de continuar a la siguiente."
             echo -e "${GREEN}=== Bug Hunt Completado ===${NC}"
-            create_observation "bugfix" "Bug hunt completado en $target" "$target"
+            create_observation "bugfix" "Bug hunt completado en $target" "$(basename "$target")"
             ;;
 
         new-project)
-            echo -e "${BLUE}=== New Project Setup Pipeline ===${NC}"
-            echo "Fase 1: @architect analiza requisitos"
-            if [ "$interactive" == "true" ]; then confirm "¿Continuar?" || return 0; fi
-            opencode -p "Usa @architect. Analiza el contexto: $target. Identifica stack, dependencias y arquitectura inicial."
+            echo -e "${BLUE}=== New Project Setup Pipeline (single-pass) ===${NC}"
+            if [ "$interactive" == "true" ]; then confirm "¿Iniciar?" || return 0; fi
+            _oc_run -p "Ejecuta el siguiente workflow completo para nuevo proyecto: $target
 
-            echo -e "${BLUE}Fase 2: @planner planifica estructura${NC}"
-            if [ "$interactive" == "true" ]; then confirm "¿Continuar?" || return 0; fi
-            opencode -p "Usa @planner. Planifica la estructura del proyecto con: $target. Incluye:
+FASE 1 - @architect:
+Analiza el contexto: $target
+Identifica stack recomendado, dependencias y arquitectura inicial.
+
+FASE 2 - @planner:
+Planifica la estructura del proyecto. Incluye:
 - Estructura de directorios
-- Archivos de configuración
-- Dependencias necesarias
-- Tests iniciales"
+- Archivos de configuración necesarios
+- Dependencias
+- Tests iniciales a escribir
 
-            echo -e "${BLUE}Fase 3: @builder crea scaffold${NC}"
-            if [ "$interactive" == "true" ]; then confirm "¿Continuar?" || return 0; fi
-            opencode -p "Usa @builder con safe-implementation. Crea la estructura básica del proyecto: $target"
+FASE 3 - @builder con safe-implementation:
+Crea la estructura básica del proyecto: $target
+Genera los archivos base según el plan.
 
-            echo -e "${BLUE}Fase 4: @docs-writer genera docs${NC}"
-            opencode -p "Usa @docs-writer. Genera documentación inicial para el proyecto: $target
+FASE 4 - @docs-writer:
+Genera documentación inicial:
 - README.md con instalación y uso
 - ARCHITECTURE.md con estructura
-- CONTRIBUTING.md si es proyecto colaborativo"
+- CONTRIBUTING.md si es proyecto colaborativo
 
+Ejecuta todas las fases en secuencia."
             echo -e "${GREEN}=== New Project Completado ===${NC}"
-            create_observation "feature" "Proyecto inicializado: $target" "$target"
+            create_observation "feature" "Proyecto inicializado: $target" "$(basename "$target")"
             ;;
 
         debug)
-            echo -e "${BLUE}=== Production Debug Pipeline ===${NC}"
-            echo "Fase 1: @oncall diagnostica"
-            if [ "$interactive" == "true" ]; then confirm "¿Continuar?" || return 0; fi
-            opencode -p "Usa @oncall. Diagnostica el problema en: $target. Clasifica por urgencia (P1/P2/P3) e identifica causa raíz."
+            echo -e "${BLUE}=== Production Debug Pipeline (single-pass) ===${NC}"
+            if [ "$interactive" == "true" ]; then confirm "¿Iniciar?" || return 0; fi
+            _oc_run -p "Ejecuta el siguiente workflow de debug para: $target
 
-            echo -e "${BLUE}Fase 2: @builder arregla${NC}"
-            if [ "$interactive" == "true" ]; then confirm "¿Continuar?" || return 0; fi
-            opencode -p "Usa @builder con safe-implementation y test-first. Implementa la corrección para: $target"
+FASE 1 - @oncall:
+Diagnostica el problema en: $target
+Clasifica por urgencia (P1/P2/P3) e identifica causa raíz.
+Lista mitigaciones inmediatas disponibles.
 
-            echo -e "${BLUE}Fase 3: @security-auditor verifica${NC}"
-            opencode -p "Usa @security-auditor. Verifica que la corrección no introduce vulnerabilidades."
+FASE 2 - @builder con safe-implementation y test-first:
+Implementa la corrección para: $target
+Escribe test que reproduce el bug primero, luego hazlo pasar.
 
+FASE 3 - @security-auditor:
+Verifica que la corrección no introduce vulnerabilidades.
+Confirma que el fix es correcto y completo.
+
+Ejecuta todas las fases en secuencia."
             echo -e "${GREEN}=== Debug Completado ===${NC}"
-            create_observation "bugfix" "Debug completado en $target" "$target"
+            create_observation "bugfix" "Debug completado en $target" "$(basename "$target")"
             ;;
 
         document)
-            echo -e "${BLUE}=== Codebase Documentation Pipeline ===${NC}"
-            echo "Fase 1: @architect análisis completo"
-            if [ "$interactive" == "true" ]; then confirm "¿Continuar?" || return 0; fi
-            opencode -p "Usa @architect con project-map. Análisis completo de: $target. Documenta:
-- Stack tecnológico
-- Estructura de archivos
-- Entry points
-- APIs
-- Dependencias
-- Configuraciones"
+            echo -e "${BLUE}=== Codebase Documentation Pipeline (single-pass) ===${NC}"
+            if [ "$interactive" == "true" ]; then confirm "¿Iniciar?" || return 0; fi
+            _oc_run -p "Ejecuta el siguiente workflow de documentación para: $target
 
-            echo -e "${BLUE}Fase 2: @docs-writer genera documentación${NC}"
-            if [ "$interactive" == "true" ]; then confirm "¿Continuar?" || return 0; fi
-            opencode -p "Usa @docs-writer. Genera documentación completa para: $target
+FASE 1 - @architect con project-map:
+Análisis completo de: $target
+Documenta: stack tecnológico, estructura de archivos, entry points, APIs, dependencias, configuraciones.
+
+FASE 2 - @docs-writer:
+Genera documentación completa para: $target
 Crea o actualiza:
-- README.md (propósito, instalación, uso)
-- ARCHITECTURE.md (diagrama, componentes, flujo)
-- API.md (endpoints, formatos)
-- DEPLOY.md (si aplica, instrucciones de deployment)"
+- README.md (propósito, instalación, uso, ejemplos)
+- ARCHITECTURE.md (diagrama, componentes, flujo de datos)
+- API.md (endpoints, formatos, ejemplos) si aplica
+- DEPLOY.md (instrucciones de deployment) si aplica
 
-            echo -e "${BLUE}Fase 3: @reviewer verifica documentación${NC}"
-            opencode -p "Usa @reviewer. Verifica que la documentación es:
-- Accurate ( refleja el código real)
-- Completa (cubre casos importantes)
-- Actualizada (sin información obsoleta)
-No modifiques nada, reporta problemas."
+FASE 3 - @reviewer:
+Verifica que la documentación:
+- Refleja el código real (accurate)
+- Cubre casos importantes (completa)
+- No tiene información obsoleta (actualizada)
+Reporta solo problemas encontrados.
 
+Ejecuta todas las fases en secuencia."
             echo -e "${GREEN}=== Documentation Completada ===${NC}"
-            create_observation "feature" "Documentación generada para $target" "$target"
+            create_observation "feature" "Documentación generada para $target" "$(basename "$target")"
             ;;
 
         feature)
-            echo -e "${BLUE}=== Feature Development Pipeline ===${NC}"
-            local feature_desc="${3:- nueva funcionalidad}"
-            echo "Fase 1: @architect analiza para feature: $feature_desc"
-            if [ "$interactive" == "true" ]; then confirm "¿Continuar?" || return 0; fi
-            opencode -p "Usa @architect. Analiza: $target para implementar: $feature_desc. Identifica:
+            echo -e "${BLUE}=== Feature Development Pipeline (single-pass) ===${NC}"
+            echo "Feature: $feature_desc"
+            echo "Target: $target"
+            if [ "$interactive" == "true" ]; then confirm "¿Iniciar?" || return 0; fi
+            _oc_run -p "Ejecuta el siguiente workflow para implementar: $feature_desc en: $target
+
+FASE 1 - @architect:
+Analiza: $target para implementar: $feature_desc
+Identifica:
 - Archivos a modificar
-- Puntos de extensión
-- Posibles conflictos con código existente"
+- Puntos de extensión existentes
+- Posibles conflictos con código existente
+- Tradeoffs del approach
 
-            echo -e "${BLUE}Fase 2: @planner planifica${NC}"
-            if [ "$interactive" == "true" ]; then confirm "¿Continuar?" || return 0; fi
-            opencode -p "Usa @planner. Planifica implementación de: $feature_desc en: $target"
+FASE 2 - @planner:
+Planifica la implementación de: $feature_desc en: $target
+Divide en pasos verificables con criterios de éxito claros.
 
-            echo -e "${BLUE}Fase 3: @builder implementa${NC}"
-            if [ "$interactive" == "true" ]; then confirm "¿Continuar?" || return 0; fi
-            opencode -p "Usa @builder con safe-implementation y test-first. Implementa: $feature_desc"
+FASE 3 - @builder con safe-implementation y test-first:
+Implementa: $feature_desc
+Escribe tests primero, luego implementación.
+Máximo 3 archivos por iteración.
 
-            echo -e "${BLUE}Fase 4: @reviewer revisa${NC}"
-            opencode -p "Usa @reviewer con precommit-review. Revisa la implementación."
+FASE 4 - @reviewer con precommit-review:
+Revisa la implementación de $feature_desc
+Verifica: correctitud, tests, no regresiones, código limpio.
 
+Ejecuta todas las fases en secuencia."
             echo -e "${GREEN}=== Feature Completada ===${NC}"
-            create_observation "feature" "Feature implementada: $feature_desc" "$target"
+            create_observation "feature" "Feature implementada: $feature_desc" "$(basename "$target")"
             ;;
 
         "")
-            echo "Usage: oc --workflow <name> [target] [--interactive]"
+            echo "Usage: oc --workflow <name> [target|feature_desc] [path] [--interactive]"
+            echo ""
             echo "Available workflows:"
-            echo "  bug-hunt      - Find and fix bugs"
-            echo "  new-project  - Setup new project"
-            echo "  debug        - Debug production issue"
-            echo "  document     - Generate documentation"
-            echo "  feature      - Develop a feature"
+            echo "  bug-hunt      - Find and fix bugs (5 phases)"
+            echo "  new-project   - Setup new project (4 phases)"
+            echo "  debug         - Debug production issue (3 phases)"
+            echo "  document      - Generate documentation (3 phases)"
+            echo "  feature       - Develop a feature (4 phases)"
+            echo ""
+            echo "Examples:"
+            echo "  oc --workflow bug-hunt ~/myproject"
+            echo "  oc --workflow feature \"add OAuth2\" ~/myapi"
             ;;
         *)
             echo "Unknown workflow: $workflow"
@@ -722,11 +753,11 @@ No modifiques nada, reporta problemas."
 
 list_workflows() {
     echo "Available workflows:"
-    echo "  bug-hunt      - Find and fix bugs (5 phases)"
-    echo "  new-project  - Setup new project (4 phases)"
-    echo "  debug        - Debug production issue (3 phases)"
-    echo "  document     - Generate documentation (3 phases)"
-    echo "  feature      - Develop a feature (4 phases)"
+    echo "  bug-hunt      - Find and fix bugs (5 phases, single-pass)"
+    echo "  new-project   - Setup new project (4 phases, single-pass)"
+    echo "  debug         - Debug production issue (3 phases, single-pass)"
+    echo "  document      - Generate documentation (3 phases, single-pass)"
+    echo "  feature       - Develop a feature (4 phases, single-pass)"
 }
 
 if [ $# -eq 0 ]; then
@@ -746,9 +777,9 @@ case "$1" in
         ;;
     -t|--type)
         shift
-        local type="$1"
+        _type="$1"
         shift
-        search_memory "$*" "" "$type"
+        search_memory "$*" "" "$_type"
         ;;
     --timeline)
         get_timeline "$2"
@@ -761,25 +792,25 @@ case "$1" in
         ;;
     --remember)
         shift
-        local type="note"
-        if [ "$1" == "-t" ]; then
+        _type="note"
+        if [ "${1:-}" == "-t" ]; then
             shift
-            type="$1"
+            _type="$1"
             shift
         fi
-        create_observation "$type" "$*"
+        create_observation "$_type" "$*"
         ;;
     --memory)
         shift
-        if [ "$1" == "--timeline" ]; then
+        if [ "${1:-}" == "--timeline" ]; then
             get_timeline "$2"
-        elif [ "$1" == "--get" ]; then
+        elif [ "${1:-}" == "--get" ]; then
             get_observations "$2"
-        elif [ "$1" == "-t" ]; then
+        elif [ "${1:-}" == "-t" ]; then
             shift
-            local type="$1"
+            _type="$1"
             shift
-            search_memory "$*" "" "$type"
+            search_memory "$*" "" "$_type"
         else
             search_memory "$1" "${2:-}" "${3:-}"
         fi
@@ -794,29 +825,32 @@ case "$1" in
         show_help
         ;;
     --compact)
-        echo "Ejecutando compaction pipeline..."
-        echo "1. Budget reduction: OK"
-        echo "2. Snip: OK"
-        echo "3. Microcompact: OK"
-        echo "4. Context collapse: OK"
-        echo "5. Auto-compact: (requires manual summary)"
         echo "0" > "${OC_SESSION_FILE}"
-        success "Session compacted. Turns reset."
+        success "Turn counter reset to 0."
+        warn "For long sessions, manually summarize key context before continuing."
         ;;
     --budget)
         show_budget
         ;;
     --workflow)
         shift
-        local workflow="$1"
+        _wf_name="${1:-}"
         shift
-        local target="${1:-.}"
-        shift
-        local interactive="false"
-        if [ "$1" == "--interactive" ]; then
-            interactive="true"
+        _wf_interactive="false"
+        _wf_feature=""
+        _wf_target="."
+        # feature workflow takes description as first arg, path as second
+        if [ "$_wf_name" = "feature" ]; then
+            _wf_feature="${1:-nueva funcionalidad}"
+            shift
+            _wf_target="${1:-.}"
+            shift
+        else
+            _wf_target="${1:-.}"
+            shift
         fi
-        run_workflow "$workflow" "$target" "$interactive"
+        [ "${1:-}" = "--interactive" ] && _wf_interactive="true"
+        run_workflow "$_wf_name" "$_wf_target" "$_wf_interactive" "$_wf_feature"
         ;;
     --list-workflows)
         list_workflows
@@ -848,6 +882,6 @@ case "$1" in
         quick_oncall
         ;;
     *)
-        opencode -p "$*"
+        _oc_run -p "$*"
         ;;
 esac
