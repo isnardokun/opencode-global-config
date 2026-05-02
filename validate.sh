@@ -64,7 +64,7 @@ check_dir  "souls"
 echo ""
 
 echo "Required agents:"
-for agent in architect builder planner reviewer security-auditor docs-writer devops oncall migration-planner performance-profiler; do
+for agent in architect builder builder-safe planner reviewer security-auditor docs-writer devops oncall migration-planner performance-profiler; do
     check_file "agents/${agent}.md"
 done
 echo ""
