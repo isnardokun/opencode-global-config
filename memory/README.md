@@ -36,7 +36,7 @@ Tipo: decision
 - Comunidad activa
 
 ## Alternativas consideradas
-- MySQL: menor costo de迁移
+- MySQL: menor costo de migration
 - MongoDB: schema flexibility
 
 ## Decisión final

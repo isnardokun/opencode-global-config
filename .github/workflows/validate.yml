@@ -1,0 +1,50 @@
+name: Validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tools
+        run: sudo apt-get update && sudo apt-get install -y jq shellcheck
+
+      - name: Validate structure and JSON
+        run: bash validate.sh
+
+      - name: shellcheck — install.sh
+        run: shellcheck --severity=error install.sh
+
+      - name: shellcheck — oc
+        run: shellcheck --severity=error --shell=bash oc
+
+      - name: shellcheck — hooks
+        run: |
+          shellcheck --severity=error hooks/pre-commit
+          shellcheck --severity=error hooks/pre-push
+
+      - name: shellcheck — uninstall.sh
+        run: shellcheck --severity=error uninstall.sh
+
+      - name: Check no hardcoded model in agents
+        run: |
+          if grep -l "^model:" agents/*.md 2>/dev/null; then
+            echo "ERROR: hardcoded model found in agents"
+            exit 1
+          fi
+          echo "OK: no hardcoded model"
+
+      - name: Check no foreign-language artifacts
+        run: |
+          if grep -rn "No容忍\|基础设施\|средний\|密码\|報告ar" agents/ profiles/ souls/ plugins/ 2>/dev/null; then
+            echo "ERROR: foreign-language LLM artifacts found"
+            exit 1
+          fi
+          echo "OK: no foreign-language artifacts"

@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
 # Install script for opencode-global-config
-# Usage: curl -fsSL https://raw.githubusercontent.com/isnardokun/opencode-global-config/main/install.sh | bash
+# Usage:
+#   curl -fsSL https://raw.githubusercontent.com/isnardokun/opencode-global-config/main/install.sh | bash
+#   bash install.sh [--dry-run]
+
+DRY_RUN=0
+for _arg in "$@"; do
+    case "$_arg" in
+        --dry-run) DRY_RUN=1 ;;
+    esac
+done
 
 REPO_URL="https://github.com/isnardokun/opencode-global-config.git"
 INSTALL_DIR="/tmp/opencode-config-install-$$"
@@ -19,8 +28,21 @@ success() { echo -e "${GREEN}[OK]${NC} $1"; }
 warn()    { echo -e "${YELLOW}[WARN]${NC} $1"; }
 error()   { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 
+# Dry-run wrapper: prints command instead of running it
+run() {
+    if [ "$DRY_RUN" -eq 1 ]; then
+        echo -e "${YELLOW}[DRY-RUN]${NC} $*"
+    else
+        "$@"
+    fi
+}
+
 # Cleanup on any exit (success or failure)
 trap 'rm -rf "$INSTALL_DIR"' EXIT
+
+if [ "$DRY_RUN" -eq 1 ]; then
+    warn "MODO DRY-RUN: ningún archivo será modificado"
+fi
 
 echo -e "${BLUE}"
 echo "╔════════════════════════════════════════════════════════════╗"
@@ -62,7 +84,7 @@ fi
 info "Instalando configuración global..."
 mkdir -p "$CONFIG_DIR"
 
-for dir in agents skills profiles plugins hooks memory souls; do
+for dir in agents skills profiles plugins hooks memory souls commands; do
     if [ -d "$INSTALL_DIR/$dir" ]; then
         cp -r "$INSTALL_DIR/$dir" "$CONFIG_DIR/"
         success "Instalado: $dir/"
@@ -81,17 +103,51 @@ info "Generando opencode.json con rutas absolutas..."
 cat > "$CONFIG_DIR/opencode.json" << EOF
 {
   "\$schema": "https://opencode.ai/config.json",
+
+  "autoupdate": false,
+
+  "instructions": [
+    "${HOME}/.config/opencode/AGENTS.md",
+    "${HOME}/.config/opencode/CLAUDE.md"
+  ],
+
+  "plugin": [
+    "${HOME}/.config/opencode/plugins/safety-guard.js"
+  ],
+
   "permission": {
+    "read": "allow",
+    "list": "allow",
+    "glob": "allow",
+    "grep": "allow",
+
+    "edit": "ask",
+
+    "bash": "ask",
+
+    "webfetch": "ask",
+    "websearch": "ask",
+
     "skill": {
       "*": "allow"
     }
   },
-  "instructions": [
-    "${HOME}/.config/opencode/AGENTS.md"
-  ],
-  "plugin": [
-    "${HOME}/.config/opencode/plugins/safety-guard.js"
-  ]
+
+  "watcher": {
+    "ignore": [
+      ".git/**",
+      "node_modules/**",
+      "dist/**",
+      "build/**",
+      ".venv/**",
+      "venv/**",
+      "__pycache__/**",
+      ".next/**",
+      ".turbo/**",
+      "coverage/**",
+      "*.log"
+    ]
+  }
 }
 EOF
 success "Instalado: opencode.json"
@@ -155,14 +211,16 @@ fi
 # 7. Verify installation
 info "Verificando instalación..."
 _ok=1
-[ -f "$CONFIG_DIR/AGENTS.md" ]    || { warn "Falta: AGENTS.md";    _ok=0; }
-[ -f "$CONFIG_DIR/opencode.json" ] || { warn "Falta: opencode.json"; _ok=0; }
-[ -f "$BIN_DIR/oc" ]              || { warn "Falta: oc en $BIN_DIR"; _ok=0; }
-[ -d "$CONFIG_DIR/agents" ]       || { warn "Falta: directorio agents/"; _ok=0; }
-[ -d "$CONFIG_DIR/skills" ]       || { warn "Falta: directorio skills/"; _ok=0; }
+[ -f "$CONFIG_DIR/AGENTS.md" ]     || { warn "Falta: AGENTS.md";    _ok=0; }
+[ -f "$CONFIG_DIR/opencode.json" ]  || { warn "Falta: opencode.json"; _ok=0; }
+[ -f "$BIN_DIR/oc" ]               || { warn "Falta: oc en $BIN_DIR"; _ok=0; }
+[ -d "$CONFIG_DIR/agents" ]        || { warn "Falta: agents/"; _ok=0; }
+[ -d "$CONFIG_DIR/skills" ]        || { warn "Falta: skills/"; _ok=0; }
+[ -d "$CONFIG_DIR/commands" ]      || { warn "Falta: commands/"; _ok=0; }
+[ -d "$CONFIG_DIR/plugins" ]       || { warn "Falta: plugins/"; _ok=0; }
 
 if [ "$_ok" -eq 1 ]; then
-    success "Instalación verificada"
+    success "Instalación verificada (7 artefactos)"
 else
     error "Instalación incompleta. Revisa los mensajes anteriores."
 fi

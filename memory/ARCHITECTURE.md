@@ -1,92 +1,72 @@
 # OpenCode Memory Bank
 
-Sistema de memoria persistente inspirado en la arquitectura de 5 capas de compactación de Claude Code.
+Persistent file-based memory system for tracking context across sessions.
 
-## Arquitectura
+## Design Principles
 
-### File-based Memory (sin vector DB)
-- Totalmente inspeccionable
-- Editable por humanos
-- Version-control compatible
-- Búsqueda por headers, no embeddings
+- **File-based** — fully inspectable, editable by humans, version-control compatible
+- **Header-indexed** — search by frontmatter fields, not vector similarity
+- **No vector DB required** — plain markdown, no embeddings
 
-### Estructura
+## Structure
 
 ```
 memory/
-├── INDEX.md              # Header index para búsqueda rápida
-├── projects/            # Memoria por proyecto
+├── INDEX.md              # Header index for fast lookup
+├── ARCHITECTURE.md       # This file
+├── projects/             # Per-project memory
 │   └── [project]/
-│       ├── context.md       # Contexto actual del proyecto
-│       ├── decisions/      # Decisiones técnicas (ADR)
-│       └── patterns/        # Patrones detectados
-├── context/             # Contexto global
-│   └── global.md
-└── ARCHITECTURE.md      # Este archivo
+│       ├── context.md        # Current project state
+│       ├── decisions/        # Architecture decisions (ADR)
+│       └── patterns/         # Detected code patterns
+└── context/              # Global context
+    └── global.md
 ```
 
-## Sistema de Búsqueda
+## Observation Format
 
-### Header-based retrieval
-1. Leer INDEX.md
-2. Buscar headers que matcheen query
-3. Cargar solo archivos relevantes
-4. No usar embeddings/vector similarity
-
-### Formato de Header
+Each memory entry is a markdown file with frontmatter:
 
 ```markdown
 ---
-date: 2026-05-01
-project: mi-proyecto
-type: decision
-tags: [auth, jwt, security]
-summary: Decisión de usar Redis para sesiones
+id: obs_20260501-143000-a1b2
+date: 2026-05-01 14:30:00
+project: my-project
+type: bugfix|feature|decision|note|config|refactor|review
+summary: Short description
 ---
+
+Full content here...
 ```
 
-## 5-Layer Compaction Pipeline
+## 3-Layer Retrieval
 
-Inspirado en Claude Code:
+Memory is loaded progressively to minimize token use:
 
-| Capa | Función | Cuándo |
-|------|---------|--------|
-| **Budget Reduction** | Resumen agresivo por token budget | Cuando se acerca a límite |
-| **Snip** | Recortar secciones menos relevantes | Context > 70% full |
-| **Microcompact** | Comprimir cada archivo individual | Context > 85% full |
-| **Context Collapse** | Proyección en tiempo de lectura | Context > 95% full |
-| **Auto-Compact** | Full model summary (last resort) | Context overflow |
+| Layer | What it loads | Tokens |
+|-------|--------------|--------|
+| **search** | IDs + summaries only | ~50-100 |
+| **timeline** | Chronological context | ~200 |
+| **get** | Full observation content | ~500-1000 |
 
-## Comandos
+Use `oc --memory "query"` to search. `oc --memory --context "query"` loads with full content.
+
+## Context Compaction
+
+`oc --compact` asks the model to summarize the current session into a structured document and saves it to `memory/sessions.log`. This is a real summarization prompt — not automatic compaction.
+
+## Commands
 
 ```bash
-# Buscar en memory
-oc --memory "docker"           # Busca en headers
-oc --memory --context "auth"   # Busca con contexto completo
+# Search
+oc --memory "docker"                      # Search by keyword
+oc --memory --context "auth"              # Search with full content
 
-# Guardar
-oc --remember "nota"           # Guarda en context/global.md
-oc --remember -p proyecto "nota"  # Guarda en proyecto específico
+# Save
+oc --remember "note"                      # Save to global context
+oc --remember -p project "note"           # Save to project context
+oc --remember -p project -t decision "." # Save as ADR
 
-# Proyectar (compaction)
-oc --compact                   # Ejecuta compaction pipeline
-```
-
-## Guía de Uso
-
-### Memoria por Proyecto
-```bash
-# Iniciar memoria para proyecto
-oc --remember -p mi-proyecto "Stack: FastAPI + PostgreSQL"
-oc --remember -p mi-proyecto "Decisión: usar Alembic para migrations"
-```
-
-### Decisiones Técnicas (ADR)
-```bash
-oc --remember -p mi-proyecto -t decision "Usamos PostgreSQL porque..."
-```
-
-### Patterns
-```bash
-oc --remember -p mi-proyecto -t pattern "El auth JWT se valida en middleware/"
+# Compact session context
+oc --compact
 ```

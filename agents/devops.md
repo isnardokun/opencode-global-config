@@ -1,7 +1,6 @@
 ---
 description: Automatización DevOps, CI/CD, infraestructura y monitoreo.
 mode: subagent
-model: minimax-coding-plan/MiniMax-M2.7
 temperature: 0.1
 permission:
   edit: allow

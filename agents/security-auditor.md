@@ -1,7 +1,6 @@
 ---
 description: Auditoría de seguridad, vulnerabilidades y configuración de riesgo.
 mode: subagent
-model: minimax-coding-plan/MiniMax-M2.7
 temperature: 0.1
 permission:
   edit: deny

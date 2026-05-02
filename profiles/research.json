@@ -1,15 +1,21 @@
 {
   "name": "research",
-  "description": "Perfil para investigación y exploración",
-  "model": "minimax-coding-plan/MiniMax-M2.7-highspeed",
-  "temperature": 0.3,
-  "agents": {
-    "default": ["explore", "general"]
+  "description": "Research and exploration mode — broad reading, no secrets, no env edits",
+  "opencode": {
+    "permission": {
+      "read": "allow",
+      "list": "allow",
+      "glob": "allow",
+      "grep": "allow",
+      "edit": "ask",
+      "bash": "ask",
+      "webfetch": "allow",
+      "websearch": "allow"
+    }
   },
-  "rules": {
+  "policy": {
     "maxFilesPerIteration": 10,
-    "allowEnvEdit": true,
-    "allowSecret": false,
-    "requireTests": false
+    "allowEnvEdit": false,
+    "requireExplanation": true
   }
 }

@@ -1,15 +1,22 @@
 {
   "name": "work",
-  "description": "Perfil para trabajo profesional",
-  "model": "minimax-coding-plan/MiniMax-M2.7",
-  "temperature": 0.1,
-  "agents": {
-    "default": ["architect", "planner", "builder", "reviewer"]
+  "description": "Professional work profile — conservative, tests required",
+  "opencode": {
+    "permission": {
+      "read": "allow",
+      "list": "allow",
+      "glob": "allow",
+      "grep": "allow",
+      "edit": "ask",
+      "bash": "ask",
+      "webfetch": "ask",
+      "websearch": "ask"
+    }
   },
-  "rules": {
+  "policy": {
     "maxFilesPerIteration": 3,
     "allowEnvEdit": false,
-    "allowSecret": false,
-    "requireTests": true
+    "requireTests": true,
+    "requireExplanation": true
   }
 }

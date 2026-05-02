@@ -100,9 +100,21 @@ EOF
     echo "$obs_id" > "${OC_MEMORY}/.last_obs_id"
     success "Observation created: obs_${obs_id}"
 
+    # Append to markdown INDEX
     if grep -q "^<!-- INDEX_START -->" "${OC_MEMORY}/INDEX.md" 2>/dev/null; then
         echo "obs_${obs_id} | $(date +%Y-%m-%d) | ${project} | ${type} | ${content:0:80}" >> "${OC_MEMORY}/INDEX.md"
     fi
+
+    # Append to JSONL index for fast querying with jq/fzf/ripgrep
+    local jsonl_index="${OC_MEMORY}/index.jsonl"
+    printf '{"id":"obs_%s","date":"%s","project":"%s","type":"%s","summary":"%s","path":"%s"}\n' \
+        "$obs_id" \
+        "$(date +%Y-%m-%dT%H:%M:%S)" \
+        "$project" \
+        "$type" \
+        "$(printf '%s' "${content:0:100}" | sed 's/"/\\"/g')" \
+        "memory/projects/${project}/${obs_id}.md" \
+        >> "$jsonl_index"
 }
 
 search_memory() {
@@ -213,14 +225,86 @@ switch_profile() {
     success "Perfil: $profile"
 }
 
-# Read active profile and pass to opencode when set
-_oc_run() {
-    local profile
+# Read profile rules JSON and emit them as LLM instruction text.
+# This is how profile constraints become real: we inject them into
+# every prompt so the model sees them as explicit requirements.
+get_profile_rules() {
+    local profile profile_file
     profile=$(get_active_profile)
-    if [ -n "$profile" ]; then
-        opencode --profile "$profile" "$@"
+    [ -z "$profile" ] && return 0
+    profile_file="${OC_PROFILES}/${profile}.json"
+    [ ! -f "$profile_file" ] && return 0
+
+    python3 - "$profile_file" << 'PYEOF'
+import json, sys
+try:
+    with open(sys.argv[1]) as f:
+        data = json.load(f)
+except Exception:
+    sys.exit(0)
+rules = data.get("policy", data.get("rules", {}))
+lines = []
+if rules.get("reportOnly"):
+    lines.append("- Do NOT make any file edits or run commands. Report findings only.")
+if rules.get("requireExplanation"):
+    lines.append("- Before any change, explain exactly what you will do and why.")
+if rules.get("requireDiffReview"):
+    lines.append("- Show a summary/diff of all changes before applying them.")
+if rules.get("requireTests"):
+    lines.append("- Write or update tests before implementing any change.")
+if rules.get("checkpointBeforeChanges"):
+    lines.append("- Create a summary of current state before making changes.")
+if rules.get("requireCheckpoint"):
+    lines.append("- Create a state checkpoint before any change.")
+if rules.get("requireRollback"):
+    lines.append("- Always provide a rollback plan before making any change.")
+if rules.get("requireSecurityReview"):
+    lines.append("- Include a security review for every change (injection, auth, secrets, permissions).")
+if rules.get("trackDecisions"):
+    lines.append("- Document every technical decision with its reasoning.")
+if rules.get("documentAllChanges"):
+    lines.append("- Document every change you make with what was changed and why.")
+if rules.get("allowEnvEdit") is False:
+    lines.append("- Never modify .env files or any environment configuration files.")
+max_files = rules.get("maxFilesPerIteration")
+if max_files and isinstance(max_files, int) and max_files > 0:
+    lines.append(f"- Limit changes to at most {max_files} files per iteration.")
+if lines:
+    print("\n\n[Active profile rules — follow these strictly:]\n" + "\n".join(lines))
+PYEOF
+}
+
+# Inject active profile and its rules into every opencode call.
+_oc_run() {
+    local profile rules_text
+    profile=$(get_active_profile)
+    rules_text=$(get_profile_rules)
+
+    if [ -n "$rules_text" ]; then
+        # Append profile rules to any -p prompt argument
+        local args=() found_p=false
+        while [ $# -gt 0 ]; do
+            if [ "$1" = "-p" ] && [ $# -gt 1 ]; then
+                args+=("-p" "${2}${rules_text}")
+                shift 2
+                found_p=true
+            else
+                args+=("$1")
+                shift
+            fi
+        done
+        # If no -p was found, args already contains original args unchanged
+        if [ -n "$profile" ]; then
+            opencode --profile "$profile" "${args[@]}"
+        else
+            opencode "${args[@]}"
+        fi
     else
-        opencode "$@"
+        if [ -n "$profile" ]; then
+            opencode --profile "$profile" "$@"
+        else
+            opencode "$@"
+        fi
     fi
 }
 
@@ -334,6 +418,28 @@ run_wizard() {
     esac
 }
 
+detect_stack() {
+    local dir="${1:-.}"
+    local stacks=()
+    [ -f "${dir}/package.json" ]                                   && stacks+=("Node.js")
+    [ -f "${dir}/pyproject.toml" ] || [ -f "${dir}/requirements.txt" ] && stacks+=("Python")
+    [ -f "${dir}/Cargo.toml" ]                                     && stacks+=("Rust")
+    [ -f "${dir}/go.mod" ]                                         && stacks+=("Go")
+    [ -f "${dir}/pom.xml" ] || [ -f "${dir}/build.gradle" ]        && stacks+=("Java")
+    [ -f "${dir}/docker-compose.yml" ] || [ -f "${dir}/Dockerfile" ] && stacks+=("Docker")
+    [ -f "${dir}/terraform.tf" ] || [ -d "${dir}/.terraform" ]     && stacks+=("Terraform")
+    printf '%s\n' "${stacks[@]}"
+}
+
+detect_test_commands() {
+    local dir="${1:-.}"
+    [ -f "${dir}/package.json" ] && grep -q '"test"' "${dir}/package.json" && echo "npm test"
+    [ -f "${dir}/pyproject.toml" ] || [ -f "${dir}/setup.py" ]             && echo "pytest"
+    [ -f "${dir}/Cargo.toml" ]                                              && echo "cargo test"
+    [ -f "${dir}/go.mod" ]                                                  && echo "go test ./..."
+    [ -f "${dir}/Makefile" ] && grep -q "^test:" "${dir}/Makefile"          && echo "make test"
+}
+
 run_init() {
     local target_dir="${1:-.}"
     local opencode_dir="${target_dir}/.opencode"
@@ -364,35 +470,50 @@ run_init() {
 }
 EOF
 
-    cat > "${opencode_dir}/CLAUDE.md" << 'EOF'
-# Proyecto
+    # Detect stack and test commands
+    local detected_stacks
+    detected_stacks=$(detect_stack "$target_dir")
+    local detected_tests
+    detected_tests=$(detect_test_commands "$target_dir")
 
-## Descripción
-Describe tu proyecto aquí.
+    if [ -n "$detected_stacks" ]; then
+        info "Stack detectado: $(echo "$detected_stacks" | tr '\n' ' ')"
+    fi
 
-## Stack Tecnológico
-- ...
-
-## Comandos
-```bash
-npm install
-npm test
-npm run build
-```
-
-## Estructura
-```
-.
-├── src/
-├── tests/
-└── ...
-```
-
-## Notas
-- Configuración específica del proyecto
-- Convenciones
-- Contacto del equipo
-EOF
+    # Generate CLAUDE.md with detected context
+    {
+        echo "# Project Context"
+        echo ""
+        echo "## Description"
+        echo "Describe the project here."
+        echo ""
+        if [ -n "$detected_stacks" ]; then
+            echo "## Detected Stack"
+            while IFS= read -r stack; do
+                echo "- $stack"
+            done <<< "$detected_stacks"
+            echo ""
+        else
+            echo "## Stack"
+            echo "- ..."
+            echo ""
+        fi
+        echo "## Commands"
+        echo '```bash'
+        if [ -n "$detected_tests" ]; then
+            while IFS= read -r cmd; do
+                echo "$cmd"
+            done <<< "$detected_tests"
+        else
+            echo "# add test, lint, build commands here"
+        fi
+        echo '```'
+        echo ""
+        echo "## Notes"
+        echo "- Project-specific configuration"
+        echo "- Team conventions"
+        echo "- Do not modify .env files"
+    } > "${opencode_dir}/CLAUDE.md"
 
     cat > "${target_dir}/.git/hooks/pre-commit" << 'HOOK'
 #!/bin/bash
@@ -478,8 +599,9 @@ OPCIONES:
     --init [ruta]        Inicializar proyecto con .opencode/
     -p, --profile <nom>  Cambiar perfil activo (persiste en sesión)
     -l, --list-profiles  Listar perfiles disponibles
-    --compact            Resetear contador de turns de sesión
+    --compact            Summarize session context + reset turn counter
     --budget             Ver uso de turns en sesión actual
+    --doctor             Diagnose installation health
     -h, --help           Mostrar esta ayuda
 
 MEMORY (3-Layer Workflow):
@@ -539,15 +661,18 @@ quick_build() {
 }
 
 quick_review() {
-    _oc_run -p "Usa @reviewer con precommit-review. Revisa los cambios."
+    local context="${1:-git diff HEAD}"
+    _oc_run -p "Usa @reviewer con precommit-review. Revisa los cambios${1:+ en: $1}."
 }
 
 quick_secure() {
-    _oc_run -p "Usa @security-auditor. Auditoría de seguridad."
+    local context="${1:-.}"
+    _oc_run -p "Usa @security-auditor. Auditoría de seguridad en: $context"
 }
 
 quick_docs() {
-    _oc_run -p "Usa @docs-writer. Genera documentación del proyecto."
+    local context="${1:-.}"
+    _oc_run -p "Usa @docs-writer. Genera documentación del proyecto en: $context"
 }
 
 quick_devops() {
@@ -555,7 +680,8 @@ quick_devops() {
 }
 
 quick_oncall() {
-    _oc_run -p "Usa @oncall. Diagnostica el problema."
+    local context="${1:-revisar logs recientes}"
+    _oc_run -p "Usa @oncall. Diagnostica: $context"
 }
 
 list_profiles() {
@@ -826,12 +952,121 @@ case "$1" in
         show_help
         ;;
     --compact)
+        info "Generating session summary..."
+        _oc_run -p "Summarize this entire session in a structured markdown document with these sections:
+## Goal
+What was the main task or objective?
+
+## Findings
+Key things discovered or analyzed (file paths, functions, issues found).
+
+## Changes Made
+Every file modified or created, with a one-line description of what changed and why.
+
+## Decisions
+Technical decisions made and the reasoning behind each.
+
+## Current State
+What is the state of the project/task right now?
+
+## Remaining Work
+What has not been done yet, if anything?
+
+Keep all technical details. Eliminate conversational back-and-forth. Be concrete with file paths and function names.
+Output as plain markdown. This will be saved to resume the session later."
         echo "0" > "${OC_SESSION_FILE}"
-        success "Turn counter reset to 0."
-        warn "For long sessions, manually summarize key context before continuing."
+        success "Context compacted. Turn counter reset."
+        info "Save the summary above to memory with: oc --remember -p <project> '<summary>'"
         ;;
     --budget)
         show_budget
+        ;;
+    --doctor)
+        _doc_ok=1
+        echo -e "${BLUE}OpenCode Global Config — Doctor${NC}"
+        echo "================================"
+        echo ""
+
+        # Check opencode
+        if command -v opencode >/dev/null 2>&1; then
+            echo -e "${GREEN}✅${NC} opencode: $(command -v opencode)"
+        else
+            echo -e "${RED}❌${NC} opencode not found — install from https://opencode.ai"
+            _doc_ok=0
+        fi
+
+        # Check oc
+        if command -v oc >/dev/null 2>&1; then
+            echo -e "${GREEN}✅${NC} oc: $(command -v oc)"
+        else
+            echo -e "${YELLOW}⚠️${NC}  oc not in PATH — run: export PATH=\"\$HOME/.local/bin:\$PATH\""
+            _doc_ok=0
+        fi
+
+        # Check config files
+        _idir="${OC_CONFIG}"
+        for _f in opencode.json AGENTS.md CLAUDE.md; do
+            if [ -f "${_idir}/${_f}" ]; then
+                echo -e "${GREEN}✅${NC} ${_f}"
+            else
+                echo -e "${RED}❌${NC} Missing: ${_idir}/${_f}"
+                _doc_ok=0
+            fi
+        done
+
+        # Check dirs
+        for _d in agents skills plugins commands memory profiles; do
+            if [ -d "${_idir}/${_d}" ]; then
+                echo -e "${GREEN}✅${NC} ${_d}/"
+            else
+                echo -e "${RED}❌${NC} Missing directory: ${_idir}/${_d}/"
+                _doc_ok=0
+            fi
+        done
+
+        # Check opencode.json valid JSON
+        if command -v jq >/dev/null 2>&1; then
+            if jq empty "${_idir}/opencode.json" >/dev/null 2>&1; then
+                echo -e "${GREEN}✅${NC} opencode.json valid JSON"
+            else
+                echo -e "${RED}❌${NC} opencode.json invalid JSON"
+                _doc_ok=0
+            fi
+        else
+            echo -e "${YELLOW}⚠️${NC}  jq not installed — skipping JSON validation"
+        fi
+
+        # Check fzf
+        if command -v fzf >/dev/null 2>&1; then
+            echo -e "${GREEN}✅${NC} fzf: $(command -v fzf)"
+        else
+            echo -e "${YELLOW}⚠️${NC}  fzf not installed — oc --interactive unavailable"
+        fi
+
+        # Check active profile
+        _active=$(get_active_profile)
+        if [ -n "$_active" ]; then
+            echo -e "${GREEN}✅${NC} Active profile: ${_active}"
+        else
+            echo -e "${BLUE}ℹ️${NC}  No active profile (using OpenCode defaults)"
+        fi
+
+        # Check safety-guard.js audit log
+        _logfile="${_idir}/logs/safety-guard.jsonl"
+        if [ -f "$_logfile" ]; then
+            _lines=$(wc -l < "$_logfile" 2>/dev/null || echo 0)
+            echo -e "${GREEN}✅${NC} Audit log: ${_lines} entries (${_logfile})"
+        else
+            echo -e "${BLUE}ℹ️${NC}  Audit log not yet created (safety-guard.jsonl)"
+        fi
+
+        echo ""
+        if [ "$_doc_ok" -eq 1 ]; then
+            success "All checks passed."
+        else
+            warn "Some checks failed. Run installer to fix:"
+            echo "  curl -fsSL https://raw.githubusercontent.com/isnardokun/opencode-global-config/main/install.sh | bash"
+        fi
         ;;
     --workflow)
         shift

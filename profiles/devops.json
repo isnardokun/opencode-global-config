@@ -1,24 +1,23 @@
 {
   "name": "devops",
-  "description": "Infraestructura - puede hacer deployments, rollback, cambios de config",
-  "model": "minimax-coding-plan/MiniMax-M2.7",
-  "temperature": 0.05,
-  "agents": {
-    "default": ["devops", "oncall", "security-auditor"]
+  "description": "Infrastructure mode — deployments, rollbacks, and config changes",
+  "opencode": {
+    "permission": {
+      "read": "allow",
+      "list": "allow",
+      "glob": "allow",
+      "grep": "allow",
+      "edit": "allow",
+      "bash": "allow",
+      "webfetch": "allow",
+      "websearch": "allow"
+    }
   },
-  "rules": {
-    "edit": "allow",
-    "bash": "allow",
-    "createFiles": "allow",
-    "deleteFiles": "allow",
-    "network": "allow",
+  "policy": {
     "maxFilesPerIteration": 20,
     "allowEnvEdit": true,
     "requireSecurityReview": true,
     "requireCheckpoint": true,
-    "allowDestructive": "with-confirm",
-    "allowDeployments": true,
-    "allowRollback": true,
     "documentAllChanges": true
   }
 }

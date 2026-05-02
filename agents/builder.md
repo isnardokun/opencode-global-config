@@ -1,7 +1,6 @@
 ---
 description: Implementa cambios controlados y verificables.
 mode: primary
-model: minimax-coding-plan/MiniMax-M2.7
 temperature: 0.2
 permission:
   edit: allow

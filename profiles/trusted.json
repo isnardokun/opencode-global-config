@@ -1,17 +1,19 @@
 {
   "name": "trusted",
-  "description": "Desarrollador experimentado - ediciones directas con rollback disponible",
-  "model": "minimax-coding-plan/MiniMax-M2.7-highspeed",
-  "temperature": 0.3,
-  "agents": {
-    "default": ["builder", "reviewer", "devops"]
+  "description": "Advanced developer — direct edits with rollback safeguards enforced",
+  "opencode": {
+    "permission": {
+      "read": "allow",
+      "list": "allow",
+      "glob": "allow",
+      "grep": "allow",
+      "edit": "allow",
+      "bash": "allow",
+      "webfetch": "allow",
+      "websearch": "allow"
+    }
   },
-  "rules": {
-    "edit": "allow",
-    "bash": "allow",
-    "createFiles": "allow",
-    "deleteFiles": "allow",
-    "network": "allow",
+  "policy": {
     "maxFilesPerIteration": 10,
     "allowEnvEdit": false,
     "requireTests": true,

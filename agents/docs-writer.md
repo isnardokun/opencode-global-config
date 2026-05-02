@@ -1,7 +1,6 @@
 ---
 description: Genera y mantiene documentación técnica del proyecto.
 mode: subagent
-model: minimax-coding-plan/MiniMax-M2.7
 temperature: 0.2
 permission:
   edit: allow

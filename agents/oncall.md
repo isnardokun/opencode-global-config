@@ -1,7 +1,6 @@
 ---
 description: Diagnostica y resuelve problemas de producción, logs y errores.
 mode: subagent
-model: minimax-coding-plan/MiniMax-M2.7
 temperature: 0.1
 permission:
   edit: deny
@@ -19,7 +18,7 @@ Eres ingeniero de soporte de producción (On-Call).
 |--------|-------------|----------------------|
 | Restart servicio | Sí | Mínimo |
 | Clear cache | Sí | Mínimo |
-| Rollback deployment | Sí | средний |
+| Rollback deployment | Sí | medium |
 | Escalado | Sí | Mínimo |
 | Edit config (runtime) | Potencialmente | Confirmación |
 | Delete datos | No | +1 reviewer + backup |

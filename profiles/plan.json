@@ -1,19 +1,22 @@
 {
   "name": "plan",
-  "description": "Planificación - puede leer y analizar, no modificar",
-  "model": "minimax-coding-plan/MiniMax-M2.7",
-  "temperature": 0.1,
-  "agents": {
-    "default": ["architect", "planner"]
+  "description": "Planning mode — read and analyze only, no modifications",
+  "opencode": {
+    "permission": {
+      "read": "allow",
+      "list": "allow",
+      "glob": "allow",
+      "grep": "allow",
+      "edit": "deny",
+      "bash": "deny",
+      "webfetch": "ask",
+      "websearch": "ask"
+    }
   },
-  "rules": {
-    "edit": "deny",
-    "bash": "deny",
-    "createFiles": "deny",
-    "deleteFiles": "deny",
-    "network": "read-only",
+  "policy": {
     "maxFilesPerIteration": 10,
     "allowEnvEdit": false,
-    "requireExplanation": true
+    "requireExplanation": true,
+    "reportOnly": true
   }
 }

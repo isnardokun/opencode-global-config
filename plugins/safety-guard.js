@@ -1,3 +1,22 @@
+const fs = require("fs")
+const os = require("os")
+const path = require("path")
+
+function audit(event) {
+  const logDir = path.join(os.homedir(), ".config", "opencode", "logs")
+  try {
+    fs.mkdirSync(logDir, { recursive: true })
+    const line = JSON.stringify({
+      ts: new Date().toISOString(),
+      cwd: process.cwd(),
+      ...event
+    })
+    fs.appendFileSync(path.join(logDir, "safety-guard.jsonl"), line + "\n")
+  } catch (_) {
+    // Never let logging fail a command
+  }
+}
+
 export const SafetyGuard = async () => {
   return {
     "tool.execute.before": async (input, output) => {
@@ -26,8 +45,12 @@ export const SafetyGuard = async () => {
 
       const match = blocked.find((rx) => rx.test(cmd))
       if (match) {
+        audit({ type: "blocked", command: raw, reason: match.toString() })
         throw new Error(`Comando bloqueado por seguridad: ${raw}`)
       }
+
+      // Audit allowed commands (only log bash calls for visibility)
+      audit({ type: "allowed", command: raw })
     },
   }
 }
