@@ -2,6 +2,39 @@
 
 Todos los cambios notables de este proyecto se documentarán en este archivo.
 
+## [1.9.3] - 2026-05-01
+
+### Compatibilidad OpenCode 1.14
+
+- **`oc` — `_oc_run()` migrado a `opencode run`** — `opencode -p` fue removido en OpenCode 1.14; sin este fix todos los perfiles y hooks estaban silenciosamente rotos en producción
+- **`oc` — eliminado `opencode --profile`** — no soportado por OpenCode; perfiles aplicados exclusivamente por prompt injection en `_oc_run()`
+- **`hooks/pre-commit`, `hooks/pre-push`** — migrados a `opencode run`
+
+### Fixes
+
+- **`profiles/auto.json`** — `edit: auto, bash: auto` → `edit: ask, bash: ask`; `auto` nunca fue valor válido (`ask|allow|deny` son los únicos valores permitidos)
+- **`install.sh --dry-run`** — ahora sale inmediatamente tras mostrar el plan; antes ejecutaba verificaciones primero, violando el contrato de dry-run
+- **`install.sh`** — banner actualizado a v1.9.1
+
+### Validación
+
+- **`validate.sh`** — detecta llamadas legacy `opencode -p` / `opencode --profile`; validator Python valida acciones de permisos contra `ask|allow|deny`; `opencode.strict.json` incluido en validación JSON
+- **`.github/workflows/validate.yml`** — shellcheck en `validate.sh`; artifact scan extendido a `skills/`
+- **`README.md`, `README.es.md`, `INSTALL.md`** — conteos correctos, comandos obsoletos removidos, snippets corregidos
+
+## [1.9.2] - 2026-05-01
+
+### validate.sh hardening
+
+- **Line count sanity check** — falla si scripts críticos tienen menos de 5 líneas; detecta minificación accidental
+- **Markdown frontmatter validation** — verifica YAML multilínea en todos los `agents/*.md` y `commands/*.md`
+- **Artifact scan extendido** — cubre `skills/`; agrega patrón `发现问题`
+
+### Makefile
+
+- **Target `format`** — `shfmt` en todos los scripts shell + `jq` para re-formatear configs JSON
+- **Target `check`** — agrega `jq empty opencode.strict.json`
+
 ## [1.9.1] - 2026-05-01
 
 ### Herramientas de desarrollo

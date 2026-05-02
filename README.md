@@ -29,11 +29,11 @@ Inspired by [VILA-Lab/Dive-into-Claude-Code](https://github.com/VILA-Lab/Dive-in
 
 ## Features
 
-**v1.9**
+**v1.9.3**
 
 - **11 specialized agents** — no hardcoded model; use whichever model you select in OpenCode's UI
 - **8 official slash commands** — `/analyze`, `/review`, `/secure`, `/feature`, `/bug-hunt`, `/docs`, `/devops`, `/oncall` — usable directly in OpenCode's TUI
-- **9 prompt-enforced profiles** — rules like `requireTests`, `checkpointBeforeChanges` injected as explicit LLM instructions; profile permissions are validated declarative metadata
+- **9 prompt-enforced profiles** — rules like `requireTests`, `checkpointBeforeChanges` injected as explicit LLM instructions; profile permissions validated against `ask|allow|deny`
 - **6 skills** for analysis, implementation, validation, memory, and documentation
 - **1 security plugin** with regex hardening + audit log (every bash command logged to JSONL)
 - **3-layer Memory Bank** (search / timeline / full detail) + JSONL index
@@ -432,11 +432,14 @@ oc --wizard
 | `@architect` | read-only | Understand before modifying |
 | `@planner` | read-only | Design a plan with verifiable phases |
 | `@builder` | edit + bash(ask) | Implement code |
+| `@builder-safe` | edit(ask) + bash(ask) | Implement with confirmation before every edit — first-time projects or critical paths |
 | `@reviewer` | read-only | Review diff before commit |
 | `@security-auditor` | read-only | Find vulnerabilities |
 | `@docs-writer` | edit | Generate / update documentation |
 | `@devops` | edit + bash | Infrastructure, CI/CD, scripts |
 | `@oncall` | bash(ask) | Diagnose and mitigate production issues |
+| `@migration-planner` | read-only | Design incremental reversible migrations (schema, service, data) |
+| `@performance-profiler` | read-only | Detect N+1, O(n²), blocking I/O, missing indexes |
 
 ---
 
@@ -803,6 +806,54 @@ opencode-global-config/
 ---
 
 ## Changelog
+
+### v1.9.3 (2026-05-01)
+
+#### OpenCode 1.14 Compatibility
+
+- **`oc`: migrate `_oc_run()` to `opencode run`** — `opencode -p` was removed in OpenCode 1.14; all internal calls and hooks now use `opencode run "<prompt>"`. Without this fix, all profile enforcement and hooks were silently broken.
+- **`oc`: remove `opencode --profile` flag** — not supported by OpenCode; profiles are enforced exclusively via prompt injection in `_oc_run()`
+- **`hooks/pre-commit`, `hooks/pre-push`**: migrated to `opencode run`
+
+#### Fixes
+
+- **`profiles/auto.json`**: `edit: auto, bash: auto` → `edit: ask, bash: ask` — `auto` is not a valid permission value (`ask|allow|deny` only)
+- **`install.sh --dry-run`**: now exits immediately after printing the plan — previously ran requirement checks first, violating the dry-run contract
+- **`install.sh`**: banner updated to v1.9.1
+
+#### Validation Hardening
+
+- **`validate.sh`**: detects legacy `opencode -p` / `opencode --profile` calls — CI catches regressions to the old API
+- **`validate.sh`**: profile permission validator (Python) — checks all `profiles/*.json` for invalid action values
+- **`validate.sh`**: `opencode.strict.json` added to JSON validation loop
+- **`.github/workflows/validate.yml`**: shellcheck on `validate.sh`; artifact scan extended to `skills/`
+- **`README.md`, `README.es.md`, `INSTALL.md`**: corrected version counts, obsolete CLI commands, install snippets
+
+---
+
+### v1.9.2 (2026-05-01)
+
+#### validate.sh Hardening
+
+- **Line count sanity check** — fails if `install.sh`, `oc`, `validate.sh`, `uninstall.sh`, or `Makefile` have fewer than 5 lines (detects accidental minification)
+- **Markdown frontmatter validation** — verifies all `agents/*.md` and `commands/*.md` have valid multi-line YAML frontmatter (`---` on first line + closing fence)
+- **Language artifact scan extended** — covers `skills/` directory; adds `发现问题` to pattern list
+
+#### Makefile
+
+- **`format` target** — `shfmt` on all shell scripts + `jq` pretty-print on all JSON configs; graceful if `shfmt` not installed
+- **`check` target** — adds `jq empty opencode.strict.json`
+
+---
+
+### v1.9.1 (2026-05-01)
+
+- **`.editorconfig`** — UTF-8, LF, 2-space indent, final newline, no trailing whitespace
+- **`Makefile`** — targets: `validate`, `check`, `install`, `dry-run`, `uninstall`, `doctor`
+- **`opencode.strict.json`** — paranoid profile: `webfetch: deny`, `websearch: deny`, `external_directory: deny`
+- **`@builder-safe`** — new conservative agent with `edit: ask, bash: ask`; same logic as `@builder` but confirms before every edit
+
+---
 
 ### v1.9 (2026-05-01)
 
