@@ -274,37 +274,20 @@ if lines:
 PYEOF
 }
 
-# Inject active profile and its rules into every opencode call.
+# Inject active profile rules into every non-interactive opencode run.
 _oc_run() {
     local profile rules_text
     profile=$(get_active_profile)
     rules_text=$(get_profile_rules)
 
-    if [ -n "$rules_text" ]; then
-        # Append profile rules to any -p prompt argument
-        local args=() found_p=false
-        while [ $# -gt 0 ]; do
-            if [ "$1" = "-p" ] && [ $# -gt 1 ]; then
-                args+=("-p" "${2}${rules_text}")
-                shift 2
-                found_p=true
-            else
-                args+=("$1")
-                shift
-            fi
-        done
-        # If no -p was found, args already contains original args unchanged
-        if [ -n "$profile" ]; then
-            opencode --profile "$profile" "${args[@]}"
-        else
-            opencode "${args[@]}"
-        fi
+    # Internal wrapper calls use the historical "-p <prompt>" form. OpenCode
+    # 1.14 uses `opencode run <message>` for non-interactive prompts.
+    if [ "${1:-}" = "-p" ] && [ $# -gt 1 ]; then
+        local prompt="$2"
+        shift 2
+        opencode run "${prompt}${rules_text}" "$@"
     else
-        if [ -n "$profile" ]; then
-            opencode --profile "$profile" "$@"
-        else
-            opencode "$@"
-        fi
+        opencode "$@"
     fi
 }
 
@@ -518,7 +501,7 @@ EOF
     cat > "${target_dir}/.git/hooks/pre-commit" << 'HOOK'
 #!/bin/bash
 echo "Ejecutando revisión pre-commit..."
-opencode -p "Ejecuta @reviewer con precommit-review. Revisa los archivos modificados. No modifiques nada."
+opencode run "Ejecuta @reviewer con precommit-review. Revisa los archivos modificados. No modifiques nada."
 HOOK
     chmod +x "${target_dir}/.git/hooks/pre-commit"
 

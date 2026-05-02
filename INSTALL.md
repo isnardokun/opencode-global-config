@@ -38,7 +38,7 @@ git clone https://github.com/isnardokun/opencode-global-config.git /tmp/opencode
 mkdir -p ~/.config/opencode
 
 # 4. Copiar solo los archivos de configuración (no README, CHANGELOG, etc.)
-for d in agents skills profiles plugins hooks memory souls; do
+for d in agents skills profiles plugins hooks memory souls commands; do
     [ -d "/tmp/opencode-config/$d" ] && cp -r "/tmp/opencode-config/$d" ~/.config/opencode/
 done
 cp /tmp/opencode-config/AGENTS.md ~/.config/opencode/
@@ -48,9 +48,23 @@ cp /tmp/opencode-config/CLAUDE.md  ~/.config/opencode/
 cat > ~/.config/opencode/opencode.json << EOF
 {
   "\$schema": "https://opencode.ai/config.json",
-  "permission": { "skill": { "*": "allow" } },
-  "instructions": ["${HOME}/.config/opencode/AGENTS.md"],
-  "plugin":       ["${HOME}/.config/opencode/plugins/safety-guard.js"]
+  "autoupdate": false,
+  "instructions": [
+    "${HOME}/.config/opencode/AGENTS.md",
+    "${HOME}/.config/opencode/CLAUDE.md"
+  ],
+  "plugin": ["${HOME}/.config/opencode/plugins/safety-guard.js"],
+  "permission": {
+    "read": "allow",
+    "list": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "edit": "ask",
+    "bash": "ask",
+    "webfetch": "ask",
+    "websearch": "ask",
+    "skill": { "*": "allow" }
+  }
 }
 EOF
 
@@ -243,9 +257,23 @@ cat ~/.config/opencode/opencode.json
 cat > ~/.config/opencode/opencode.json << EOF
 {
   "\$schema": "https://opencode.ai/config.json",
-  "permission": { "skill": { "*": "allow" } },
-  "instructions": ["${HOME}/.config/opencode/AGENTS.md"],
-  "plugin":       ["${HOME}/.config/opencode/plugins/safety-guard.js"]
+  "autoupdate": false,
+  "instructions": [
+    "${HOME}/.config/opencode/AGENTS.md",
+    "${HOME}/.config/opencode/CLAUDE.md"
+  ],
+  "plugin": ["${HOME}/.config/opencode/plugins/safety-guard.js"],
+  "permission": {
+    "read": "allow",
+    "list": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "edit": "ask",
+    "bash": "ask",
+    "webfetch": "ask",
+    "websearch": "ask",
+    "skill": { "*": "allow" }
+  }
 }
 EOF
 ```

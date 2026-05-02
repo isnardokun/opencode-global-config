@@ -33,6 +33,9 @@ jobs:
       - name: shellcheck — uninstall.sh
         run: shellcheck --severity=error uninstall.sh
 
+      - name: shellcheck — validate.sh
+        run: shellcheck --severity=error validate.sh
+
       - name: Check no hardcoded model in agents
         run: |
           if grep -l "^model:" agents/*.md 2>/dev/null; then
@@ -43,7 +46,7 @@ jobs:
 
       - name: Check no foreign-language artifacts
         run: |
-          if grep -rn "No容忍\|基础设施\|средний\|密码\|報告ar" agents/ profiles/ souls/ plugins/ 2>/dev/null; then
+          if grep -rn "No容忍\|基础设施\|средний\|密码\|報告ar\|发现问题" agents/ profiles/ souls/ plugins/ skills/ 2>/dev/null; then
             echo "ERROR: foreign-language LLM artifacts found"
             exit 1
           fi

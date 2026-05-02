@@ -4,7 +4,7 @@ echo ""
 echo "🔍 OpenCode Pre-Commit Review"
 echo "=============================="
 
-opencode -p "
+opencode run "
 Usa @reviewer con precommit-review.
 
 Revisa los archivos modificados en este commit.

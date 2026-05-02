@@ -87,7 +87,7 @@ echo ""
 
 echo "JSON validation:"
 if command -v jq >/dev/null 2>&1; then
-    for jf in opencode.json profiles/*.json; do
+    for jf in opencode.json opencode.strict.json profiles/*.json; do
         if jq empty "${ROOT}/${jf}" >/dev/null 2>&1; then
             pass "$jf"
         else
@@ -112,6 +112,42 @@ for sh in install.sh oc hooks/pre-commit hooks/pre-push; do
         warn "Not found (skipping): $sh"
     fi
 done
+echo ""
+
+echo "OpenCode CLI compatibility:"
+legacy_cli=$(grep -RIn "opencode -p\|opencode --profile" "${ROOT}/oc" "${ROOT}/hooks" 2>/dev/null || true)
+if [ -z "$legacy_cli" ]; then
+    pass "No legacy opencode -p/--profile calls"
+else
+    fail "Legacy OpenCode CLI usage found:"
+    echo "$legacy_cli"
+fi
+echo ""
+
+echo "Profile permission action check:"
+if command -v python3 >/dev/null 2>&1; then
+    if python3 - "${ROOT}/profiles" << 'PYEOF'
+import json, pathlib, sys
+allowed = {"ask", "allow", "deny"}
+errors = []
+for path in sorted(pathlib.Path(sys.argv[1]).glob("*.json")):
+    data = json.loads(path.read_text())
+    permissions = data.get("opencode", {}).get("permission", {})
+    for tool, action in permissions.items():
+        if isinstance(action, str) and action not in allowed:
+            errors.append(f"{path.name}: {tool}={action}")
+if errors:
+    print("\n".join(errors))
+    sys.exit(1)
+PYEOF
+    then
+        pass "Profile permissions use ask/allow/deny"
+    else
+        fail "Invalid profile permission action"
+    fi
+else
+    warn "python3 not installed — skipping profile permission action check"
+fi
 echo ""
 
 echo "Agent model check (should be free — no hardcoded model):"

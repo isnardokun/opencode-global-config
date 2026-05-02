@@ -31,9 +31,9 @@ Inspired by [VILA-Lab/Dive-into-Claude-Code](https://github.com/VILA-Lab/Dive-in
 
 **v1.9**
 
-- **10 specialized agents** — no hardcoded model; use whichever model you select in OpenCode's UI
+- **11 specialized agents** — no hardcoded model; use whichever model you select in OpenCode's UI
 - **8 official slash commands** — `/analyze`, `/review`, `/secure`, `/feature`, `/bug-hunt`, `/docs`, `/devops`, `/oncall` — usable directly in OpenCode's TUI
-- **7 enforced profiles** — rules like `requireTests`, `checkpointBeforeChanges` injected as explicit LLM instructions; `opencode.permission` for native enforcement
+- **9 prompt-enforced profiles** — rules like `requireTests`, `checkpointBeforeChanges` injected as explicit LLM instructions; profile permissions are validated declarative metadata
 - **6 skills** for analysis, implementation, validation, memory, and documentation
 - **1 security plugin** with regex hardening + audit log (every bash command logged to JSONL)
 - **3-layer Memory Bank** (search / timeline / full detail) + JSONL index
@@ -489,7 +489,7 @@ oc "any task"             # Sends directly to OpenCode
 
 ## Profiles and Trust Levels
 
-7 profiles with Deny-First gradient. The active profile applies to **all** following commands until changed.
+9 profiles with Deny-First gradient. The active profile applies to **all** following `oc` non-interactive commands until changed.
 
 | Profile | Description | Files/iter | Edit | Bash |
 |---------|-------------|------------|------|------|
@@ -497,7 +497,9 @@ oc "any task"             # Sends directly to OpenCode
 | `plan` | Plan and analyze only, no changes | 10 | ❌ | ❌ |
 | `review` | Read and report | 15 | ❌ | ask |
 | `default` | General development, confirm each change | 3 | ask | ask |
-| `auto` | Automated approval | 5 | auto | auto |
+| `work` | Professional work, conservative defaults | 3 | ask | ask |
+| `research` | Research and exploration | 10 | ask | ask |
+| `auto` | Assisted mode with decision tracking | 5 | ask | ask |
 | `trusted` | Advanced developer, direct edits | 10 | ✅ | ✅ |
 | `devops` | Infrastructure with mandatory checkpoint | 20 | ✅ | ✅ |
 
@@ -505,7 +507,7 @@ oc "any task"             # Sends directly to OpenCode
 
 ## How Profile Enforcement Works
 
-OpenCode does not read custom rule fields from profile JSON files. The `oc` script reads them and injects them as explicit instructions into every LLM prompt. The rules are real because the model sees them as explicit requirements:
+OpenCode does not read these custom profile files as native profiles. The `oc` script reads their `policy` fields and injects them as explicit instructions into every non-interactive `opencode run` prompt. The rules are model-enforced, not an OS sandbox:
 
 ```
 # Profile: default (requireTests: true, requireExplanation: true)
@@ -537,7 +539,7 @@ What the LLM actually receives:
 | `allowEnvEdit: false` | Never modify .env files or environment config. |
 | `maxFilesPerIteration: N` | Limit changes to N files per iteration. |
 
-This approach requires no fork of OpenCode and works with any model.
+This approach requires no fork of OpenCode and works with any model, but native OpenCode permissions still come from the active OpenCode configuration and agent frontmatter.
 
 ---
 
@@ -807,7 +809,7 @@ opencode-global-config/
 #### Native OpenCode Config
 
 - **`opencode.json` hardened** — `read/list/glob/grep: allow`, `edit/bash/webfetch/websearch: ask`; `autoupdate: false`; `watcher.ignore` list for common build artifacts; now also loads `CLAUDE.md` as instruction
-- **Profiles restructured** — each profile now has `opencode.permission` (fields OpenCode reads) + `policy` (rules injected via prompt). Clean separation between native config and LLM instructions
+- **Profiles restructured** — each profile now has declarative `opencode.permission` metadata validated by this repo + `policy` rules injected via prompt. Native OpenCode enforcement still comes from OpenCode config and agent frontmatter
 - **`get_profile_rules()` reads `policy` key** — backwards-compatible (falls back to `rules` if `policy` absent)
 
 #### Official Slash Commands (`commands/`)

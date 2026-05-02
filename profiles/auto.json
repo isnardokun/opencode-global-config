@@ -1,14 +1,14 @@
 {
   "name": "auto",
-  "description": "Automated mode — proceeds without confirmation when confidence is high",
+  "description": "Assisted mode — conservative permissions with extra decision tracking",
   "opencode": {
     "permission": {
       "read": "allow",
       "list": "allow",
       "glob": "allow",
       "grep": "allow",
-      "edit": "auto",
-      "bash": "auto",
+      "edit": "ask",
+      "bash": "ask",
       "webfetch": "ask",
       "websearch": "ask"
     }

@@ -46,9 +46,22 @@ fi
 
 echo -e "${BLUE}"
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║     OpenCode Global Config - Instalador v1.8              ║"
+echo "║     OpenCode Global Config - Instalador v1.9.1            ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
+
+if [ "$DRY_RUN" -eq 1 ]; then
+    echo "Plan de instalación:"
+    echo "  - Verificar git y opencode"
+    echo "  - Clonar $REPO_URL en $INSTALL_DIR"
+    echo "  - Crear backup si existe $CONFIG_DIR"
+    echo "  - Instalar config en $CONFIG_DIR"
+    echo "  - Instalar comando oc en $BIN_DIR/oc"
+    echo "  - Agregar $BIN_DIR al PATH si falta"
+    echo ""
+    success "Dry-run completado: ningún archivo fue modificado"
+    exit 0
+fi
 
 # 1. Check requirements
 info "Verificando requisitos..."

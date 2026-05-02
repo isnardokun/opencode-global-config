@@ -46,10 +46,10 @@ Inspirado en análisis de Claude Code (VILA-Lab/Dive-into-Claude-Code) y directr
 
 Este repositorio contiene una configuración avanzada para [OpenCode CLI](https://opencode.ai) inspirada en Claude Code y proyectos de código abierto.
 
-### Características Principales (v1.8)
+### Características Principales (v1.9.1)
 
-- **8 agentes especializados** — sin modelo hardcodeado, usan el modelo que selecciones en OpenCode
-- **7 perfiles con enforcement real** — reglas como `requireTests`, `checkpointBeforeChanges` se inyectan como instrucciones explícitas al LLM en cada llamada
+- **11 agentes especializados** — sin modelo hardcodeado, usan el modelo que selecciones en OpenCode
+- **9 perfiles con enforcement por prompt** — reglas como `requireTests`, `checkpointBeforeChanges` se inyectan como instrucciones explícitas al LLM en cada llamada no interactiva de `oc`
 - **6 skills** para análisis, implementación, validación, memoria y documentación
 - **1 plugin de seguridad** con regex hardening (whitespace-normalized matching)
 - **Sistema de Memory Bank** con 3-layer retrieval (search/timeline/get)
@@ -515,7 +515,7 @@ oc "cualquier tarea"        # Envía directamente a OpenCode
 
 ## Perfiles y Niveles de Confianza
 
-Sistema de 7 perfiles con Deny-First gradient. El perfil activo se aplica a **todos** los comandos siguientes hasta cambiar o cerrar sesión.
+Sistema de 9 perfiles con Deny-First gradient. El perfil activo se aplica a los comandos no interactivos de `oc` hasta cambiarlo.
 
 | Perfil | Descripción | Archivos/iter | Edit | Bash |
 |--------|-------------|---------------|------|------|
@@ -523,7 +523,9 @@ Sistema de 7 perfiles con Deny-First gradient. El perfil activo se aplica a **to
 | `plan` | Planificación, no modificar | 10 | ❌ | ❌ |
 | `review` | Lectura y reporte | 15 | ❌ | ask |
 | `default` | Desarrollo general | 3 | ask | ask |
-| `auto` | Aprobación automática | 5 | auto | auto |
+| `work` | Trabajo profesional conservador | 3 | ask | ask |
+| `research` | Investigación y exploración | 10 | ask | ask |
+| `auto` | Modo asistido con tracking de decisiones | 5 | ask | ask |
 | `trusted` | Desarrollador avanzado | 10 | ✅ | ✅ |
 | `devops` | Infra con checkpoint obligatorio | 20 | ✅ | ✅ |
 
@@ -532,9 +534,9 @@ oc --profile trusted   # Activar perfil
 oc --list-profiles     # Ver todos disponibles
 ```
 
-### Cómo funciona el enforcement de perfiles (v1.8)
+### Cómo funciona el enforcement de perfiles (v1.9.1)
 
-OpenCode no lee los campos de reglas del JSON de perfil. El script `oc` los lee y los inyecta como instrucciones explícitas en cada prompt enviado al LLM:
+OpenCode no lee estos archivos como perfiles nativos. El script `oc` lee el campo `policy` y lo inyecta como instrucciones explícitas en cada prompt no interactivo enviado con `opencode run`:
 
 ```
 # Perfil: default (requireTests: true, requireExplanation: true)
@@ -714,7 +716,7 @@ oc --workflow feature "add OAuth2 login" ~/myapi
 Cada workflow construye un único prompt con todas las fases y lo envía a OpenCode en una sola llamada. El modelo ejecuta las fases secuencialmente manteniendo el contexto completo:
 
 ```
-opencode -p "Ejecuta el workflow completo para: $target
+opencode run "Ejecuta el workflow completo para: $target
 
 FASE 1 - @architect con project-map:
   Analiza el proyecto...
