@@ -79,6 +79,9 @@ Inspiradas en Andrej Karpathy para reducir errores comunes de LLMs en codificaci
 - @docs-writer: Documentación técnica
 - @devops: CI/CD, Docker, Kubernetes, Terraform
 - @oncall: Diagnóstico de producción
+- @builder-safe: Implementación conservadora con confirmación antes de cada edición
+- @migration-planner: Diseño de migraciones incrementales reversibles (solo lectura)
+- @performance-profiler: Detección de N+1, O(n²), I/O bloqueante, índices faltantes (solo lectura)
 
 ---
 

@@ -116,7 +116,7 @@ oc --capture                          # Captura estado actual del proyecto
 | config | Cambio de configuración |
 | refactor | Refactorización |
 | review | Resultado de revisión |
-| investigation | Investigación发现问题 |
+| investigation | Investigación de problemas |
 | success | Éxito notable |
 
 ## Búsqueda Avanzada

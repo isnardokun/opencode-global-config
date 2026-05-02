@@ -2,6 +2,47 @@
 
 Todos los cambios notables de este proyecto se documentarán en este archivo.
 
+## [1.9.1] - 2026-05-01
+
+### Herramientas de desarrollo
+
+- **`.editorconfig`** — UTF-8, LF, 2 espacios, final de línea, sin trailing whitespace
+- **`Makefile`** — targets: `validate`, `check`, `install`, `dry-run`, `uninstall`, `doctor`
+- **`opencode.strict.json`** — perfil paranoid: `webfetch: deny`, `websearch: deny`, `external_directory: deny`
+- **`agents/builder-safe.md`** — nuevo agente conservador con `edit: ask, bash: ask`; misma lógica que `@builder` pero confirma antes de cada edición
+
+## [1.9.0] - 2026-05-01
+
+### Permisos nativos OpenCode
+
+- **`opencode.json` reescrito** — permisos nativos: `read/list/glob/grep: allow`, `edit/bash/webfetch/websearch: ask`, `autoupdate: false`, `watcher.ignore` completo
+- **Perfiles reestructurados** — separación limpia entre `opencode.permission` (OpenCode nativo) y `policy` (reglas inyectadas en prompt)
+
+### Nuevos agentes
+
+- **`agents/migration-planner.md`** — diseño de migraciones incrementales reversibles; solo lectura (`edit: deny, bash: deny`); tabla de riesgos, fases, rollback por fase
+- **`agents/performance-profiler.md`** — detección de N+1, O(n²), I/O bloqueante, índices faltantes; severidad CRITICAL/HIGH/MEDIUM/LOW; solo lectura
+
+### Slash commands nativos
+
+- **`commands/` (8 archivos)** — analyze, review, secure, feature, bug-hunt, docs, devops, oncall; carga automática en OpenCode TUI sin wrapper `oc`
+
+### Infraestructura
+
+- **`validate.sh`** — valida estructura (15 ítems), 11 agentes, 8 comandos, 6 skills, JSON, bash syntax, sin modelos hardcodeados, sin artifacts de idioma; flag `--installed`
+- **`uninstall.sh`** — remoción segura con backup a `opencode.removed.TIMESTAMP`
+- **`install.sh --dry-run`** — simula instalación sin modificar nada
+- **`plugins/safety-guard.js`** — audit log: cada comando bash logueado a `~/.config/opencode/logs/safety-guard.jsonl`
+- **`oc --doctor`** — diagnóstico: verifica opencode, oc, config, dirs, JSON, fzf, perfil, audit log
+- **`.github/workflows/validate.yml`** — CI: validate.sh, shellcheck, sin modelo hardcodeado, sin artifacts de idioma
+- **`README.md` y `README.es.md`** — bilingüe; documentación completa de v1.9
+
+### Limpieza
+
+- **Eliminado `model:` de 8 agentes** — opencode usa el modelo seleccionado por el usuario en UI
+- **Artifacts de idioma corregidos** — `No容忍` → `Zero tolerance`, `基础设施` → `Infrastructure`, `средний` → `medium`, `密码` eliminado, `迁移` → `migration`
+- **`memory/ARCHITECTURE.md` reescrito** — eliminada tabla de compaction ficticia de 5 capas; descripción honesta del sistema real
+
 ## [1.8.0] - 2026-05-01
 
 ### Cross-platform & hardening

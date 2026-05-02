@@ -526,33 +526,6 @@ HOOK
     success "Git hook configurado en ${target_dir}/.git/hooks/pre-commit"
 }
 
-memory_search() {
-    if [ ! -d "${OC_MEMORY}" ]; then
-        mkdir -p "${OC_MEMORY}"
-        warn "Memory bank vacío. Creado ${OC_MEMORY}/"
-        return 0
-    fi
-
-    local query="$*"
-    if [ -z "$query" ]; then
-        echo "Archivos en memory bank:"
-        ls -la "${OC_MEMORY}/"
-        return 0
-    fi
-
-    echo -e "${BLUE}Buscando en memory bank...${NC}"
-    grep -rli "$query" "${OC_MEMORY}/" 2>/dev/null || echo "No encontrado"
-}
-
-memory_save() {
-    local context="$1"
-    local timestamp
-    timestamp=$(date +%Y%m%d-%H%M%S)
-    mkdir -p "${OC_MEMORY}"
-    printf -- '---\nFecha: %s\nContexto: %s\n---\n\n' "$(date)" "$context" >> "${OC_MEMORY}/${timestamp}.md"
-    success "Guardado en ${OC_MEMORY}/${timestamp}.md"
-}
-
 run_interactive() {
     check_fzf
     local choice
