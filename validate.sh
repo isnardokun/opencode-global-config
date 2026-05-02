@@ -101,7 +101,7 @@ fi
 echo ""
 
 echo "Shell syntax:"
-for sh in install.sh oc hooks/pre-commit hooks/pre-push; do
+for sh in install.sh uninstall.sh oc hooks/pre-commit hooks/pre-push; do
     if [ -f "${ROOT}/${sh}" ]; then
         if bash -n "${ROOT}/${sh}" 2>/dev/null; then
             pass "$sh"
@@ -112,6 +112,18 @@ for sh in install.sh oc hooks/pre-commit hooks/pre-push; do
         warn "Not found (skipping): $sh"
     fi
 done
+echo ""
+
+echo "Plugin JavaScript syntax:"
+if command -v node >/dev/null 2>&1; then
+    if node --check "${ROOT}/plugins/safety-guard.js" >/dev/null 2>&1; then
+        pass "plugins/safety-guard.js"
+    else
+        fail "JavaScript syntax error: plugins/safety-guard.js"
+    fi
+else
+    warn "node not installed — skipping plugin JavaScript syntax check"
+fi
 echo ""
 
 echo "OpenCode CLI compatibility:"

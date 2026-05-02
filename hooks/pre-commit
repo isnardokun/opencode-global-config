@@ -4,10 +4,21 @@ echo ""
 echo "🔍 OpenCode Pre-Commit Review"
 echo "=============================="
 
-opencode run "
+tmp_output=$(mktemp)
+trap 'rm -f "$tmp_output"' EXIT
+
+diff_context=$(git diff --cached --stat && printf '\n' && git diff --cached --)
+if [ -z "$diff_context" ]; then
+    diff_context="No hay diff staged disponible. Revisa el estado Git si aplica."
+fi
+
+prompt="
 Usa @reviewer con precommit-review.
 
 Revisa los archivos modificados en este commit.
+
+Diff staged:
+$diff_context
 
 Reglas:
 - No modifiques archivos.
@@ -20,8 +31,32 @@ Resumen esperado:
 3. Hallazgos medios
 4. Pruebas ejecutadas
 5. Recomendación: aprobar/corregir
-" && echo "" && echo "✅ Pre-commit aprobado" || {
+
+Termina con una línea exacta:
+BLOCKING_FINDINGS=true
+o
+BLOCKING_FINDINGS=false
+"
+
+if command -v oc >/dev/null 2>&1; then
+    oc "$prompt" | tee "$tmp_output"
+    status=${PIPESTATUS[0]}
+else
+    opencode run "$prompt" | tee "$tmp_output"
+    status=${PIPESTATUS[0]}
+fi
+
+if [ "$status" -ne 0 ] || grep -Eq '^BLOCKING_FINDINGS=true$|^RECOMMENDATION=CORRECT$' "$tmp_output"; then
     echo ""
-    echo "❌ Pre-commit rechazado. Corrige los errores antes de.commitir."
+    echo "❌ Pre-commit rechazado. Corrige los errores antes de commitir."
     exit 1
-}
+fi
+
+if ! grep -Eq '^BLOCKING_FINDINGS=false$' "$tmp_output"; then
+    echo ""
+    echo "❌ Pre-commit rechazado. Falta marcador BLOCKING_FINDINGS=false."
+    exit 1
+fi
+
+echo ""
+echo "✅ Pre-commit aprobado"

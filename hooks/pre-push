@@ -4,7 +4,20 @@ echo ""
 echo "🔍 OpenCode Pre-Push Review"
 echo "============================"
 
-opencode run "
+tmp_output=$(mktemp)
+trap 'rm -f "$tmp_output"' EXIT
+
+if upstream=$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null); then
+    diff_context=$(git diff --stat "$upstream"..HEAD && printf '\n' && git diff "$upstream"..HEAD)
+else
+    diff_context=$(git log --oneline -10 2>/dev/null; printf '\n'; git diff --stat HEAD~1..HEAD 2>/dev/null; printf '\n'; git diff HEAD~1..HEAD 2>/dev/null)
+fi
+
+if [ -z "$diff_context" ]; then
+    diff_context="No hay diff de push disponible. Revisa el estado Git si aplica."
+fi
+
+prompt="
 Usa @security-auditor.
 
 Antes de hacer push, verifica:
@@ -13,9 +26,36 @@ Antes de hacer push, verifica:
 3. Tokens API expuestos
 4. Configuración insegura
 
+Contexto de cambios para push:
+$diff_context
+
 Si encuentra algo crítico, rechaza el push.
-" && echo "" && echo "✅ Pre-push aprobado" || {
+
+Termina con una línea exacta:
+BLOCKING_FINDINGS=true
+o
+BLOCKING_FINDINGS=false
+"
+
+if command -v oc >/dev/null 2>&1; then
+    oc "$prompt" | tee "$tmp_output"
+    status=${PIPESTATUS[0]}
+else
+    opencode run "$prompt" | tee "$tmp_output"
+    status=${PIPESTATUS[0]}
+fi
+
+if [ "$status" -ne 0 ] || grep -Eq '^BLOCKING_FINDINGS=true$|^RECOMMENDATION=CORRECT$' "$tmp_output"; then
     echo ""
     echo "❌ Pre-push rechazado. Seguridad comprometida."
     exit 1
-}
+fi
+
+if ! grep -Eq '^BLOCKING_FINDINGS=false$' "$tmp_output"; then
+    echo ""
+    echo "❌ Pre-push rechazado. Falta marcador BLOCKING_FINDINGS=false."
+    exit 1
+fi
+
+echo ""
+echo "✅ Pre-push aprobado"

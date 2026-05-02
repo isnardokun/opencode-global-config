@@ -112,9 +112,9 @@ source ~/.bashrc
 | `memory-retrieval` | 3-layer progressive disclosure |
 | `docs-writer` | Documentación técnica |
 
-### Perfiles (7 niveles de confianza)
+### Perfiles (9 perfiles deny-first)
 
-`deny` → `plan` → `review` → `default` → `auto` → `trusted` → `devops`
+`deny` → `plan` → `review` → `default` → `work` → `research` → `auto` → `trusted` → `devops`
 
 ### Intent Mapping — Lenguaje Natural → Agente
 

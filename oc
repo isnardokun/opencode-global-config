@@ -79,18 +79,27 @@ create_observation() {
         return 1
     fi
 
+    if ! command -v python3 >/dev/null 2>&1; then
+        echo "Error: python3 is required to create observations"
+        return 1
+    fi
+
     local obs_dir="${OC_MEMORY}/projects/${project}"
     mkdir -p "$obs_dir"
 
     local obs_file="${obs_dir}/${obs_id}.md"
+    local yaml_project yaml_type yaml_summary
+    yaml_project=$(yaml_quote "$project")
+    yaml_type=$(yaml_quote "$type")
+    yaml_summary=$(yaml_quote "${content:0:100}")
 
     cat > "$obs_file" << EOF
 ---
 id: obs_${obs_id}
 date: $(date +%Y-%m-%d\ %H:%M:%S)
-project: ${project}
-type: ${type}
-summary: ${content:0:100}
+project: ${yaml_project}
+type: ${yaml_type}
+summary: ${yaml_summary}
 tokens_est: 200
 ---
 
@@ -107,14 +116,50 @@ EOF
 
     # Append to JSONL index for fast querying with jq/fzf/ripgrep
     local jsonl_index="${OC_MEMORY}/index.jsonl"
-    printf '{"id":"obs_%s","date":"%s","project":"%s","type":"%s","summary":"%s","path":"%s"}\n' \
-        "$obs_id" \
-        "$(date +%Y-%m-%dT%H:%M:%S)" \
-        "$project" \
-        "$type" \
-        "$(printf '%s' "${content:0:100}" | sed 's/"/\\"/g')" \
-        "memory/projects/${project}/${obs_id}.md" \
-        >> "$jsonl_index"
+    python3 - "$jsonl_index" "obs_${obs_id}" "$(date +%Y-%m-%dT%H:%M:%S)" "$project" "$type" "${content:0:100}" "memory/projects/${project}/${obs_id}.md" << 'PYEOF'
+import json, sys
+path, obs_id, date, project, obs_type, summary, obs_path = sys.argv[1:]
+with open(path, "a", encoding="utf-8") as fh:
+    fh.write(json.dumps({
+        "id": obs_id,
+        "date": date,
+        "project": project,
+        "type": obs_type,
+        "summary": summary,
+        "path": obs_path,
+    }, ensure_ascii=False) + "\n")
+PYEOF
+}
+
+normalize_obs_id() {
+    local obs_id="$1"
+    obs_id="${obs_id#obs_}"
+    printf '%s' "$obs_id"
+}
+
+trim_field() {
+    local value="$1"
+    value="${value#${value%%[![:space:]]*}}"
+    value="${value%${value##*[![:space:]]}}"
+    printf '%s' "$value"
+}
+
+yaml_quote() {
+    python3 -c 'import json, sys; print(json.dumps(sys.argv[1], ensure_ascii=False))' "$1"
+}
+
+frontmatter_value() {
+    local file="$1"
+    local key="$2"
+    local line value
+    line=$(grep -m1 "^${key}:" "$file" 2>/dev/null || true)
+    value="${line#*:}"
+    value="${value# }"
+    value="${value%\"}"
+    value="${value#\"}"
+    value="${value%\'}"
+    value="${value#\'}"
+    printf '%s' "$value"
 }
 
 search_memory() {
@@ -132,8 +177,18 @@ search_memory() {
         return 0
     fi
 
-    local results
-    results=$(grep -i "$query" "${OC_MEMORY}/INDEX.md" 2>/dev/null | head -20)
+    local results count=0
+    while IFS= read -r line; do
+        local line_id line_date line_project line_type line_summary
+        IFS='|' read -r line_id line_date line_project line_type line_summary <<< "$line"
+        line_project=$(trim_field "$line_project")
+        line_type=$(trim_field "$line_type")
+        [ -n "$project" ] && [ "$line_project" != "$project" ] && continue
+        [ -n "$type" ] && [ "$line_type" != "$type" ] && continue
+        results+="${line}"$'\n'
+        count=$((count + 1))
+        [ "$count" -ge 20 ] && break
+    done < <(grep -F -i -- "$query" "${OC_MEMORY}/INDEX.md" 2>/dev/null)
 
     if [ -z "$results" ]; then
         echo "No results found for: $query"
@@ -160,6 +215,7 @@ get_observations() {
 
     for obs_id in "${OBS_IDS[@]}"; do
         obs_id=$(echo "$obs_id" | tr -d ' ')
+        obs_id=$(normalize_obs_id "$obs_id")
         local obs_file
         obs_file=$(find "${OC_MEMORY}" -name "${obs_id}.md" 2>/dev/null | head -1)
 
@@ -183,6 +239,7 @@ get_timeline() {
     fi
 
     local obs_file
+    obs_id=$(normalize_obs_id "$obs_id")
     obs_file=$(find "${OC_MEMORY}" -name "${obs_id}.md" 2>/dev/null | head -1)
 
     if [ -z "$obs_file" ]; then
@@ -197,8 +254,8 @@ get_timeline() {
     while IFS= read -r f; do
         local fname summary fdate
         fname=$(basename "$f" .md)
-        summary=$(grep "^summary:" "$f" 2>/dev/null | cut -d':' -f2 | tr -d ' ')
-        fdate=$(grep "^date:" "$f" 2>/dev/null | cut -d':' -f2 | tr -d ' ')
+        summary=$(frontmatter_value "$f" "summary")
+        fdate=$(frontmatter_value "$f" "date")
         echo "$fname | $fdate | ${summary:0:80}"
     done < <(ls -t "$obs_dir"/*.md 2>/dev/null | head -5)
 }
@@ -220,6 +277,12 @@ get_active_profile() {
 
 switch_profile() {
     local profile="$1"
+    if [ -z "$profile" ]; then
+        error "Perfil requerido"
+    fi
+    if [ ! -f "${OC_PROFILES}/${profile}.json" ]; then
+        error "Perfil no encontrado: $profile"
+    fi
     echo "$profile" > "${CURRENT_PROFILE}"
     export OPENCODE_PROFILE="$profile"
     success "Perfil: $profile"
@@ -405,19 +468,19 @@ detect_stack() {
     local dir="${1:-.}"
     local stacks=()
     [ -f "${dir}/package.json" ]                                   && stacks+=("Node.js")
-    [ -f "${dir}/pyproject.toml" ] || [ -f "${dir}/requirements.txt" ] && stacks+=("Python")
+    { [ -f "${dir}/pyproject.toml" ] || [ -f "${dir}/requirements.txt" ]; } && stacks+=("Python")
     [ -f "${dir}/Cargo.toml" ]                                     && stacks+=("Rust")
     [ -f "${dir}/go.mod" ]                                         && stacks+=("Go")
-    [ -f "${dir}/pom.xml" ] || [ -f "${dir}/build.gradle" ]        && stacks+=("Java")
-    [ -f "${dir}/docker-compose.yml" ] || [ -f "${dir}/Dockerfile" ] && stacks+=("Docker")
-    [ -f "${dir}/terraform.tf" ] || [ -d "${dir}/.terraform" ]     && stacks+=("Terraform")
+    { [ -f "${dir}/pom.xml" ] || [ -f "${dir}/build.gradle" ]; }        && stacks+=("Java")
+    { [ -f "${dir}/docker-compose.yml" ] || [ -f "${dir}/Dockerfile" ]; } && stacks+=("Docker")
+    { [ -f "${dir}/terraform.tf" ] || [ -d "${dir}/.terraform" ]; }     && stacks+=("Terraform")
     printf '%s\n' "${stacks[@]}"
 }
 
 detect_test_commands() {
     local dir="${1:-.}"
     [ -f "${dir}/package.json" ] && grep -q '"test"' "${dir}/package.json" && echo "npm test"
-    [ -f "${dir}/pyproject.toml" ] || [ -f "${dir}/setup.py" ]             && echo "pytest"
+    { [ -f "${dir}/pyproject.toml" ] || [ -f "${dir}/requirements.txt" ] || [ -f "${dir}/setup.py" ]; } && echo "pytest"
     [ -f "${dir}/Cargo.toml" ]                                              && echo "cargo test"
     [ -f "${dir}/go.mod" ]                                                  && echo "go test ./..."
     [ -f "${dir}/Makefile" ] && grep -q "^test:" "${dir}/Makefile"          && echo "make test"
@@ -436,7 +499,6 @@ run_init() {
 
     info "Creando estructura de proyecto..."
     mkdir -p "${opencode_dir}"/{agents,skills,mcp,hooks}
-    mkdir -p "${target_dir}/.git/hooks"
 
     cat > "${opencode_dir}/opencode.json" << 'EOF'
 {
@@ -448,7 +510,7 @@ run_init() {
     "entrypoints": []
   },
   "agents": {
-    "project": "~/.opencode/agents"
+    "project": "./agents"
   }
 }
 EOF
@@ -498,15 +560,126 @@ EOF
         echo "- Do not modify .env files"
     } > "${opencode_dir}/CLAUDE.md"
 
-    cat > "${target_dir}/.git/hooks/pre-commit" << 'HOOK'
+    if [ -d "${target_dir}/.git" ]; then
+        mkdir -p "${target_dir}/.git/hooks"
+        cat > "${target_dir}/.git/hooks/pre-commit" << 'HOOK'
 #!/bin/bash
-echo "Ejecutando revisión pre-commit..."
-opencode run "Ejecuta @reviewer con precommit-review. Revisa los archivos modificados. No modifiques nada."
+
+echo ""
+echo "🔍 OpenCode Pre-Commit Review"
+echo "=============================="
+
+tmp_output=$(mktemp)
+trap 'rm -f "$tmp_output"' EXIT
+
+diff_context=$(git diff --cached --stat && printf '\n' && git diff --cached --)
+if [ -z "$diff_context" ]; then
+    diff_context="No hay diff staged disponible. Revisa el estado Git si aplica."
+fi
+
+prompt="Ejecuta @reviewer con precommit-review. Revisa los archivos modificados. No modifiques nada.
+
+Diff staged:
+$diff_context
+
+Termina con una línea exacta:
+BLOCKING_FINDINGS=true
+o
+BLOCKING_FINDINGS=false"
+
+if command -v oc >/dev/null 2>&1; then
+    oc "$prompt" | tee "$tmp_output"
+    status=${PIPESTATUS[0]}
+else
+    opencode run "$prompt" | tee "$tmp_output"
+    status=${PIPESTATUS[0]}
+fi
+
+if [ "$status" -ne 0 ] || grep -Eq '^BLOCKING_FINDINGS=true$|^RECOMMENDATION=CORRECT$' "$tmp_output"; then
+    echo ""
+    echo "❌ Pre-commit rechazado. Corrige los errores antes de commitir."
+    exit 1
+fi
+
+if ! grep -Eq '^BLOCKING_FINDINGS=false$' "$tmp_output"; then
+    echo ""
+    echo "❌ Pre-commit rechazado. Falta marcador BLOCKING_FINDINGS=false."
+    exit 1
+fi
+
+echo ""
+echo "✅ Pre-commit aprobado"
 HOOK
-    chmod +x "${target_dir}/.git/hooks/pre-commit"
+        chmod +x "${target_dir}/.git/hooks/pre-commit"
+        success "Git hook configurado en ${target_dir}/.git/hooks/pre-commit"
+        cat > "${target_dir}/.git/hooks/pre-push" << 'HOOK'
+#!/bin/bash
+
+echo ""
+echo "🔍 OpenCode Pre-Push Review"
+echo "============================"
+
+tmp_output=$(mktemp)
+trap 'rm -f "$tmp_output"' EXIT
+
+if upstream=$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null); then
+    diff_context=$(git diff --stat "$upstream"..HEAD && printf '\n' && git diff "$upstream"..HEAD)
+else
+    diff_context=$(git log --oneline -10 2>/dev/null; printf '\n'; git diff --stat HEAD~1..HEAD 2>/dev/null; printf '\n'; git diff HEAD~1..HEAD 2>/dev/null)
+fi
+
+if [ -z "$diff_context" ]; then
+    diff_context="No hay diff de push disponible. Revisa el estado Git si aplica."
+fi
+
+prompt="Usa @security-auditor.
+
+Antes de hacer push, verifica:
+1. Secretos en código
+2. Credenciales hardcodeadas
+3. Tokens API expuestos
+4. Configuración insegura
+
+Contexto de cambios para push:
+$diff_context
+
+Si encuentra algo crítico, rechaza el push.
+
+Termina con una línea exacta:
+BLOCKING_FINDINGS=true
+o
+BLOCKING_FINDINGS=false"
+
+if command -v oc >/dev/null 2>&1; then
+    oc "$prompt" | tee "$tmp_output"
+    status=${PIPESTATUS[0]}
+else
+    opencode run "$prompt" | tee "$tmp_output"
+    status=${PIPESTATUS[0]}
+fi
+
+if [ "$status" -ne 0 ] || grep -Eq '^BLOCKING_FINDINGS=true$|^RECOMMENDATION=CORRECT$' "$tmp_output"; then
+    echo ""
+    echo "❌ Pre-push rechazado. Seguridad comprometida."
+    exit 1
+fi
+
+if ! grep -Eq '^BLOCKING_FINDINGS=false$' "$tmp_output"; then
+    echo ""
+    echo "❌ Pre-push rechazado. Falta marcador BLOCKING_FINDINGS=false."
+    exit 1
+fi
+
+echo ""
+echo "✅ Pre-push aprobado"
+HOOK
+        chmod +x "${target_dir}/.git/hooks/pre-push"
+        success "Git hook configurado en ${target_dir}/.git/hooks/pre-push"
+    else
+        warn "${target_dir} no es un repo Git; se omiten hooks pre-commit/pre-push."
+    fi
 
     success "Proyecto inicializado en ${opencode_dir}/"
-    success "Git hook configurado en ${target_dir}/.git/hooks/pre-commit"
 }
 
 run_interactive() {
@@ -565,7 +738,7 @@ MEMORY (3-Layer Workflow):
     --timeline <obs_id>  Capa 2: Timeline cronológico
     --get <id1,id2>      Capa 3: Detalle completo de observaciones
     --remember <texto>   Crear observación nueva
-    --remember -t <tipo> <texto>  Observación con tipo explícito
+    --remember [-p proyecto] [-t tipo] <texto>  Observación con proyecto/tipo
     --capture            Capturar estado actual de sesión
     -t <tipo> <query>    Filtrar búsqueda por tipo (bugfix|feature|decision|note|config)
 
@@ -599,7 +772,7 @@ EJEMPLOS:
 CONFIGURACIÓN:
     ~/.config/opencode/           Config global
     ~/.config/opencode/memory/    Memory bank (3-layer)
-    ~/.config/opencode/profiles/  Perfiles (7 levels)
+    ~/.config/opencode/profiles/  Perfiles (9 levels)
 
 EOF
 }
@@ -648,7 +821,10 @@ list_profiles() {
         echo "devops"
         return 0
     fi
-    ls "${OC_PROFILES}/"
+    for profile in "${OC_PROFILES}"/*.json; do
+        [ -f "$profile" ] || continue
+        basename "$profile" .json
+    done
 }
 
 confirm() {
@@ -668,7 +844,7 @@ run_workflow() {
         bug-hunt)
             echo -e "${BLUE}=== Bug Hunt Pipeline (single-pass) ===${NC}"
             if [ "$interactive" == "true" ]; then confirm "¿Iniciar?" || return 0; fi
-            _oc_run -p "Ejecuta el siguiente workflow completo para: $target
+            if ! _oc_run -p "Ejecuta el siguiente workflow completo para: $target
 
 FASE 1 - @architect con project-map:
 Analiza el proyecto en: $target
@@ -692,7 +868,7 @@ Verifica que los fixes funcionan correctamente.
 Confirma que no se introdujeron nuevos errores.
 Reporta resultado final.
 
-Ejecuta todas las fases en secuencia. Reporta resultados de cada fase antes de continuar a la siguiente."
+Ejecuta todas las fases en secuencia. Reporta resultados de cada fase antes de continuar a la siguiente."; then return 1; fi
             echo -e "${GREEN}=== Bug Hunt Completado ===${NC}"
             create_observation "bugfix" "Bug hunt completado en $target" "$(basename "$target")"
             ;;
@@ -700,7 +876,7 @@ Ejecuta todas las fases en secuencia. Reporta resultados de cada fase antes de c
         new-project)
             echo -e "${BLUE}=== New Project Setup Pipeline (single-pass) ===${NC}"
             if [ "$interactive" == "true" ]; then confirm "¿Iniciar?" || return 0; fi
-            _oc_run -p "Ejecuta el siguiente workflow completo para nuevo proyecto: $target
+            if ! _oc_run -p "Ejecuta el siguiente workflow completo para nuevo proyecto: $target
 
 FASE 1 - @architect:
 Analiza el contexto: $target
@@ -723,7 +899,7 @@ Genera documentación inicial:
 - ARCHITECTURE.md con estructura
 - CONTRIBUTING.md si es proyecto colaborativo
 
-Ejecuta todas las fases en secuencia."
+Ejecuta todas las fases en secuencia."; then return 1; fi
             echo -e "${GREEN}=== New Project Completado ===${NC}"
             create_observation "feature" "Proyecto inicializado: $target" "$(basename "$target")"
             ;;
@@ -731,7 +907,7 @@ Ejecuta todas las fases en secuencia."
         debug)
             echo -e "${BLUE}=== Production Debug Pipeline (single-pass) ===${NC}"
             if [ "$interactive" == "true" ]; then confirm "¿Iniciar?" || return 0; fi
-            _oc_run -p "Ejecuta el siguiente workflow de debug para: $target
+            if ! _oc_run -p "Ejecuta el siguiente workflow de debug para: $target
 
 FASE 1 - @oncall:
 Diagnostica el problema en: $target
@@ -746,7 +922,7 @@ FASE 3 - @security-auditor:
 Verifica que la corrección no introduce vulnerabilidades.
 Confirma que el fix es correcto y completo.
 
-Ejecuta todas las fases en secuencia."
+Ejecuta todas las fases en secuencia."; then return 1; fi
             echo -e "${GREEN}=== Debug Completado ===${NC}"
             create_observation "bugfix" "Debug completado en $target" "$(basename "$target")"
             ;;
@@ -754,7 +930,7 @@ Ejecuta todas las fases en secuencia."
         document)
             echo -e "${BLUE}=== Codebase Documentation Pipeline (single-pass) ===${NC}"
             if [ "$interactive" == "true" ]; then confirm "¿Iniciar?" || return 0; fi
-            _oc_run -p "Ejecuta el siguiente workflow de documentación para: $target
+            if ! _oc_run -p "Ejecuta el siguiente workflow de documentación para: $target
 
 FASE 1 - @architect con project-map:
 Análisis completo de: $target
@@ -775,7 +951,7 @@ Verifica que la documentación:
 - No tiene información obsoleta (actualizada)
 Reporta solo problemas encontrados.
 
-Ejecuta todas las fases en secuencia."
+Ejecuta todas las fases en secuencia."; then return 1; fi
             echo -e "${GREEN}=== Documentation Completada ===${NC}"
             create_observation "feature" "Documentación generada para $target" "$(basename "$target")"
             ;;
@@ -785,7 +961,7 @@ Ejecuta todas las fases en secuencia."
             echo "Feature: $feature_desc"
             echo "Target: $target"
             if [ "$interactive" == "true" ]; then confirm "¿Iniciar?" || return 0; fi
-            _oc_run -p "Ejecuta el siguiente workflow para implementar: $feature_desc en: $target
+            if ! _oc_run -p "Ejecuta el siguiente workflow para implementar: $feature_desc en: $target
 
 FASE 1 - @architect:
 Analiza: $target para implementar: $feature_desc
@@ -808,7 +984,7 @@ FASE 4 - @reviewer con precommit-review:
 Revisa la implementación de $feature_desc
 Verifica: correctitud, tests, no regresiones, código limpio.
 
-Ejecuta todas las fases en secuencia."
+Ejecuta todas las fases en secuencia."; then return 1; fi
             echo -e "${GREEN}=== Feature Completada ===${NC}"
             create_observation "feature" "Feature implementada: $feature_desc" "$(basename "$target")"
             ;;
@@ -876,12 +1052,25 @@ case "$1" in
     --remember)
         shift
         _type="note"
-        if [ "${1:-}" == "-t" ]; then
-            shift
-            _type="$1"
-            shift
-        fi
-        create_observation "$_type" "$*"
+        _project="global"
+        while [ $# -gt 0 ]; do
+            case "$1" in
+                -t|--type)
+                    shift
+                    _type="${1:-note}"
+                    shift || true
+                    ;;
+                -p|--project)
+                    shift
+                    _project="${1:-global}"
+                    shift || true
+                    ;;
+                *)
+                    break
+                    ;;
+            esac
+        done
+        create_observation "$_type" "$*" "$_project"
         ;;
     --memory)
         shift
@@ -889,11 +1078,27 @@ case "$1" in
             get_timeline "$2"
         elif [ "${1:-}" == "--get" ]; then
             get_observations "$2"
-        elif [ "${1:-}" == "-t" ]; then
-            shift
-            _type="$1"
-            shift
-            search_memory "$*" "" "$_type"
+        elif printf '%s\n' "$@" | grep -Eq '^-p$|^--project$|^-t$|^--type$'; then
+            _type=""
+            _project=""
+            _query=()
+            while [ $# -gt 0 ]; do
+                case "$1" in
+                    -t|--type)
+                        shift
+                        _type="${1:-}"
+                        ;;
+                    -p|--project)
+                        shift
+                        _project="${1:-}"
+                        ;;
+                    *)
+                        _query+=("$1")
+                        ;;
+                esac
+                shift || true
+            done
+            search_memory "${_query[*]}" "$_project" "$_type"
         else
             search_memory "$1" "${2:-}" "${3:-}"
         fi
@@ -909,7 +1114,7 @@ case "$1" in
         ;;
     --compact)
         info "Generating session summary..."
-        _oc_run -p "Summarize this entire session in a structured markdown document with these sections:
+        if ! _oc_run -p "Summarize this entire session in a structured markdown document with these sections:
 ## Goal
 What was the main task or objective?
 
@@ -929,7 +1134,7 @@ What is the state of the project/task right now?
 What has not been done yet, if anything?
 
 Keep all technical details. Eliminate conversational back-and-forth. Be concrete with file paths and function names.
-Output as plain markdown. This will be saved to resume the session later."
+Output as plain markdown. This will be saved to resume the session later."; then exit 1; fi
         echo "0" > "${OC_SESSION_FILE}"
         success "Context compacted. Turn counter reset."
         info "Save the summary above to memory with: oc --remember -p <project> '<summary>'"
@@ -1051,27 +1256,32 @@ Output as plain markdown. This will be saved to resume the session later."
         quick_analyze "${2:-.}"
         ;;
     plan)
-        quick_plan "$2"
+        shift
+        quick_plan "$*"
         ;;
     build)
         shift
         quick_build "$*"
         ;;
     review)
-        quick_review
+        shift
+        quick_review "$*"
         ;;
     secure)
-        quick_secure
+        shift
+        quick_secure "$*"
         ;;
     docs)
-        quick_docs
+        shift
+        quick_docs "$*"
         ;;
     devops)
         shift
         quick_devops "$*"
         ;;
     oncall)
-        quick_oncall
+        shift
+        quick_oncall "$*"
         ;;
     *)
         _oc_run -p "$*"

@@ -46,7 +46,7 @@ Inspirado en análisis de Claude Code (VILA-Lab/Dive-into-Claude-Code) y directr
 
 Este repositorio contiene una configuración avanzada para [OpenCode CLI](https://opencode.ai) inspirada en Claude Code y proyectos de código abierto.
 
-### Características Principales (v1.9.1)
+### Características Principales (v1.9.3)
 
 - **11 agentes especializados** — sin modelo hardcodeado, usan el modelo que selecciones en OpenCode
 - **9 perfiles con enforcement por prompt** — reglas como `requireTests`, `checkpointBeforeChanges` se inyectan como instrucciones explícitas al LLM en cada llamada no interactiva de `oc`
@@ -534,7 +534,7 @@ oc --profile trusted   # Activar perfil
 oc --list-profiles     # Ver todos disponibles
 ```
 
-### Cómo funciona el enforcement de perfiles (v1.9.1)
+### Cómo funciona el enforcement de perfiles (v1.9.3)
 
 OpenCode no lee estos archivos como perfiles nativos. El script `oc` lee el campo `policy` y lo inyecta como instrucciones explícitas en cada prompt no interactivo enviado con `opencode run`:
 
@@ -809,7 +809,7 @@ opencode-global-config/
 │   ├── projects/            # Observaciones por proyecto
 │   ├── decisions/
 │   └── patterns/
-├── profiles/                # 7 niveles de confianza
+├── profiles/                # 9 perfiles deny-first
 │   ├── deny.json
 │   ├── plan.json
 │   ├── review.json
@@ -941,7 +941,7 @@ Antes los perfiles eran etiquetas con campos como `requireTests: true` que OpenC
 - Observation format con auto-capture
 
 ### v1.3 (2026-05-01)
-- 7 perfiles con Deny-First gradient
+- 9 perfiles con Deny-First gradient
 - Reversibility-weighted risk en @oncall
 - Context budget tracking
 

@@ -761,7 +761,7 @@ opencode-global-config/
 │   ├── projects/
 │   ├── decisions/
 │   └── patterns/
-├── profiles/                # 7 trust levels
+├── profiles/                # 9 deny-first profiles
 │   ├── deny.json
 │   ├── plan.json
 │   ├── review.json
@@ -819,7 +819,7 @@ opencode-global-config/
 
 - **`profiles/auto.json`**: `edit: auto, bash: auto` → `edit: ask, bash: ask` — `auto` is not a valid permission value (`ask|allow|deny` only)
 - **`install.sh --dry-run`**: now exits immediately after printing the plan — previously ran requirement checks first, violating the dry-run contract
-- **`install.sh`**: banner updated to v1.9.1
+- **`install.sh`**: banner updated to v1.9.3
 
 #### Validation Hardening
 

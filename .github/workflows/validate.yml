@@ -19,6 +19,9 @@ jobs:
       - name: Validate structure and JSON
         run: bash validate.sh
 
+      - name: Functional smoke tests
+        run: bash tests/run.sh
+
       - name: shellcheck — install.sh
         run: shellcheck --severity=error install.sh
 
