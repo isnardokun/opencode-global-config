@@ -124,13 +124,40 @@ fi
 echo ""
 
 echo "Language artifact check:"
-artifacts=$(grep -rn "No容忍\|基础设施\|средний\|密码\|報告ar" "${ROOT}/agents/" "${ROOT}/profiles/" "${ROOT}/souls/" "${ROOT}/plugins/" 2>/dev/null || true)
+artifacts=$(grep -rn "No容忍\|基础设施\|средний\|密码\|報告ar\|发现问题" "${ROOT}/agents/" "${ROOT}/profiles/" "${ROOT}/souls/" "${ROOT}/plugins/" "${ROOT}/skills/" 2>/dev/null || true)
 if [ -z "$artifacts" ]; then
     pass "No foreign-language LLM artifacts"
 else
     fail "Foreign-language artifacts found:"
     echo "$artifacts"
 fi
+echo ""
+
+echo "Line count sanity check:"
+for f in install.sh oc validate.sh uninstall.sh Makefile; do
+    if [ -f "${ROOT}/${f}" ]; then
+        lines=$(wc -l < "${ROOT}/${f}" | tr -d ' ')
+        if [ "$lines" -lt 5 ]; then
+            fail "$f suspiciously short: $lines lines (possible minification)"
+        else
+            pass "$f: $lines lines"
+        fi
+    fi
+done
+echo ""
+
+echo "Markdown frontmatter check:"
+for md in "${ROOT}/agents/"*.md "${ROOT}/commands/"*.md; do
+    [ -f "$md" ] || continue
+    fname="${md#${ROOT}/}"
+    first_line=$(head -n 1 "$md")
+    fence_count=$(grep -c '^---$' "$md" 2>/dev/null || echo 0)
+    if [ "$first_line" = "---" ] && [ "$fence_count" -ge 2 ]; then
+        pass "$fname frontmatter"
+    else
+        fail "Invalid frontmatter: $fname"
+    fi
+done
 echo ""
 
 if [ "$INSTALLED" -eq 1 ]; then
