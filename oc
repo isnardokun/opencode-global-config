@@ -22,8 +22,13 @@ error()   { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 
 track_turn() {
     local turns=1
+    mkdir -p "${OC_CONFIG}"
     if [ -f "${OC_SESSION_FILE}" ]; then
-        turns=$(($(cat "${OC_SESSION_FILE}") + 1))
+        local current
+        current=$(cat "${OC_SESSION_FILE}" 2>/dev/null || printf '0')
+        if [[ "$current" =~ ^[0-9]+$ ]]; then
+            turns=$((current + 1))
+        fi
     fi
     echo "$turns" > "${OC_SESSION_FILE}"
     if [ "$turns" -gt 20 ]; then
@@ -1274,7 +1279,7 @@ case "$1" in
             done
             search_memory "${_query[*]}" "$_project" "$_type"
         else
-            search_memory "$1" "${2:-}" "${3:-}"
+            search_memory "$*"
         fi
         ;;
     -p|--profile)

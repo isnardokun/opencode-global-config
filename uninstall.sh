@@ -46,9 +46,11 @@ if [ "$FORCE" -eq 0 ]; then
 fi
 
 BACKUP_DIR="${HOME}/.config/opencode.removed.$(date +%Y%m%d-%H%M%S)"
+BACKUP_CREATED=0
 
 if [ -d "$CONFIG_DIR" ]; then
     mv "$CONFIG_DIR" "$BACKUP_DIR"
+    BACKUP_CREATED=1
     success "Config backed up to: $BACKUP_DIR"
 else
     info "Config directory not found: $CONFIG_DIR"
@@ -67,4 +69,6 @@ echo "  export PATH=\"\$HOME/.local/bin:\$PATH\""
 echo ""
 success "Uninstall complete."
 echo ""
-echo "To restore: mv '$BACKUP_DIR' '$CONFIG_DIR'"
+if [ "$BACKUP_CREATED" -eq 1 ]; then
+    echo "To restore: mv '$BACKUP_DIR' '$CONFIG_DIR'"
+fi

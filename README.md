@@ -11,6 +11,7 @@ Inspired by [VILA-Lab/Dive-into-Claude-Code](https://github.com/VILA-Lab/Dive-in
 - [Features](#features)
 - [Quick Start](#quick-start)
 - [Natural Language Mode](#natural-language-mode)
+- [Optional `oc ask` Router](#optional-oc-ask-router)
 - [Usage Manual](#usage-manual)
 - [Quick Commands Reference](#quick-commands-reference)
 - [Profiles and Trust Levels](#profiles-and-trust-levels)
@@ -30,7 +31,7 @@ Inspired by [VILA-Lab/Dive-into-Claude-Code](https://github.com/VILA-Lab/Dive-in
 
 ## Features
 
-**v1.9.4 + reusable review rubrics and release-readiness hardening**
+**v1.9.4 + reusable review rubrics, natural routing, and release-readiness hardening**
 
 - **11 specialized agents** — no hardcoded model; use whichever model you select in OpenCode's UI
 - **8 official slash commands** — `/analyze`, `/review`, `/secure`, `/feature`, `/bug-hunt`, `/docs`, `/devops`, `/oncall` — usable directly in OpenCode's TUI
@@ -38,6 +39,7 @@ Inspired by [VILA-Lab/Dive-into-Claude-Code](https://github.com/VILA-Lab/Dive-in
 - **6 skills** for analysis, implementation, validation, memory, and documentation
 - **3 review rubrics** for code review, security review, and plan/design gates
 - **1 security plugin** with regex hardening, ESM metadata, redacted audit log, and restrictive log permissions
+- **Optional `oc ask` router** — natural-language intent routing with `--dry-run`, `--explain`, and `--clarify`
 - **3-layer Memory Bank** (search / timeline / full detail) + JSONL index + project/type filters
 - **5 single-pass workflows** (bug-hunt, new-project, debug, document, feature)
 - **Souls / Personas** for different work contexts
@@ -68,6 +70,17 @@ curl -fsSL https://raw.githubusercontent.com/isnardokun/opencode-global-config/m
 The installer: backs up existing config, sets up PATH in bash/zsh/fish, works on Linux and macOS.
 
 **Requirements:** `opencode` and `git` (required), `fzf` (only for `oc --interactive`)
+
+Safer manual flow if you do not want to pipe directly into `bash`:
+
+```bash
+git clone https://github.com/isnardokun/opencode-global-config /tmp/opencode-global-config
+cd /tmp/opencode-global-config
+bash install.sh --dry-run
+bash install.sh
+./validate.sh --installed
+oc --doctor
+```
 
 See [INSTALL.md](INSTALL.md) for manual installation and troubleshooting.
 
@@ -122,6 +135,69 @@ oc ask --clarify "implementa autenticación"
 ```
 
 `oc ask` keeps all explicit commands available, but adds a natural-language router that chooses the likely agent/workflow and asks targeted clarification questions when the request is ambiguous.
+
+---
+
+## Optional `oc ask` Router
+
+Use `oc ask` when you want one command that interprets what you mean and selects the best existing agent/workflow. It is an optional UX layer; all explicit commands remain available and unchanged.
+
+```bash
+oc ask "analyze this repo and list release risks"
+oc ask "fix the login bug"
+oc ask "review security before publishing"
+oc ask "document this project"
+```
+
+Routing preview without calling OpenCode:
+
+```bash
+oc ask --dry-run "review security before publishing"
+```
+
+Example output:
+
+```text
+Intent: security-review
+Route: @security-auditor + rubrics/security-review.md
+Prompt:
+Usa @security-auditor ...
+```
+
+Ask local clarification questions first:
+
+```bash
+oc ask --clarify "implement authentication"
+```
+
+Supported options:
+
+| Option | Behavior |
+|--------|----------|
+| `--dry-run` | Prints detected intent, route, and generated prompt; does not run OpenCode |
+| `--explain` | Prints routing details, then runs OpenCode |
+| `--clarify` | Prompts locally for objective, context, and success criteria before routing |
+
+Current routing examples:
+
+| User request contains | Intent | Route |
+|-----------------------|--------|-------|
+| `analyze`, `stack`, `architecture` | `architecture-analysis` | `@architect + project-map` |
+| `100%`, `readiness`, `what is missing` | `readiness-analysis` | `@architect + project-map -> @planner` |
+| `implement`, `add`, `feature` | `feature` | `@architect -> @planner -> @builder -> @reviewer` |
+| vague auth request like `implement auth` | `clarify` | interpreter asks targeted questions |
+| `bug`, `fix`, `error`, `broken` | `bugfix` | `@architect -> @planner -> @builder -> @reviewer` |
+| `review`, `diff`, `pre-commit` | `code-review` | `@reviewer + precommit-review + code-review rubric` |
+| `security`, `audit`, `token`, `xss`, `sql` | `security-review` | `@security-auditor + security-review rubric` |
+| `docker`, `CI`, `deploy`, `terraform` | `devops` | `@devops` |
+| `prod`, `crash`, `logs`, `incident` | `production-debug` | `@oncall -> @builder -> @security-auditor` |
+
+Safety behavior:
+
+- generated prompts include a guardrail to ask up to 3 targeted questions when critical information is missing;
+- ambiguous authentication requests are clarified before implementation unless details such as JWT, OAuth, sessions, cookies, MFA, or passkeys are present;
+- readiness requests are routed read-only by default and tell the agent to avoid `bash` unless approved;
+- rubric criteria are embedded as instructions, so `oc ask` does not require agents to read files outside the current workspace.
 
 ---
 
@@ -729,7 +805,8 @@ oc --remember -p my-project -t note "session summary: ..."
 The plugin is loaded as ESM via `plugins/package.json` (`type: module`), avoiding Node's `MODULE_TYPELESS_PACKAGE_JSON` warning during validation/tests.
 
 **Blocked patterns:**
-- `rm -rf` on critical paths (`/`, `~`, `/home`, `/etc`, `/usr`, `/var`, `/bin`)
+- `rm -rf` on critical paths (`/`, `~`, `$HOME`, `${HOME}`, `/home`, `/root`, `/etc`, `/usr`, `/var`, `/bin`) and their subpaths
+- quoted/split path variants such as `"$HOME"/.config` and dangerous targets followed by shell separators such as `;`, `&&`, `||`, or `|`
 - `mkfs` (filesystem format)
 - `dd if=` (direct disk write)
 - Fork bomb `:(){ :|:& };:`
@@ -743,6 +820,8 @@ The plugin is loaded as ESM via `plugins/package.json` (`type: module`), avoidin
 - creates the log directory as `0700` and log file as `0600`.
 
 This is a best-effort guardrail, not a sandbox. Native OpenCode permissions, user review, and deterministic scanners still matter.
+
+Recent hardening added smoke coverage for common bypass attempts, including `$HOME` expansion forms, absolute critical subpaths such as `/etc/ssh`, and chained shell commands after a destructive target.
 
 ---
 
@@ -786,7 +865,18 @@ git diff --check
 - profile permission actions (`ask|allow|deny`);
 - model-free agents and language-artifact scan;
 - documentation consistency against `VERSION`, 9 profiles, 11 agents, 6 skills;
-Functional smoke tests are run separately with `make test` and in CI. They cover memory, hooks, profiles, `oc --init`, `--compact`, `--doctor`, installed fixture validation, installer dry-run, and safety guard.
+
+Functional smoke tests are run separately with `make test` and in CI. They cover:
+
+- memory search, including project/type filters and multi-word queries;
+- `--remember`, timeline lookup, and valid JSONL memory index writes;
+- session tracking, including clean-home startup and corrupt `.session` recovery;
+- hooks fail-closed marker behavior;
+- profiles list/switch validation;
+- `oc ask` natural-language routing and prompt generation;
+- `oc --init`, `--compact`, `--doctor`, and installed fixture validation;
+- installer dry-run and uninstaller missing-backup behavior;
+- safety guard destructive-command blocking, secret redaction, and log permissions.
 
 ---
 
@@ -888,6 +978,19 @@ opencode-global-config/
 ---
 
 ## Changelog
+
+### Unreleased Bug-Hunt Hardening
+
+#### Safety and Reliability Fixes
+
+- **`plugins/safety-guard.js`**: blocks additional destructive `rm -rf` variants using `$HOME`, `${HOME}`, quoted HOME paths, critical absolute subpaths (`/home/*`, `/etc/*`, `/var/*`, `/root/*`), and chained shell separators after dangerous targets.
+- **`oc`**: `track_turn` now creates the config directory when needed and recovers from corrupt `.session` values instead of failing arithmetic expansion.
+- **`oc --memory`**: multi-word searches without flags now use the full query instead of accidentally treating later words as project/type positional arguments.
+- **`install.sh`**: uses `mktemp -d` for clone workspace creation and colon-delimited PATH matching to avoid substring false positives.
+- **`uninstall.sh`**: prints restore instructions only when a backup was actually created.
+- **`tests/run.sh`**: adds regression coverage for all fixes above.
+
+---
 
 ### v1.9.4 (2026-05-02)
 

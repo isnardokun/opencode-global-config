@@ -329,6 +329,13 @@ Reportadas como OK por los agentes builder/reviewer:
    - Soporta `--dry-run` para previsualizar routing, `--explain` para mostrar routing antes de ejecutar y `--clarify` para pedir contexto puntual local.
    - Decisión: mantener todos los comandos explícitos existentes; `oc ask` es solo una capa opcional de UX.
 
+11. **Bug-hunt hardening posterior a v1.9.4**
+   - Se corrigieron bypasses de `safety-guard.js` para `rm -rf` con `$HOME`, `${HOME}`, HOME entrecomillado, subpaths críticos absolutos y separadores shell.
+   - `oc --memory` ahora soporta queries multi-palabra sin flags.
+   - `track_turn` crea la config si falta y se recupera de `.session` corrupto.
+   - `install.sh` usa `mktemp -d` y matching PATH delimitado; `uninstall.sh` no imprime restore si no hubo backup.
+   - Tests ampliados en `tests/run.sh`; validaciones reportadas OK: `make check`, `make test`, `./validate.sh`, `bash install.sh --dry-run`, `git diff --check`.
+
 ### Correcciones aplicadas en sesión 2026-05-01
 Se hizo análisis profundo del estado del proyecto y se aplicaron correcciones funcionales y documentales:
 - `oc`: migrado de `opencode -p` a `opencode run` para compatibilidad con OpenCode 1.14.31.

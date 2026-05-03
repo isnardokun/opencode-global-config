@@ -46,7 +46,7 @@ export const SafetyGuard = async () => {
 
       const blocked = [
         // Recursive delete of filesystem roots
-        /\brm\b(?=[^;&|]*\s(?:-[a-zA-Z]*r[a-zA-Z]*f[a-zA-Z]*|-[a-zA-Z]*f[a-zA-Z]*r[a-zA-Z]*|-[a-zA-Z]*r[a-zA-Z]*\s+-[a-zA-Z]*f[a-zA-Z]*|-[a-zA-Z]*f[a-zA-Z]*\s+-[a-zA-Z]*r[a-zA-Z]*|--recursive\s+--force|--force\s+--recursive)(?:\s|$))[^;&|]*\s(\/\*?|~(?:\/\*)?|\/home(?:\/|\b)|\/root(?:\/|\b)|\/etc(?:\/|\b)|\/usr(?:\/|\b)|\/bin(?:\/|\b)|\/var(?:\/|\b))(?=\s|$)/,
+        /\brm\b(?=[^;&|]*\s(?:-[a-zA-Z]*r[a-zA-Z]*f[a-zA-Z]*|-[a-zA-Z]*f[a-zA-Z]*r[a-zA-Z]*|-[a-zA-Z]*r[a-zA-Z]*\s+-[a-zA-Z]*f[a-zA-Z]*|-[a-zA-Z]*f[a-zA-Z]*\s+-[a-zA-Z]*r[a-zA-Z]*|--recursive\s+--force|--force\s+--recursive)(?:\s|$))[^;&|]*\s(["']?(?:\/\*?|~(?:\/\*)?|\$HOME|\$\{HOME\})["']?(?:\/[^\s;&|]*)?|["']?(?:\/home|\/root|\/etc|\/usr|\/bin|\/var)(?:\/[^"'\s;&|]*)?["']?)(?=\s|$|[;&|])/,
         // Wipe filesystem / disk
         /\bmkfs\b/,
         /\bdd\s+if=/,

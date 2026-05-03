@@ -12,7 +12,7 @@ for _arg in "$@"; do
 done
 
 REPO_URL="https://github.com/isnardokun/opencode-global-config.git"
-INSTALL_DIR="/tmp/opencode-config-install-$$"
+INSTALL_DIR="$(mktemp -d "${TMPDIR:-/tmp}/opencode-config-install.XXXXXX")"
 CONFIG_DIR="${HOME}/.config/opencode"
 BIN_DIR="${HOME}/.local/bin"
 BACKUP_DIR="${HOME}/.config/opencode.backup.$(date +%Y%m%d-%H%M%S)"
@@ -178,7 +178,9 @@ success "Comando oc instalado en $BIN_DIR/oc"
 _path_line='export PATH="$HOME/.local/bin:$PATH"'
 _path_added=0
 
-if ! echo "$PATH" | grep -q "$BIN_DIR"; then
+case ":$PATH:" in
+  *":$BIN_DIR:"*) ;;
+  *)
     info "Agregando $BIN_DIR al PATH..."
 
     # bash on Linux
@@ -219,7 +221,8 @@ if ! echo "$PATH" | grep -q "$BIN_DIR"; then
     fi
 
     export PATH="$BIN_DIR:$PATH"
-fi
+    ;;
+esac
 
 # 7. Verify installation
 info "Verificando instalación..."

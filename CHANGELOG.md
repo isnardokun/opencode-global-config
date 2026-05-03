@@ -2,6 +2,17 @@
 
 Todos los cambios notables de este proyecto se documentarán en este archivo.
 
+## [Unreleased] - Bug-hunt hardening
+
+### Seguridad y confiabilidad
+
+- **`plugins/safety-guard.js`** — bloquea variantes destructivas adicionales de `rm -rf` con `$HOME`, `${HOME}`, rutas HOME entrecomilladas, subpaths críticos absolutos (`/home/*`, `/etc/*`, `/var/*`, `/root/*`) y separadores shell posteriores al target.
+- **`oc`** — `track_turn` crea el directorio de configuración si falta y se recupera de `.session` corrupto/no numérico.
+- **`oc --memory`** — búsquedas multi-palabra sin flags usan toda la query en lugar de interpretar palabras extra como proyecto/tipo posicional.
+- **`install.sh`** — usa `mktemp -d` para workspace temporal y matching de PATH delimitado por `:`.
+- **`uninstall.sh`** — solo muestra instrucciones de restore cuando realmente se creó backup.
+- **`tests/run.sh`** — agrega regresiones para safety guard, memoria multi-palabra, sesión corrupta, instalador y uninstall sin backup.
+
 ## [1.9.4] - 2026-05-02
 
 Release de hardening y readiness: smoke tests funcionales ampliados, gates reutilizables por rubrics, validación instalada más estricta y documentación alineada al comportamiento real.

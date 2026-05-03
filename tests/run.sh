@@ -35,6 +35,13 @@ result="$(run_oc --memory "auth" -p alpha -t bugfix)"
 [[ "$result" != *"obs_2"* ]] || fail "memory -p/-t should exclude non-matching project/type"
 pass "oc --memory parses -p and -t filters"
 
+cat >> "$TMPDIR/home/.config/opencode/memory/INDEX.md" <<'EOF'
+obs_3 | 2026-05-02 | gamma | note | multi word query example
+EOF
+multi_word_result="$(run_oc --memory multi word query)"
+[[ "$multi_word_result" == *"obs_3"* ]] || fail "memory should search multi-word query without filters"
+pass "oc --memory supports multi-word queries without filters"
+
 run_oc --remember -p alpha -t decision 'summary: with "quotes" and \ backslash' >/dev/null
 obs_file_count=$(find "$TMPDIR/home/.config/opencode/memory/projects/alpha" -name '*.md' | wc -l)
 [[ "$obs_file_count" -eq 1 ]] || fail "remember -p should create one project observation"
@@ -55,6 +62,14 @@ echo "9" > "$TMPDIR/home/.config/opencode/.session"
 run_oc --compact >/dev/null
 [[ "$(cat "$TMPDIR/home/.config/opencode/.session")" == "0" ]] || fail "compact should reset session counter after successful opencode run"
 pass "oc --compact resets counter on success"
+
+rm -rf "$TMPDIR/clean-home"
+HOME="$TMPDIR/clean-home" PATH="$TMPDIR/bin:$PATH" "$ROOT/oc" ask --dry-run "analiza el proyecto" >/dev/null
+[[ -f "$TMPDIR/clean-home/.config/opencode/.session" ]] || fail "oc should create session file in clean HOME"
+printf 'not-a-number' > "$TMPDIR/home/.config/opencode/.session"
+run_oc ask --dry-run "analiza el proyecto" >/dev/null
+[[ "$(cat "$TMPDIR/home/.config/opencode/.session")" == "1" ]] || fail "oc should recover from corrupt session counter"
+pass "oc session tracking handles clean and corrupt state"
 
 hook_dir="$TMPDIR/hooks"
 bin_dir="$TMPDIR/bin"
@@ -160,6 +175,12 @@ mv "$TMPDIR/home/.config/opencode/rubrics/code-review.md.bak" "$TMPDIR/home/.con
 bash "$ROOT/install.sh" --dry-run >/dev/null || fail "install dry-run should pass"
 pass "doctor, installed validation and installer dry-run pass in fixtures"
 
+dry_run_output="$(bash "$ROOT/install.sh" --dry-run)"
+[[ "$dry_run_output" == *"opencode-config-install."* ]] || fail "install dry-run should show mktemp-style install dir"
+uninstall_output="$(HOME="$TMPDIR/no-config-home" bash "$ROOT/uninstall.sh" --force)"
+[[ "$uninstall_output" != *"To restore:"* ]] || fail "uninstall should not print restore command without backup"
+pass "installer and uninstaller handle temp paths and missing backups"
+
 if ! command -v node >/dev/null 2>&1; then
   pass "node not installed; skipping safety guard JS smoke test"
   printf 'All tests passed\n'
@@ -183,6 +204,20 @@ async function blocked(command) {
 
 if (!(await blocked("rm -rf /"))) throw new Error("rm -rf / should be blocked")
 if (!(await blocked("rm --recursive --force /"))) throw new Error("long rm flags should be blocked")
+if (!(await blocked('rm -rf "$HOME"'))) throw new Error('rm -rf "$HOME" should be blocked')
+if (!(await blocked("rm -rf ${HOME}"))) throw new Error("rm -rf ${HOME} should be blocked")
+if (!(await blocked("sudo rm -rf $HOME/.config"))) throw new Error("sudo rm -rf $HOME/.config should be blocked")
+if (!(await blocked('rm -rf "$HOME"/.config'))) throw new Error('rm -rf "$HOME"/.config should be blocked')
+if (!(await blocked('rm -rf "${HOME}"/.config'))) throw new Error('rm -rf "${HOME}"/.config should be blocked')
+if (!(await blocked('sudo rm -rf "$HOME"/.config'))) throw new Error('sudo rm -rf "$HOME"/.config should be blocked')
+if (!(await blocked('rm -rf "$HOME"/.config; true'))) throw new Error('rm -rf "$HOME"/.config; true should be blocked')
+if (!(await blocked('rm -rf "${HOME}"/.config && true'))) throw new Error('rm -rf "${HOME}"/.config && true should be blocked')
+if (!(await blocked('sudo rm -rf $HOME/.config || true'))) throw new Error('sudo rm -rf $HOME/.config || true should be blocked')
+if (!(await blocked('rm -rf /; true'))) throw new Error('rm -rf /; true should be blocked')
+if (!(await blocked('rm -rf /home/someuser'))) throw new Error('rm -rf /home/someuser should be blocked')
+if (!(await blocked('rm -rf /etc/ssh'))) throw new Error('rm -rf /etc/ssh should be blocked')
+if (!(await blocked('rm -rf /var/log && true'))) throw new Error('rm -rf /var/log && true should be blocked')
+if (!(await blocked('sudo rm -rf /root/.ssh'))) throw new Error('sudo rm -rf /root/.ssh should be blocked')
 await hook({ tool: "bash" }, { args: { command: "GITHUB_TOKEN=secret curl -H 'x-api-key: abc' https://user:pass@example.com --token secret" } })
 await hook({ tool: "bash" }, { args: {} })
 const fs = await import("node:fs")
