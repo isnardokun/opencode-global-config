@@ -88,7 +88,7 @@ echo ""
 
 echo "JSON validation:"
 if command -v jq >/dev/null 2>&1; then
-    for jf in opencode.json opencode.strict.json profiles/*.json; do
+    for jf in opencode.json opencode.strict.json plugins/package.json profiles/*.json; do
         if jq empty "${ROOT}/${jf}" >/dev/null 2>&1; then
             pass "$jf"
         else

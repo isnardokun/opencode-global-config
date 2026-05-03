@@ -2,7 +2,7 @@
 
 **English | [Español](README.es.md)**
 
-Advanced global configuration for [OpenCode CLI](https://opencode.ai) with specialized agents, memory system, enforced profiles, and structured workflows.
+Advanced global configuration for [OpenCode CLI](https://opencode.ai) with specialized agents, project memory, prompt-enforced profiles, guarded hooks, smoke tests, and structured workflows.
 
 Inspired by [VILA-Lab/Dive-into-Claude-Code](https://github.com/VILA-Lab/Dive-into-Claude-Code) and Andrej Karpathy's coding guidelines.
 
@@ -20,6 +20,7 @@ Inspired by [VILA-Lab/Dive-into-Claude-Code](https://github.com/VILA-Lab/Dive-in
 - [Context Compaction](#context-compaction)
 - [Security Plugin](#security-plugin)
 - [Git Hooks](#git-hooks)
+- [Validation and Tests](#validation-and-tests)
 - [Souls / Personas](#souls--personas)
 - [Project Structure](#project-structure)
 - [Inspiration](#inspiration)
@@ -29,29 +30,31 @@ Inspired by [VILA-Lab/Dive-into-Claude-Code](https://github.com/VILA-Lab/Dive-in
 
 ## Features
 
-**v1.9.3**
+**v1.9.3 + release-readiness hardening**
 
 - **11 specialized agents** — no hardcoded model; use whichever model you select in OpenCode's UI
 - **8 official slash commands** — `/analyze`, `/review`, `/secure`, `/feature`, `/bug-hunt`, `/docs`, `/devops`, `/oncall` — usable directly in OpenCode's TUI
 - **9 prompt-enforced profiles** — rules like `requireTests`, `checkpointBeforeChanges` injected as explicit LLM instructions; profile permissions validated against `ask|allow|deny`
 - **6 skills** for analysis, implementation, validation, memory, and documentation
-- **1 security plugin** with regex hardening + audit log (every bash command logged to JSONL)
-- **3-layer Memory Bank** (search / timeline / full detail) + JSONL index
+- **1 security plugin** with regex hardening, ESM metadata, redacted audit log, and restrictive log permissions
+- **3-layer Memory Bank** (search / timeline / full detail) + JSONL index + project/type filters
 - **5 single-pass workflows** (bug-hunt, new-project, debug, document, feature)
 - **Souls / Personas** for different work contexts
-- **Git hooks** for automatic review
+- **Git hooks** for automatic review; fail-closed markers + optional `gitleaks` if installed
 - **Quick commands** with optional context argument
 - **Interactive menu** via fzf
 - **Wizard mode** step-by-step guidance
 - **Real `--compact`** — structured LLM summarization, not just a counter reset
 - **`oc --doctor`** — diagnoses installation health
-- **`validate.sh`** — validates full repo integrity (CI-ready)
+- **`validate.sh`** — validates repo integrity, docs consistency, counts, plugin syntax, and installed config via `--installed`
+- **`tests/run.sh`** — functional smoke tests for memory, hooks, profiles, init, compact, doctor, install dry-run, and safety guard
+- **`VERSION`** — simple version source validated against docs/scripts
 - **`uninstall.sh`** — safe removal with automatic backup
 - **`install.sh --dry-run`** — simulate installation
-- **Stack detection** in `oc --init` — auto-detects Node.js/Python/Rust/Go/Docker
+- **Stack detection** in `oc --init` — auto-detects Node.js/Python/Rust/Go/Java/Docker/Terraform
 - **Reversibility-Weighted Risk Assessment** in `@oncall`
 - **Karpathy Principles** (Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven)
-- **GitHub Actions CI** — validates structure, JSON, shell syntax on every push
+- **GitHub Actions CI** — validates structure, JSON, shell syntax, Node plugin syntax, and functional smoke tests on every push
 
 ---
 
@@ -181,7 +184,7 @@ oc build "fix: JWT token validation rejecting valid tokens after DST change"
 oc review
 
 # Step 6: save to memory for future reference
-oc --remember -t bugfix "JWT fails on DST change — use UTC in token generation, not local time"
+oc --remember -p api -t bugfix "JWT fails on DST change — use UTC in token generation, not local time"
 ```
 
 **Automated alternative:**
@@ -245,7 +248,7 @@ oc --workflow new-project "REST API for inventory management with Node.js and Po
 
 # After the workflow, init local OpenCode config
 oc --init .
-# Creates .opencode/opencode.json and pre-commit git hook
+# Creates .opencode/opencode.json plus pre-commit and pre-push git hooks
 ```
 
 ---
@@ -276,14 +279,15 @@ The git hook installed by `oc --init` does this automatically on every `git comm
 
 ```bash
 # Save a technical decision
-oc --remember -t decision "Chose CQRS over generic repository because reporting queries need independent optimization"
+oc --remember -p my-api -t decision "Chose CQRS over generic repository because reporting queries need independent optimization"
 
-oc --remember -t config "Redis in production: db=1 sessions, db=2 cache, db=3 rate limiting — do not mix"
+oc --remember -p my-api -t config "Redis in production: db=1 sessions, db=2 cache, db=3 rate limiting — do not mix"
 
-oc --remember -t bugfix "Email worker hangs on UTF-8 subjects with > 3-byte chars — sanitize before queuing"
+oc --remember -p my-api -t bugfix "Email worker hangs on UTF-8 subjects with > 3-byte chars — sanitize before queuing"
 
 # Retrieve context before starting work
 oc --memory "auth"
+oc --memory "auth" -p my-api -t decision
 # Layer 1 result (~80 tokens):
 # obs_20260501-143022-a1b2 | 2026-05-01 | my-api | decision | Chose JWT over session cookies
 # obs_20260501-150344-c3d4 | 2026-05-01 | my-api | bugfix    | JWT fails on DST change
@@ -467,11 +471,13 @@ oc --list-profiles        # List all available
 
 # Memory
 oc --memory "query"                  # Search (Layer 1: fast)
+oc --memory "query" -p project -t decision  # Filter by project/type
 oc --memory --timeline <obs_id>      # Timeline context (Layer 2)
 oc --memory --get <obs_id>           # Full detail (Layer 3)
 oc --remember "note"                 # Save to global memory
 oc --remember -t bugfix "note"       # Save with type
 oc --remember -p project "note"      # Save to project memory
+oc --remember -p project -t decision "note"  # Save with project and type
 
 # Session
 oc --budget               # Show session turns
@@ -486,6 +492,12 @@ oc --workflow feature "add auth" ~/api        # 4 phases
 
 # Direct
 oc "any task"             # Sends directly to OpenCode
+
+# Validation
+make check                 # Syntax + JSON checks
+make test                  # Functional smoke tests
+./validate.sh              # Full repo validation
+bash install.sh --dry-run  # Safe installation simulation
 ```
 
 ---
@@ -554,6 +566,7 @@ Persistent, file-based memory system using progressive disclosure to minimize to
 # Layer 1: Search (~50-100 tokens/result)
 oc --memory "docker"
 oc --memory "auth" -t decision
+oc --memory "auth" -p my-project -t decision
 
 # Layer 2: Timeline (~200 tokens)
 oc --memory --timeline 20260501-143022-a1b2c3d4
@@ -575,9 +588,9 @@ oc --remember -p my-project -t config "Redis db=1 for sessions"
 ---
 id: obs_20260501-143022-a1b2c3d4
 date: 2026-05-01 14:30:22
-project: my-api
-type: bugfix
-summary: Fix JWT expiration bug
+project: "my-api"
+type: "bugfix"
+summary: "Fix JWT expiration bug"
 tokens_est: 200
 ---
 
@@ -669,6 +682,12 @@ Warning fires automatically when turns > 20.
 
 After `--compact`, save the summary: `oc --remember "session summary: ..."`.
 
+For project-specific continuity:
+
+```bash
+oc --remember -p my-project -t note "session summary: ..."
+```
+
 ---
 
 ## Reversibility-Weighted Risk
@@ -689,7 +708,9 @@ After `--compact`, save the summary: `oc --remember "session summary: ..."`.
 
 ## Security Plugin
 
-`safety-guard.js` blocks destructive commands before execution. Normalizes whitespace before pattern evaluation to prevent trivial bypasses.
+`safety-guard.js` blocks destructive commands before execution. It normalizes whitespace before pattern evaluation to prevent trivial bypasses, redacts common secret formats before audit logging, and writes audit logs with restrictive permissions.
+
+The plugin is loaded as ESM via `plugins/package.json` (`type: module`), avoiding Node's `MODULE_TYPELESS_PACKAGE_JSON` warning during validation/tests.
 
 **Blocked patterns:**
 - `rm -rf` on critical paths (`/`, `~`, `/home`, `/etc`, `/usr`, `/var`, `/bin`)
@@ -700,6 +721,13 @@ After `--compact`, save the summary: `oc --remember "session summary: ..."`.
 - Critical file truncation (`> /etc/passwd`, `> /etc/shadow`, `> /etc/sudoers`)
 - World-writable recursive `chmod` on system paths
 
+**Audit behavior:**
+- logs bash commands to `~/.config/opencode/logs/safety-guard.jsonl`;
+- redacts common env tokens, bearer tokens, API key headers, credentialed URLs, and `--token` / `--password` style flags;
+- creates the log directory as `0700` and log file as `0600`.
+
+This is a best-effort guardrail, not a sandbox. Native OpenCode permissions, user review, and deterministic scanners still matter.
+
 ---
 
 ## Git Hooks
@@ -707,16 +735,42 @@ After `--compact`, save the summary: `oc --remember "session summary: ..."`.
 ```bash
 # Install hooks for a project
 oc --init ~/my-project
-# Creates .opencode/opencode.json + .git/hooks/pre-commit
+# Creates .opencode/opencode.json + .git/hooks/pre-commit + .git/hooks/pre-push
 
 # Or install globally
 cp hooks/pre-commit ~/.config/opencode/hooks/
 cp hooks/pre-push   ~/.config/opencode/hooks/
 ```
 
-`pre-commit` runs `@reviewer` with `precommit-review` before every commit. Blocks commit if critical findings are present.
+`pre-commit` runs `@reviewer` with `precommit-review` before every commit. It passes the staged diff explicitly and blocks unless the output contains the exact line `BLOCKING_FINDINGS=false`.
 
-`pre-push` runs `@security-auditor` to check for exposed secrets before push.
+`pre-push` runs `@security-auditor` before push. It passes a diff against upstream when available and blocks unless the output contains `BLOCKING_FINDINGS=false`.
+
+If `gitleaks` is installed, both hooks run it before the LLM-assisted review. If it is not installed, hooks continue with the fail-closed LLM gate.
+
+---
+
+## Validation and Tests
+
+```bash
+make check
+make test
+./validate.sh
+bash install.sh --dry-run
+git diff --check
+```
+
+`./validate.sh` covers:
+
+- required files/directories, agents, commands, skills;
+- JSON syntax, including `plugins/package.json`;
+- shell syntax for `oc`, installer, uninstaller, validator, and hooks;
+- plugin JavaScript syntax with Node when available;
+- legacy OpenCode CLI calls (`opencode -p`, `opencode --profile`);
+- profile permission actions (`ask|allow|deny`);
+- model-free agents and language-artifact scan;
+- documentation consistency against `VERSION`, 9 profiles, 11 agents, 6 skills;
+Functional smoke tests are run separately with `make test` and in CI. They cover memory, hooks, profiles, `oc --init`, `--compact`, `--doctor`, installed fixture validation, installer dry-run, and safety guard.
 
 ---
 
@@ -737,15 +791,19 @@ Predefined personas in `souls/souls.md`:
 ```
 opencode-global-config/
 ├── oc                       # Main script — profile enforcement, workflows, memory
+├── VERSION                  # Version source checked by validate.sh
 ├── agents/
 │   ├── architect.md         # Read-only, risk analysis, tradeoff declarations
 │   ├── planner.md           # Success criteria, verifiable phases
 │   ├── builder.md           # Karpathy principles (4 rules)
+│   ├── builder-safe.md      # Conservative builder with confirmation
 │   ├── reviewer.md
 │   ├── security-auditor.md
 │   ├── docs-writer.md
 │   ├── devops.md
-│   └── oncall.md            # Reversibility-weighted risk, P1/P2/P3 classification
+│   ├── oncall.md            # Reversibility-weighted risk, P1/P2/P3 classification
+│   ├── migration-planner.md # Incremental reversible migration plans
+│   └── performance-profiler.md # N+1, O(n²), blocking I/O, missing indexes
 ├── skills/
 │   ├── project-map/         # Project structure analysis
 │   ├── safe-implementation/ # Minimal, verifiable changes
@@ -754,7 +812,8 @@ opencode-global-config/
 │   ├── memory-retrieval/    # 3-layer progressive disclosure
 │   └── docs-writer/         # Technical documentation
 ├── plugins/
-│   └── safety-guard.js      # Regex hardening, whitespace normalization
+│   ├── safety-guard.js      # Regex hardening, redacted audit log
+│   └── package.json         # ESM metadata for plugin loading/tests
 ├── memory/
 │   ├── INDEX.md
 │   ├── ARCHITECTURE.md
@@ -776,12 +835,15 @@ opencode-global-config/
 ├── hooks/
 │   ├── pre-commit
 │   └── pre-push
+├── tests/
+│   └── run.sh               # Functional smoke tests
 ├── CLAUDE.md                # Compact system context (40 lines)
 ├── AGENTS.md                # Intent mapping + 4 Karpathy principles
 ├── README.md                # English documentation (this file)
 ├── README.es.md             # Spanish documentation
 ├── INSTALL.md
 ├── CHANGELOG.md
+├── CONTEXTO_PROYECTO.md     # Living project context / change log
 └── LICENSE
 ```
 
@@ -806,6 +868,19 @@ opencode-global-config/
 ---
 
 ## Changelog
+
+### Unreleased (2026-05-02)
+
+#### Release Readiness
+
+- **`tests/run.sh`**: expanded functional smoke tests for memory project/type filters, `--remember`, timeline, profiles, fail-closed hooks, `oc --init`, `--compact`, `--doctor`, `validate.sh --installed`, installer dry-run, and safety guard.
+- **`VERSION`**: added a simple version source checked by `validate.sh`.
+- **`validate.sh`**: documentation consistency checks for version, 9 profiles, 11 agents, 6 skills, and memory project flag support.
+- **`plugins/package.json`**: declares plugin JavaScript as ESM and removes Node's typeless-module warning.
+- **Hooks**: pass explicit diffs, require `BLOCKING_FINDINGS=false`, and run optional `gitleaks` when available.
+- **`oc --init`**: generates both `pre-commit` and `pre-push` fail-closed hooks.
+
+---
 
 ### v1.9.3 (2026-05-01)
 
@@ -877,7 +952,7 @@ opencode-global-config/
 - **`validate.sh`** — validates full repo structure: files, dirs, agents, commands, skills, JSON, bash syntax, model-free agents, no foreign-language artifacts. Run: `./validate.sh` or `./validate.sh --installed`
 - **`uninstall.sh`** — safe uninstaller that backs up config before removal. Run: `bash uninstall.sh`
 - **`install.sh --dry-run`** — simulate installation without touching files: `bash install.sh --dry-run`
-- **`safety-guard.js` audit log** — all bash commands now logged to `~/.config/opencode/logs/safety-guard.jsonl` (allowed and blocked)
+- **`safety-guard.js` audit log** — bash commands logged to `~/.config/opencode/logs/safety-guard.jsonl` with redaction and restrictive file permissions
 - **`oc --doctor`** — diagnoses installation health: checks opencode, oc, config files, dirs, JSON validity, fzf, active profile, audit log
 - **GitHub Actions CI** — `.github/workflows/validate.yml`: runs `validate.sh`, shellcheck, agent model check, language artifact check on every push/PR
 

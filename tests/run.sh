@@ -48,6 +48,11 @@ for line in pathlib.Path("$TMPDIR/home/.config/opencode/memory/index.jsonl").rea
 PY
 pass "oc --remember supports -p/-t and writes valid JSONL"
 
+echo "9" > "$TMPDIR/home/.config/opencode/.session"
+run_oc --compact >/dev/null
+[[ "$(cat "$TMPDIR/home/.config/opencode/.session")" == "0" ]] || fail "compact should reset session counter after successful opencode run"
+pass "oc --compact resets counter on success"
+
 hook_dir="$TMPDIR/hooks"
 bin_dir="$TMPDIR/bin"
 mkdir -p "$hook_dir" "$bin_dir"
@@ -86,8 +91,22 @@ test -x "$init_repo/.git/hooks/pre-commit" || fail "oc --init should create pre-
 test -x "$init_repo/.git/hooks/pre-push" || fail "oc --init should create pre-push hook"
 grep -q 'BLOCKING_FINDINGS=false' "$init_repo/.git/hooks/pre-commit" || fail "generated pre-commit should require false marker"
 grep -q 'BLOCKING_FINDINGS=false' "$init_repo/.git/hooks/pre-push" || fail "generated pre-push should require false marker"
-bash -n "$init_repo/.git/hooks/pre-commit" "$init_repo/.git/hooks/pre-push"
+bash -n "$init_repo/.git/hooks/pre-commit"
+bash -n "$init_repo/.git/hooks/pre-push"
 pass "oc --init generates fail-closed git hooks"
+
+cp "$ROOT/opencode.json" "$TMPDIR/home/.config/opencode/opencode.json"
+cp "$ROOT/AGENTS.md" "$TMPDIR/home/.config/opencode/AGENTS.md"
+cp "$ROOT/CLAUDE.md" "$TMPDIR/home/.config/opencode/CLAUDE.md"
+for dir in agents skills plugins commands memory profiles; do
+  rm -rf "$TMPDIR/home/.config/opencode/$dir"
+  cp -r "$ROOT/$dir" "$TMPDIR/home/.config/opencode/$dir"
+done
+doctor_output="$(run_oc --doctor)"
+[[ "$doctor_output" == *"All checks passed"* ]] || fail "doctor should pass against installed fixture"
+HOME="$TMPDIR/home" PATH="$TMPDIR/bin:$PATH" bash "$ROOT/validate.sh" --installed >/dev/null || fail "validate --installed should pass against fixture"
+bash "$ROOT/install.sh" --dry-run >/dev/null || fail "install dry-run should pass"
+pass "doctor, installed validation and installer dry-run pass in fixtures"
 
 if ! command -v node >/dev/null 2>&1; then
   pass "node not installed; skipping safety guard JS smoke test"

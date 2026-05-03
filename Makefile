@@ -12,6 +12,7 @@ check:
 	bash -n validate.sh
 	jq empty opencode.json
 	jq empty opencode.strict.json
+	jq empty plugins/package.json
 	@for f in profiles/*.json; do jq empty "$$f" && echo "OK: $$f"; done
 
 test:

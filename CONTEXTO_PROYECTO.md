@@ -75,7 +75,8 @@ opencode-global-config/
 │   └── devops.json        # Infraestructura con rollback
 │
 ├── plugins/
-│   └── safety-guard.js    # Bloquea comandos destructivos + audit log JSONL
+│   ├── safety-guard.js    # Bloquea comandos destructivos + audit log JSONL
+│   └── package.json       # Declara plugins JS como ESM (`type: module`)
 │
 ├── hooks/
 │   ├── pre-commit         # @reviewer + precommit-review
@@ -170,6 +171,7 @@ Archivos modificados por las correcciones recientes:
 - `hooks/pre-commit`
 - `hooks/pre-push`
 - `plugins/safety-guard.js`
+- `plugins/package.json`
 - `tests/run.sh`
 - `install.sh`
 - `README.md`, `README.es.md`, `INSTALL.md`
@@ -212,6 +214,7 @@ Estado Git observado tras las correcciones:
 - `validate.sh`: valida consistencia documental de versión, conteos de perfiles/agentes/skills y soporte documentado de `--remember -p`.
 - `Makefile`: añade target `test` para ejecutar `tests/run.sh`.
 - `Makefile`: `check` incluye `hooks/pre-commit` y `hooks/pre-push`.
+- `Makefile`: `check` valida `plugins/package.json`.
 - `.github/workflows/validate.yml`: ejecuta `tests/run.sh` como smoke tests funcionales en CI.
 - `VERSION`: creado como fuente simple de versión actual (`1.9.3`).
 
@@ -230,6 +233,7 @@ Estado Git observado tras las correcciones:
 - `plugins/safety-guard.js`: redacción ampliada para headers `x-api-key`, flags `--token/--password/--api-key`, URLs con credenciales y `AWS_ACCESS_KEY_ID`.
 - `plugins/safety-guard.js`: directorio de logs forzado a `0700` y `safety-guard.jsonl` a `0600`.
 - `plugins/safety-guard.js`: bloqueo corregido para variantes críticas como `rm -rf /`, `rm -rf ~`, `rm -rf /*`, `rm -r -f /`, `rm --recursive --force /`.
+- `plugins/package.json`: elimina warning Node `MODULE_TYPELESS_PACKAGE_JSON` declarando `type: module` dentro del directorio instalado de plugins.
 
 #### Validaciones ejecutadas durante la sesión
 
@@ -252,6 +256,10 @@ Reportadas como OK por los agentes builder/reviewer:
 - mock de parser `oc --memory "query" -t type`
 - mock sin `python3` para evitar archivos parciales
 - `oc --init` en repo temporal para verificar hook generado fail-closed
+- `oc --compact` con `opencode` mockeado
+- `oc --doctor` contra instalación fixture
+- `validate.sh --installed` contra instalación fixture
+- `install.sh --dry-run`
 
 #### Revisiones finales
 
@@ -269,7 +277,7 @@ Reportadas como OK por los agentes builder/reviewer:
 | Hooks dependen de marcador LLM | Media | Fail-closed + `gitleaks` opcional | Considerar scanner obligatorio/configurado para releases críticas |
 | `oc --init` instala hooks Git | Baja | Mitigado | Ya genera `pre-commit` y `pre-push`; seguir validando en tests |
 | Perfiles son prompt-enforced, no sandbox | Baja/Media | Documentado | No vender como seguridad fuerte; explorar config efectiva por perfil si OpenCode lo soporta |
-| Test suite funcional inicial aún es smoke-level | Media | Mitigado parcialmente | Ampliar cobertura con más fixtures CLI/workflows |
+| Test suite funcional inicial aún es smoke-level | Baja/Media | Mitigado parcialmente | Ampliar cobertura con workflows completos si crece el wrapper |
 
 ### Pendientes nuevos detectados en revisión integral 2026-05-02
 
@@ -302,8 +310,8 @@ Reportadas como OK por los agentes builder/reviewer:
    - Recomendación: quotear/escapar frontmatter o mover contenido sensible fuera del YAML.
 
 8. **Test suite funcional inicial creada y ampliada**
-   - `tests/run.sh` cubre parser de memoria, `--remember`, timeline, perfiles, hooks fail-closed, `oc --init` y safety guard.
-   - Pendiente: ampliar a workflows completos y `--compact` con fixtures.
+   - `tests/run.sh` cubre parser de memoria, `--remember`, timeline, perfiles, hooks fail-closed, `oc --init`, `--compact`, `--doctor`, instalación fixture y safety guard.
+   - Pendiente: ampliar a workflows completos si el wrapper crece.
 
 ### Correcciones aplicadas en sesión 2026-05-01
 Se hizo análisis profundo del estado del proyecto y se aplicaron correcciones funcionales y documentales:
@@ -365,7 +373,7 @@ git log --oneline -10
 ## Pendientes conocidos (baja prioridad)
 
 1. **Hooks + profile propagation completa** — fallback `opencode run` no aplica perfil activo; refactor sourceable o instalación garantizada de `oc`.
-2. **Ampliar test suite funcional** — cubrir workflows completos, `--compact` y más combinaciones del parser CLI.
+2. **Ampliar test suite funcional** — cubrir workflows completos y más combinaciones del parser CLI si el wrapper crece.
 3. **Validación documental automática extendida** — detectar más ejemplos obsoletos y comandos públicos críticos.
 4. **Fuente única de versión más automatizada** — `VERSION` existe, pero scripts/docs aún contienen referencias literales verificadas por `validate.sh`.
 5. **Hardening adicional de audit log** — ampliar redacción si aparecen nuevos formatos de secretos.
