@@ -20,6 +20,7 @@ EOF
 chmod +x "$TMPDIR/bin/opencode"
 
 mkdir -p "$TMPDIR/home/.config/opencode/memory"
+cp -r "$ROOT/profiles" "$TMPDIR/home/.config/opencode/profiles"
 cat > "$TMPDIR/home/.config/opencode/memory/INDEX.md" <<'EOF'
 <!-- INDEX_START -->
 obs_1 | 2026-05-02 | alpha | bugfix | auth parser fix
@@ -70,6 +71,29 @@ if PATH="$bin_dir:$PATH" OC_TEST_MARKER=true "$hook_dir/pre-commit" >/dev/null 2
 if PATH="$bin_dir:$PATH" OC_TEST_MARKER=missing "$hook_dir/pre-push" >/dev/null 2>&1; then fail "pre-push should fail on missing marker"; fi
 if PATH="$bin_dir:$PATH" OC_TEST_MARKER=fail "$hook_dir/pre-push" >/dev/null 2>&1; then fail "pre-push should fail on non-zero oc"; fi
 pass "hooks are fail-closed on markers and command status"
+
+profile_list="$(run_oc --list-profiles)"
+[[ "$profile_list" == *"default"* ]] || fail "list-profiles should include default"
+[[ "$profile_list" != *"default.json"* ]] || fail "list-profiles should omit .json suffix"
+if run_oc --profile does-not-exist >/dev/null 2>&1; then fail "invalid profile should fail"; fi
+pass "profiles list clean names and reject invalid profiles"
+
+init_repo="$TMPDIR/init-repo"
+mkdir -p "$init_repo"
+git -C "$init_repo" init >/dev/null 2>&1
+run_oc --init "$init_repo" >/dev/null
+test -x "$init_repo/.git/hooks/pre-commit" || fail "oc --init should create pre-commit hook"
+test -x "$init_repo/.git/hooks/pre-push" || fail "oc --init should create pre-push hook"
+grep -q 'BLOCKING_FINDINGS=false' "$init_repo/.git/hooks/pre-commit" || fail "generated pre-commit should require false marker"
+grep -q 'BLOCKING_FINDINGS=false' "$init_repo/.git/hooks/pre-push" || fail "generated pre-push should require false marker"
+bash -n "$init_repo/.git/hooks/pre-commit" "$init_repo/.git/hooks/pre-push"
+pass "oc --init generates fail-closed git hooks"
+
+if ! command -v node >/dev/null 2>&1; then
+  pass "node not installed; skipping safety guard JS smoke test"
+  printf 'All tests passed\n'
+  exit 0
+fi
 
 HOME="$TMPDIR/plugin-home" node --input-type=module - "$ROOT/plugins/safety-guard.js" "$TMPDIR/plugin-home" <<'NODE'
 const mod = await import(process.argv[2])

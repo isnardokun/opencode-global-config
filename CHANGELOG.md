@@ -2,6 +2,26 @@
 
 Todos los cambios notables de este proyecto se documentarán en este archivo.
 
+## [Unreleased] - 2026-05-02
+
+### Tests y validación
+
+- **`tests/run.sh`** — amplía smoke tests funcionales para memory parser, `--remember -p/-t`, timeline, perfiles, hooks fail-closed, `oc --init` y `safety-guard.js`.
+- **`Makefile`** — `check` valida hooks y `test` ejecuta la suite funcional.
+- **`validate.sh`** — agrega consistencia documental: `VERSION`, conteo real de perfiles/agentes/skills y presencia de soporte documentado para memory project flags.
+- **`.github/workflows/validate.yml`** — ejecuta smoke tests funcionales en CI.
+
+### Seguridad
+
+- **Hooks Git** — integran `gitleaks` de forma opcional si está disponible; si no existe, mantienen flujo actual sin romper entornos locales.
+- **`plugins/safety-guard.js`** — audit log con permisos restrictivos y redacción ampliada para headers, flags, URLs con credenciales y tokens comunes.
+
+### CLI y documentación
+
+- **`oc`** — soporta `--remember -p project` y `--memory -p project -t type`; `oc --init` genera `pre-commit` y `pre-push` fail-closed.
+- **`VERSION`** — añade fuente simple de versión actual para validaciones.
+- **Docs** — alinea conteos visibles a 9 perfiles y registra `CONTEXTO_PROYECTO.md` como bitácora viva.
+
 ## [1.9.3] - 2026-05-01
 
 ### Compatibilidad OpenCode 1.14

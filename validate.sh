@@ -53,6 +53,7 @@ check_file "install.sh"
 check_file "validate.sh"
 check_file "uninstall.sh"
 check_file "oc"
+check_file "VERSION"
 check_dir  "agents"
 check_dir  "skills"
 check_dir  "plugins"
@@ -206,6 +207,37 @@ for md in "${ROOT}/agents/"*.md "${ROOT}/commands/"*.md; do
         fail "Invalid frontmatter: $fname"
     fi
 done
+echo ""
+
+echo "Documentation consistency:"
+version="$(tr -d '[:space:]' < "${ROOT}/VERSION" 2>/dev/null || true)"
+if [ -n "$version" ]; then
+    if grep -q "v${version}" "${ROOT}/install.sh" \
+        && grep -q "v${version}" "${ROOT}/README.md" \
+        && grep -q "v${version}" "${ROOT}/README.es.md" \
+        && grep -q "${version}" "${ROOT}/CHANGELOG.md"; then
+        pass "Version references match VERSION (${version})"
+    else
+        fail "Version references do not match VERSION (${version})"
+    fi
+else
+    fail "VERSION is empty"
+fi
+
+profile_count=$(find "${ROOT}/profiles" -maxdepth 1 -name '*.json' | wc -l | tr -d ' ')
+agent_count=$(find "${ROOT}/agents" -maxdepth 1 -name '*.md' | wc -l | tr -d ' ')
+skill_count=$(find "${ROOT}/skills" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
+if [ "$profile_count" = "9" ]; then pass "Profile count: 9"; else fail "Expected 9 profiles, found $profile_count"; fi
+if [ "$agent_count" = "11" ]; then pass "Agent count: 11"; else fail "Expected 11 agents, found $agent_count"; fi
+if [ "$skill_count" = "6" ]; then pass "Skill count: 6"; else fail "Expected 6 skills, found $skill_count"; fi
+
+if grep -q -- '--remember \[-p proyecto\] \[-t tipo\]' "${ROOT}/oc" \
+    && grep -q -- 'oc --remember -p project' "${ROOT}/README.md" \
+    && grep -q -- 'oc --remember -p' "${ROOT}/CONTEXTO_PROYECTO.md"; then
+    pass "Documented memory project flag is present"
+else
+    fail "Missing documented --remember -p support"
+fi
 echo ""
 
 if [ "$INSTALLED" -eq 1 ]; then

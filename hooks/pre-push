@@ -17,6 +17,14 @@ if [ -z "$diff_context" ]; then
     diff_context="No hay diff de push disponible. Revisa el estado Git si aplica."
 fi
 
+if command -v gitleaks >/dev/null 2>&1; then
+    if ! gitleaks detect --verbose; then
+        echo ""
+        echo "❌ Pre-push rechazado. gitleaks detectó posibles secretos."
+        exit 1
+    fi
+fi
+
 prompt="
 Usa @security-auditor.
 

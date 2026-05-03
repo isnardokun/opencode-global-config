@@ -32,6 +32,7 @@ opencode-global-config/
 ├── uninstall.sh           # Remoción segura con backup
 ├── validate.sh            # Validación completa + --installed
 ├── Makefile               # validate, check, install, dry-run, uninstall, doctor
+├── VERSION                # Fuente simple de versión actual para validaciones
 ├── CHANGELOG.md           # Historial formal de releases
 ├── CONTEXTO_PROYECTO.md   # Bitácora viva: decisiones, sesiones, riesgos, pendientes
 ├── .editorconfig          # UTF-8, LF, 2 espacios
@@ -90,7 +91,7 @@ opencode-global-config/
 
 ### Profile enforcement (cómo funciona)
 OpenCode no tiene sistema de perfiles nativo. Lo implementamos mediante **inyección de reglas en el prompt**:
-1. `switch_profile()` en `oc` exporta `OC_PROFILE`
+1. `switch_profile()` en `oc` exporta `OPENCODE_PROFILE`
 2. `get_profile_rules()` lee el JSON del perfil activo y genera instrucciones en inglés
 3. `_oc_run()` inyecta esas reglas en cada llamada no interactiva a `opencode run "..."`
 
@@ -164,6 +165,7 @@ Archivos modificados por las correcciones recientes:
 - `oc`
 - `validate.sh`
 - `Makefile`
+- `VERSION`
 - `.github/workflows/validate.yml`
 - `hooks/pre-commit`
 - `hooks/pre-push`
@@ -207,8 +209,11 @@ Estado Git observado tras las correcciones:
 - `README.md`, `README.es.md`, `INSTALL.md`: versión/conteos de perfiles alineados a v1.9.3 / 9 perfiles.
 - `validate.sh`: incluye `uninstall.sh` en la validación de sintaxis Bash.
 - `validate.sh`: valida sintaxis JS de `plugins/safety-guard.js` con `node --check` si `node` existe.
+- `validate.sh`: valida consistencia documental de versión, conteos de perfiles/agentes/skills y soporte documentado de `--remember -p`.
 - `Makefile`: añade target `test` para ejecutar `tests/run.sh`.
+- `Makefile`: `check` incluye `hooks/pre-commit` y `hooks/pre-push`.
 - `.github/workflows/validate.yml`: ejecuta `tests/run.sh` como smoke tests funcionales en CI.
+- `VERSION`: creado como fuente simple de versión actual (`1.9.3`).
 
 #### Correcciones de seguridad aplicadas
 
@@ -217,6 +222,7 @@ Estado Git observado tras las correcciones:
 - `hooks/pre-commit` y `hooks/pre-push`: fallan con línea exacta `BLOCKING_FINDINGS=true`.
 - `hooks/pre-commit` y `hooks/pre-push`: fallan si falta línea exacta `BLOCKING_FINDINGS=false`.
 - `hooks/pre-commit` y `hooks/pre-push`: aceptan fallback `RECOMMENDATION=CORRECT` como señal de bloqueo.
+- `hooks/pre-commit` y `hooks/pre-push`: ejecutan `gitleaks` si está instalado; si no, continúan con gate LLM fail-closed.
 - `plugins/safety-guard.js`: migrado a formato ESM consistente.
 - `plugins/safety-guard.js`: acceso defensivo a `output?.args?.command` para evitar `TypeError`.
 - `plugins/safety-guard.js`: redacción básica de secretos antes de audit log.
@@ -236,6 +242,8 @@ Reportadas como OK por los agentes builder/reviewer:
 - `bash tests/run.sh`
 - `make check`
 - `./validate.sh`
+- `bash install.sh --dry-run`
+- `git diff --check`
 - import ESM dirigido de `plugins/safety-guard.js`
 - muestras dirigidas de redacción de secretos
 - checks dirigidos para bloqueo de comandos destructivos en `safety-guard.js`
@@ -258,7 +266,7 @@ Reportadas como OK por los agentes builder/reviewer:
 | `safety-guard.js` es regex-based, no sandbox | Media | Aceptado/documentar | Mantener como guardrail; añadir tests de falsos positivos/negativos si crece |
 | Audit log puede no redactar todos los formatos de secreto | Media | Mitigado parcialmente | Mantener pruebas y ampliar si aparecen nuevos formatos |
 | Logs/config dependen de `umask` | Baja/Media | Mitigado para audit log | Evaluar permisos explícitos en instalación/config global |
-| Hooks dependen de marcador LLM | Media | Fail-closed implementado | Considerar scanners determinísticos (`gitleaks`, `detect-secrets`) |
+| Hooks dependen de marcador LLM | Media | Fail-closed + `gitleaks` opcional | Considerar scanner obligatorio/configurado para releases críticas |
 | `oc --init` instala hooks Git | Baja | Mitigado | Ya genera `pre-commit` y `pre-push`; seguir validando en tests |
 | Perfiles son prompt-enforced, no sandbox | Baja/Media | Documentado | No vender como seguridad fuerte; explorar config efectiva por perfil si OpenCode lo soporta |
 | Test suite funcional inicial aún es smoke-level | Media | Mitigado parcialmente | Ampliar cobertura con más fixtures CLI/workflows |
@@ -277,25 +285,25 @@ Reportadas como OK por los agentes builder/reviewer:
    - `install.sh`, `README.md`, `README.es.md` e `INSTALL.md` fueron alineados a v1.9.3 donde correspondía.
    - Pendiente menor: definir fuente única automatizable de versión.
 
-4. **Conteos documentales corregidos en puntos visibles**
+4. **Conteos documentales corregidos y validados**
    - `oc --help`, `INSTALL.md` y `README.es.md` actualizados a 9 perfiles.
-   - Pendiente: añadir validación documental automática de conteos.
+   - `validate.sh` ahora valida conteos reales de perfiles/agentes/skills.
 
 5. **Hooks ahora pasan diff explícito**
    - `pre-commit`: `git diff --cached`.
    - `pre-push`: diff contra upstream o fallback de últimos cambios.
 
-6. **Validación documental insuficiente**
-   - `validate.sh` aún no valida automáticamente que ejemplos públicos sigan soportados por el parser.
-   - Recomendación: añadir checks ligeros para comandos/documentación críticos.
+6. **Validación documental inicial implementada**
+   - `validate.sh` valida versión, conteos y presencia de soporte documentado para memory project flags.
+   - Pendiente: ampliar a más ejemplos públicos si crece la CLI.
 
 7. **Memory frontmatter puede romper YAML con contenido complejo**
    - `summary` usa substring directo del contenido.
    - Recomendación: quotear/escapar frontmatter o mover contenido sensible fuera del YAML.
 
-8. **Test suite funcional inicial creada**
-   - `tests/run.sh` cubre parser de memoria, `--remember`, hooks fail-closed y safety guard.
-   - Pendiente: ampliar a workflows completos y `oc --init` con fixtures.
+8. **Test suite funcional inicial creada y ampliada**
+   - `tests/run.sh` cubre parser de memoria, `--remember`, timeline, perfiles, hooks fail-closed, `oc --init` y safety guard.
+   - Pendiente: ampliar a workflows completos y `--compact` con fixtures.
 
 ### Correcciones aplicadas en sesión 2026-05-01
 Se hizo análisis profundo del estado del proyecto y se aplicaron correcciones funcionales y documentales:
@@ -357,9 +365,9 @@ git log --oneline -10
 ## Pendientes conocidos (baja prioridad)
 
 1. **Hooks + profile propagation completa** — fallback `opencode run` no aplica perfil activo; refactor sourceable o instalación garantizada de `oc`.
-2. **Ampliar test suite funcional** — cubrir workflows completos, `oc --init` y más combinaciones del parser CLI.
-3. **Validación documental automática** — detectar ejemplos obsoletos, conteos de perfiles/agentes/skills y versión declarada.
-4. **Fuente única de versión** — evitar drift entre `install.sh`, READMEs, changelog y help.
+2. **Ampliar test suite funcional** — cubrir workflows completos, `--compact` y más combinaciones del parser CLI.
+3. **Validación documental automática extendida** — detectar más ejemplos obsoletos y comandos públicos críticos.
+4. **Fuente única de versión más automatizada** — `VERSION` existe, pero scripts/docs aún contienen referencias literales verificadas por `validate.sh`.
 5. **Hardening adicional de audit log** — ampliar redacción si aparecen nuevos formatos de secretos.
 6. **`opencode.strict.json` `~` paths** — OpenCode probablemente los expande, pero no verificado en runtime real.
 7. **Documentar límites de seguridad** — perfiles prompt-enforced, hooks LLM-assisted y safety guard regex-based.

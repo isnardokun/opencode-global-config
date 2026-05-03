@@ -12,6 +12,14 @@ if [ -z "$diff_context" ]; then
     diff_context="No hay diff staged disponible. Revisa el estado Git si aplica."
 fi
 
+if command -v gitleaks >/dev/null 2>&1; then
+    if ! gitleaks protect --staged --verbose; then
+        echo ""
+        echo "❌ Pre-commit rechazado. gitleaks detectó posibles secretos."
+        exit 1
+    fi
+fi
+
 prompt="
 Usa @reviewer con precommit-review.
 
