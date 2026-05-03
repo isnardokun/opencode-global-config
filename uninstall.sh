@@ -31,7 +31,7 @@ echo "╚═══════════════════════�
 echo -e "${NC}"
 
 echo "This will remove:"
-echo "  - ${CONFIG_DIR}  (config, agents, skills, plugins, memory)"
+echo "  - ${CONFIG_DIR}  (config, agents, skills, rubrics, plugins, memory)"
 echo "  - ${BIN}  (oc command)"
 echo ""
 warn "A backup will be created before deletion."

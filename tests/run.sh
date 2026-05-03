@@ -98,13 +98,19 @@ pass "oc --init generates fail-closed git hooks"
 cp "$ROOT/opencode.json" "$TMPDIR/home/.config/opencode/opencode.json"
 cp "$ROOT/AGENTS.md" "$TMPDIR/home/.config/opencode/AGENTS.md"
 cp "$ROOT/CLAUDE.md" "$TMPDIR/home/.config/opencode/CLAUDE.md"
-for dir in agents skills plugins commands memory profiles; do
+for dir in agents skills plugins commands memory profiles rubrics; do
   rm -rf "$TMPDIR/home/.config/opencode/$dir"
   cp -r "$ROOT/$dir" "$TMPDIR/home/.config/opencode/$dir"
 done
 doctor_output="$(run_oc --doctor)"
 [[ "$doctor_output" == *"All checks passed"* ]] || fail "doctor should pass against installed fixture"
 HOME="$TMPDIR/home" PATH="$TMPDIR/bin:$PATH" bash "$ROOT/validate.sh" --installed >/dev/null || fail "validate --installed should pass against fixture"
+
+mv "$TMPDIR/home/.config/opencode/rubrics/code-review.md" "$TMPDIR/home/.config/opencode/rubrics/code-review.md.bak"
+if run_oc --doctor >/dev/null 2>&1; then fail "doctor should fail when installed rubric is missing"; fi
+if HOME="$TMPDIR/home" PATH="$TMPDIR/bin:$PATH" bash "$ROOT/validate.sh" --installed >/dev/null 2>&1; then fail "validate --installed should fail when rubric is missing"; fi
+mv "$TMPDIR/home/.config/opencode/rubrics/code-review.md.bak" "$TMPDIR/home/.config/opencode/rubrics/code-review.md"
+
 bash "$ROOT/install.sh" --dry-run >/dev/null || fail "install dry-run should pass"
 pass "doctor, installed validation and installer dry-run pass in fixtures"
 

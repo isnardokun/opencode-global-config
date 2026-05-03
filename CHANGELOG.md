@@ -10,6 +10,7 @@ Todos los cambios notables de este proyecto se documentarán en este archivo.
 - **`Makefile`** — `check` valida hooks y `plugins/package.json`; `test` ejecuta la suite funcional.
 - **`validate.sh`** — agrega consistencia documental: `VERSION`, conteo real de perfiles/agentes/skills y presencia de soporte documentado para memory project flags.
 - **`.github/workflows/validate.yml`** — ejecuta smoke tests funcionales en CI.
+- **`rubrics/`** — agrega gates formales para code review, security review y plan review; `validate.sh` verifica los archivos requeridos.
 
 ### Seguridad
 
@@ -22,6 +23,7 @@ Todos los cambios notables de este proyecto se documentarán en este archivo.
 - **`oc`** — soporta `--remember -p project` y `--memory -p project -t type`; `oc --init` genera `pre-commit` y `pre-push` fail-closed.
 - **`VERSION`** — añade fuente simple de versión actual para validaciones.
 - **Docs** — alinea conteos visibles a 9 perfiles y registra `CONTEXTO_PROYECTO.md` como bitácora viva.
+- **Agentes reviewer/security/planner** — referencian rubrics reutilizables para exigir evidencia, severidad y criterios de éxito verificables.
 
 ## [1.9.3] - 2026-05-01
 

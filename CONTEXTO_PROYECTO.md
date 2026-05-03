@@ -63,6 +63,11 @@ opencode-global-config/
 │   ├── memory-retrieval/
 │   └── docs-writer/
 │
+├── rubrics/ (3 gates reutilizables)
+│   ├── code-review.md       # Criterios bloqueantes y evidencia para review
+│   ├── security-review.md   # Severidad, evidencia y remediación de seguridad
+│   └── plan-review.md       # Fases verificables, supuestos y tradeoffs
+│
 ├── profiles/ (9 perfiles — deny-first gradient)
 │   ├── deny.json          # Solo lectura estática
 │   ├── plan.json          # Planificación sin modificar
@@ -312,6 +317,11 @@ Reportadas como OK por los agentes builder/reviewer:
 8. **Test suite funcional inicial creada y ampliada**
    - `tests/run.sh` cubre parser de memoria, `--remember`, timeline, perfiles, hooks fail-closed, `oc --init`, `--compact`, `--doctor`, instalación fixture y safety guard.
    - Pendiente: ampliar a workflows completos si el wrapper crece.
+
+9. **Rubrics/gates reutilizables añadidos**
+   - Inspirado por `dsifry/metaswarm`, se añadieron rubrics livianas para code review, security review y plan review.
+   - Decisión: adoptar criterios formales y evidencia antes de copiar orquestación multi-CLI compleja.
+   - Agentes impactados: `@reviewer`, `@security-auditor`, `@planner`.
 
 ### Correcciones aplicadas en sesión 2026-05-01
 Se hizo análisis profundo del estado del proyecto y se aplicaron correcciones funcionales y documentales:

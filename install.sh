@@ -97,7 +97,7 @@ fi
 info "Instalando configuración global..."
 mkdir -p "$CONFIG_DIR"
 
-for dir in agents skills profiles plugins hooks memory souls commands; do
+for dir in agents skills profiles plugins hooks memory souls commands rubrics; do
     if [ -d "$INSTALL_DIR/$dir" ]; then
         cp -r "$INSTALL_DIR/$dir" "$CONFIG_DIR/"
         success "Instalado: $dir/"
@@ -225,15 +225,20 @@ fi
 info "Verificando instalación..."
 _ok=1
 [ -f "$CONFIG_DIR/AGENTS.md" ]     || { warn "Falta: AGENTS.md";    _ok=0; }
+[ -f "$CONFIG_DIR/CLAUDE.md" ]     || { warn "Falta: CLAUDE.md";    _ok=0; }
 [ -f "$CONFIG_DIR/opencode.json" ]  || { warn "Falta: opencode.json"; _ok=0; }
 [ -f "$BIN_DIR/oc" ]               || { warn "Falta: oc en $BIN_DIR"; _ok=0; }
 [ -d "$CONFIG_DIR/agents" ]        || { warn "Falta: agents/"; _ok=0; }
 [ -d "$CONFIG_DIR/skills" ]        || { warn "Falta: skills/"; _ok=0; }
 [ -d "$CONFIG_DIR/commands" ]      || { warn "Falta: commands/"; _ok=0; }
 [ -d "$CONFIG_DIR/plugins" ]       || { warn "Falta: plugins/"; _ok=0; }
+[ -d "$CONFIG_DIR/rubrics" ]       || { warn "Falta: rubrics/"; _ok=0; }
+for _rubric in code-review security-review plan-review; do
+    [ -f "$CONFIG_DIR/rubrics/${_rubric}.md" ] || { warn "Falta: rubrics/${_rubric}.md"; _ok=0; }
+done
 
 if [ "$_ok" -eq 1 ]; then
-    success "Instalación verificada (7 artefactos)"
+    success "Instalación verificada (12 artefactos)"
 else
     error "Instalación incompleta. Revisa los mensajes anteriores."
 fi

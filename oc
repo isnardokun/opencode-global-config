@@ -1192,11 +1192,20 @@ Output as plain markdown. This will be saved to resume the session later."; then
         done
 
         # Check dirs
-        for _d in agents skills plugins commands memory profiles; do
+        for _d in agents skills plugins commands memory profiles rubrics; do
             if [ -d "${_idir}/${_d}" ]; then
                 echo -e "${GREEN}✅${NC} ${_d}/"
             else
                 echo -e "${RED}❌${NC} Missing directory: ${_idir}/${_d}/"
+                _doc_ok=0
+            fi
+        done
+
+        for _f in rubrics/code-review.md rubrics/security-review.md rubrics/plan-review.md; do
+            if [ -f "${_idir}/${_f}" ]; then
+                echo -e "${GREEN}✅${NC} ${_f}"
+            else
+                echo -e "${RED}❌${NC} Missing: ${_idir}/${_f}"
                 _doc_ok=0
             fi
         done
@@ -1243,6 +1252,7 @@ Output as plain markdown. This will be saved to resume the session later."; then
         else
             warn "Some checks failed. Run installer to fix:"
             echo "  curl -fsSL https://raw.githubusercontent.com/isnardokun/opencode-global-config/main/install.sh | bash"
+            exit 1
         fi
         ;;
     --workflow)

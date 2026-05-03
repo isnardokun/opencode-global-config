@@ -36,6 +36,7 @@ Inspired by [VILA-Lab/Dive-into-Claude-Code](https://github.com/VILA-Lab/Dive-in
 - **8 official slash commands** — `/analyze`, `/review`, `/secure`, `/feature`, `/bug-hunt`, `/docs`, `/devops`, `/oncall` — usable directly in OpenCode's TUI
 - **9 prompt-enforced profiles** — rules like `requireTests`, `checkpointBeforeChanges` injected as explicit LLM instructions; profile permissions validated against `ask|allow|deny`
 - **6 skills** for analysis, implementation, validation, memory, and documentation
+- **3 review rubrics** for code review, security review, and plan/design gates
 - **1 security plugin** with regex hardening, ESM metadata, redacted audit log, and restrictive log permissions
 - **3-layer Memory Bank** (search / timeline / full detail) + JSONL index + project/type filters
 - **5 single-pass workflows** (bug-hunt, new-project, debug, document, feature)
@@ -811,6 +812,10 @@ opencode-global-config/
 │   ├── precommit-review/    # Diff review before commit
 │   ├── memory-retrieval/    # 3-layer progressive disclosure
 │   └── docs-writer/         # Technical documentation
+├── rubrics/
+│   ├── code-review.md       # Blocking criteria and evidence for reviews
+│   ├── security-review.md   # Security severities and remediation gate
+│   └── plan-review.md       # Verifiable planning and design criteria
 ├── plugins/
 │   ├── safety-guard.js      # Regex hardening, redacted audit log
 │   └── package.json         # ESM metadata for plugin loading/tests
@@ -876,6 +881,7 @@ opencode-global-config/
 - **`tests/run.sh`**: expanded functional smoke tests for memory project/type filters, `--remember`, timeline, profiles, fail-closed hooks, `oc --init`, `--compact`, `--doctor`, `validate.sh --installed`, installer dry-run, and safety guard.
 - **`VERSION`**: added a simple version source checked by `validate.sh`.
 - **`validate.sh`**: documentation consistency checks for version, 9 profiles, 11 agents, 6 skills, and memory project flag support.
+- **`rubrics/`**: added code review, security review, and plan review gates; validator checks required rubric files.
 - **`plugins/package.json`**: declares plugin JavaScript as ESM and removes Node's typeless-module warning.
 - **Hooks**: pass explicit diffs, require `BLOCKING_FINDINGS=false`, and run optional `gitleaks` when available.
 - **`oc --init`**: generates both `pre-commit` and `pre-push` fail-closed hooks.

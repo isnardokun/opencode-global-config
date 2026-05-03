@@ -61,6 +61,7 @@ check_dir  "profiles"
 check_dir  "commands"
 check_dir  "hooks"
 check_dir  "memory"
+check_dir  "rubrics"
 check_dir  "souls"
 echo ""
 
@@ -83,6 +84,12 @@ for skill in project-map safe-implementation test-first precommit-review memory-
     else
         fail "Missing skill: skills/${skill}/"
     fi
+done
+echo ""
+
+echo "Required rubrics:"
+for rubric in code-review security-review plan-review; do
+    check_file "rubrics/${rubric}.md"
 done
 echo ""
 
@@ -250,6 +257,10 @@ if [ "$INSTALLED" -eq 1 ]; then
     check_dir  "skills"        "$IDIR"
     check_dir  "plugins"       "$IDIR"
     check_dir  "commands"      "$IDIR"
+    check_dir  "rubrics"       "$IDIR"
+    check_file "rubrics/code-review.md" "$IDIR"
+    check_file "rubrics/security-review.md" "$IDIR"
+    check_file "rubrics/plan-review.md" "$IDIR"
 
     echo ""
     echo "oc command:"

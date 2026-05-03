@@ -51,6 +51,7 @@ Este repositorio contiene una configuración avanzada para [OpenCode CLI](https:
 - **11 agentes especializados** — sin modelo hardcodeado, usan el modelo que selecciones en OpenCode
 - **9 perfiles con enforcement por prompt** — reglas como `requireTests`, `checkpointBeforeChanges` se inyectan como instrucciones explícitas al LLM en cada llamada no interactiva de `oc`
 - **6 skills** para análisis, implementación, validación, memoria y documentación
+- **3 rubrics de revisión** para code review, security review y gates de plan/diseño
 - **1 plugin de seguridad** con regex hardening (whitespace-normalized matching)
 - **Sistema de Memory Bank** con 3-layer retrieval (search/timeline/get)
 - **5 workflows single-pass** (bug-hunt, new-project, debug, document, feature)
@@ -784,7 +785,7 @@ Personas predefinidas para diferentes contextos en `souls/souls.md`:
 
 ```
 opencode-global-config/
-├── oc                       # Script principal (v1.7)
+├── oc                       # Script principal: perfiles, workflows, memoria
 ├── agents/
 │   ├── architect.md         # Read-only, tradeoffs declarations
 │   ├── planner.md           # Success criteria, fases verificables
@@ -801,6 +802,10 @@ opencode-global-config/
 │   ├── precommit-review/    # Revisión de diff
 │   ├── memory-retrieval/    # 3-layer progressive disclosure
 │   └── docs-writer/         # Documentación técnica
+├── rubrics/
+│   ├── code-review.md       # Criterios bloqueantes y evidencia
+│   ├── security-review.md   # Severidad y remediación de seguridad
+│   └── plan-review.md       # Fases verificables y tradeoffs
 ├── plugins/
 │   └── safety-guard.js      # Regex hardening, whitespace normalization
 ├── memory/
