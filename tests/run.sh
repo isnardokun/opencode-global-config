@@ -15,6 +15,9 @@ run_oc() {
 mkdir -p "$TMPDIR/bin"
 cat > "$TMPDIR/bin/opencode" <<'EOF'
 #!/usr/bin/env bash
+if [ -n "${OC_CAPTURE:-}" ]; then
+  printf '%s\n' "$@" > "$OC_CAPTURE"
+fi
 exit 0
 EOF
 chmod +x "$TMPDIR/bin/opencode"
@@ -82,6 +85,43 @@ profile_list="$(run_oc --list-profiles)"
 [[ "$profile_list" != *"default.json"* ]] || fail "list-profiles should omit .json suffix"
 if run_oc --profile does-not-exist >/dev/null 2>&1; then fail "invalid profile should fail"; fi
 pass "profiles list clean names and reject invalid profiles"
+
+ask_security="$(run_oc ask --dry-run "revisa seguridad antes de publicar")"
+[[ "$ask_security" == *"Intent: security-review"* ]] || fail "ask should route security requests"
+[[ "$ask_security" == *"@security-auditor"* ]] || fail "ask security route should include security auditor"
+[[ "$ask_security" == *"hasta 3 preguntas puntuales"* ]] || fail "ask security prompt should keep clarification guardrail"
+
+ask_feature="$(run_oc ask --dry-run "implementa dark mode")"
+[[ "$ask_feature" == *"Intent: feature"* ]] || fail "ask should route feature requests"
+[[ "$ask_feature" == *"@builder"* ]] || fail "ask feature route should include builder"
+[[ "$ask_feature" == *"hasta 3 preguntas puntuales"* ]] || fail "ask feature prompt should keep clarification guardrail"
+
+ask_auth_sessions="$(run_oc ask --dry-run "implementa autenticación con sesiones")"
+[[ "$ask_auth_sessions" == *"Intent: feature"* ]] || fail "ask should accept detailed Spanish auth requests"
+
+ask_ci="$(run_oc ask --dry-run "configura CI")"
+[[ "$ask_ci" == *"Intent: devops"* ]] || fail "ask should route standalone CI requests to devops"
+
+ask_prod="$(run_oc ask --dry-run "producción está caída con logs de error")"
+[[ "$ask_prod" == *"Intent: production-debug"* ]] || fail "ask should route production incidents"
+[[ "$ask_prod" == *"@oncall"* ]] || fail "ask production route should include oncall"
+[[ "$ask_prod" == *"hasta 3 preguntas puntuales"* ]] || fail "ask production prompt should keep clarification guardrail"
+
+ask_unknown="$(run_oc ask --dry-run "ayuda con esto")"
+[[ "$ask_unknown" == *"Intent: clarify"* ]] || fail "ask should clarify ambiguous requests"
+[[ "$ask_unknown" == *"hasta 3 preguntas puntuales"* ]] || fail "ask clarify prompt should ask targeted questions"
+
+ask_auth="$(run_oc ask --dry-run "implementa autenticación")"
+[[ "$ask_auth" == *"Intent: clarify"* ]] || fail "ask should clarify vague auth implementation requests"
+
+ask_dry_clarify="$(run_oc ask --dry-run --clarify "implementa autenticación")"
+[[ "$ask_dry_clarify" == *"Intent: clarify"* ]] || fail "ask dry-run clarify should not block"
+
+capture_file="$TMPDIR/opencode-args"
+OC_CAPTURE="$capture_file" run_oc ask "revisa seguridad antes de publicar" >/dev/null
+grep -q '^run$' "$capture_file" || fail "ask execution should call opencode run"
+grep -q '@security-auditor' "$capture_file" || fail "ask execution should pass routed prompt to opencode"
+pass "oc ask dry-run routes natural language requests"
 
 init_repo="$TMPDIR/init-repo"
 mkdir -p "$init_repo"

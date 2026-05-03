@@ -113,6 +113,16 @@ diagnose the error
 
 Full intent mapping is in `AGENTS.md`.
 
+Optional wrapper mode:
+
+```bash
+oc ask "arregla el bug de login"
+oc ask --dry-run "revisa seguridad antes de publicar"
+oc ask --clarify "implementa autenticación"
+```
+
+`oc ask` keeps all explicit commands available, but adds a natural-language router that chooses the likely agent/workflow and asks targeted clarification questions when the request is ambiguous.
+
 ---
 
 ## Usage Manual
@@ -451,6 +461,11 @@ oc --wizard
 ## Quick Commands Reference
 
 ```bash
+# Natural router (optional)
+oc ask "fix the login bug"        # Routes to the likely agent/workflow
+oc ask --dry-run "audit release"  # Preview route without running OpenCode
+oc ask --clarify "add auth"       # Ask local clarification questions first
+
 # Analysis
 oc analyze ~/project      # @architect + project-map
 oc plan "complex task"    # @planner

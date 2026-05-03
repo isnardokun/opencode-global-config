@@ -747,6 +747,7 @@ OPCIONES:
     --compact            Summarize session context + reset turn counter
     --budget             Ver uso de turns en sesión actual
     --doctor             Diagnose installation health
+    ask [opts] <pedido>  Router natural opcional para agentes/workflows
     -h, --help           Mostrar esta ayuda
 
 MEMORY (3-Layer Workflow):
@@ -759,6 +760,9 @@ MEMORY (3-Layer Workflow):
     -t <tipo> <query>    Filtrar búsqueda por tipo (bugfix|feature|decision|note|config)
 
 COMANDOS RÁPIDOS:
+    oc ask <pedido>      Interpreta intención y asigna agente/workflow
+    oc ask --dry-run     Muestra routing sin ejecutar OpenCode
+    oc ask --clarify     Hace preguntas puntuales antes de ejecutar
     oc analyze <ruta>    @architect + project-map
     oc plan <tarea>      @planner
     oc build <cambio>    @builder + test-first
@@ -781,6 +785,8 @@ EJEMPLOS:
     oc --interactive
     oc --init ~/microservicio
     oc --profile devops
+    oc ask "arregla el bug de login"
+    oc ask --dry-run "revisa seguridad antes de publicar"
     oc build "agregar auth con JWT"
     oc --workflow bug-hunt ~/proyecto
     oc --workflow feature "add OAuth2" ~/api
@@ -827,6 +833,154 @@ quick_devops() {
 quick_oncall() {
     local context="${1:-revisar logs recientes}"
     _oc_run -p "Usa @oncall. Diagnostica: $context"
+}
+
+ask_usage() {
+    cat << 'EOF'
+Usage: oc ask [--dry-run] [--explain] [--clarify] <pedido en lenguaje natural>
+
+Options:
+  --dry-run   Show selected intent, agent/workflow, and prompt without running OpenCode.
+  --explain   Print routing details before running OpenCode.
+  --clarify   Ask a few local clarification questions before routing.
+
+Examples:
+  oc ask "analiza este repo y dime riesgos"
+  oc ask "implementa autenticación con JWT"
+  oc ask --dry-run "revisa seguridad antes de publicar"
+EOF
+}
+
+ask_prompt_for_route() {
+    local task="$1"
+    local intent="$2"
+    local route="$3"
+
+    cat << EOF
+Actúa como intérprete/orquestador de OpenCode Global Config.
+
+Solicitud del usuario:
+$task
+
+Intent detectado: $intent
+Ruta sugerida: $route
+
+Reglas:
+- Si falta información crítica, haz primero hasta 3 preguntas puntuales y espera respuesta antes de modificar o ejecutar acciones riesgosas.
+- Si la solicitud es clara, usa la ruta sugerida y los agentes/skills/rubrics indicados.
+- Prioriza cambios pequeños, verificables y reversibles.
+- Mantén compatibilidad con comandos existentes de este proyecto.
+- Usa rubrics instaladas en ~/.config/opencode/rubrics/ cuando correspondan.
+
+Ejecuta la solicitud usando la ruta sugerida.
+EOF
+}
+
+ask_route() {
+    local task="$1"
+    local lower intent route prompt
+    lower=$(printf '%s' "$task" | tr '[:upper:]' '[:lower:]')
+
+    local guardrail="Si falta información crítica, haz primero hasta 3 preguntas puntuales y espera respuesta antes de modificar o ejecutar acciones riesgosas."
+
+    if [[ "$lower" =~ (implementa|crea|agrega|add|build|feature) ]] && [[ "$lower" =~ (auth|autenticaci[oó]n|login) ]] && ! [[ "$lower" =~ (jwt|oauth|saml|passkey|session|sesi[oó]n|sesiones|cookie|2fa|mfa) ]]; then
+        intent="clarify"
+        route="interpreter -> ask clarifying questions"
+        prompt=$(ask_prompt_for_route "$task" "$intent" "$route")
+    elif [[ "$lower" =~ (prod|producci[oó]n|crash|ca[ií]do|logs?|incidente|oncall) ]]; then
+        intent="production-debug"
+        route="@oncall -> @builder -> @security-auditor"
+        prompt="Usa @oncall para diagnosticar. $guardrail Si hay fix claro, planifica mitigación reversible y luego usa @builder con safe-implementation/test-first; finaliza con @security-auditor. Solicitud: $task"
+    elif [[ "$lower" =~ (seguridad|security|vulnerab|audit|audita|auditar|auditor[ií]a|secret|token|credencial|xss|sql) ]]; then
+        intent="security-review"
+        route="@security-auditor + rubrics/security-review.md"
+        prompt="Usa @security-auditor con ~/.config/opencode/rubrics/security-review.md. $guardrail Audita y reporta hallazgos verificados con severidad y file:line. Solicitud: $task"
+    elif [[ "$lower" =~ (review|revisa|verifica|check|pre.?commit|diff|c[oó]digo) ]]; then
+        intent="code-review"
+        route="@reviewer + precommit-review + rubrics/code-review.md"
+        prompt="Usa @reviewer con precommit-review y ~/.config/opencode/rubrics/code-review.md. $guardrail Revisa bloqueantes, riesgos y pruebas faltantes. Solicitud: $task"
+    elif [[ "$lower" =~ (doc|docs|documenta|readme|changelog|manual) ]]; then
+        intent="documentation"
+        route="@docs-writer -> @reviewer"
+        prompt="Usa @docs-writer para actualizar/generar documentación técnica y luego @reviewer para revisar consistencia. $guardrail Solicitud: $task"
+    elif [[ "$lower" =~ (docker|ci/cd|cicd|deploy|kubernetes|terraform|infra|pipeline|devops) ]] || [[ "$lower" =~ (^|[[:space:]])ci([[:space:]]|$) ]] || [[ "$lower" =~ (^|[[:space:]])cd([[:space:]]|$) ]]; then
+        intent="devops"
+        route="@devops"
+        prompt="Usa @devops. $guardrail Diseña cambios reversibles, valida comandos y considera rollback. Solicitud: $task"
+    elif [[ "$lower" =~ (plan|planifica|diseña|dise[ñn]ar|c[oó]mo|fases) ]]; then
+        intent="planning"
+        route="@planner + rubrics/plan-review.md"
+        prompt="Usa @planner con ~/.config/opencode/rubrics/plan-review.md. $guardrail Divide en fases verificables, supuestos, riesgos y criterios de éxito. Solicitud: $task"
+    elif [[ "$lower" =~ (analiza|analyze|arquitectura|estructura|stack|entender) ]]; then
+        intent="architecture-analysis"
+        route="@architect + project-map"
+        prompt="Usa @architect con project-map. $guardrail Analiza stack, entrypoints, módulos críticos, riesgos, seguridad visible, comandos y plan sugerido. Solicitud: $task"
+    elif [[ "$lower" =~ (bug|fix|arregla|corrige|error|falla|failing|broken) ]]; then
+        intent="bugfix"
+        route="@architect -> @planner -> @builder -> @reviewer"
+        prompt="Usa flujo bugfix: $guardrail @architect para causa probable, @planner con criterios verificables, @builder con safe-implementation/test-first, y @reviewer con precommit-review. Solicitud: $task"
+    elif [[ "$lower" =~ (implementa|crea|agrega|add|build|feature|mejora|cambia|modifica) ]]; then
+        intent="feature"
+        route="@architect -> @planner -> @builder -> @reviewer"
+        prompt="Usa flujo feature: $guardrail @architect para contexto, @planner con ~/.config/opencode/rubrics/plan-review.md, @builder con safe-implementation/test-first, y @reviewer con ~/.config/opencode/rubrics/code-review.md. Solicitud: $task"
+    else
+        intent="clarify"
+        route="interpreter -> ask clarifying questions"
+        prompt=$(ask_prompt_for_route "$task" "$intent" "$route")
+    fi
+
+    printf '%s\n%s\n%s\n' "$intent" "$route" "$prompt"
+}
+
+ask_command() {
+    local dry_run=0 explain=0 clarify=0
+    local args=()
+
+    shift
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --dry-run) dry_run=1 ;;
+            --explain) explain=1 ;;
+            --clarify) clarify=1 ;;
+            -h|--help) ask_usage; return 0 ;;
+            *) args+=("$1") ;;
+        esac
+        shift || true
+    done
+
+    if [ "${#args[@]}" -eq 0 ]; then
+        ask_usage
+        return 1
+    fi
+
+    [ "$dry_run" -eq 1 ] && clarify=0
+
+    local task="${args[*]}"
+    if [ "$clarify" -eq 1 ]; then
+        local answer
+        read -rp "Objetivo concreto: " answer
+        [ -n "$answer" ] && task="$task | Objetivo: $answer"
+        read -rp "Ruta/archivo/proyecto relevante (opcional): " answer
+        [ -n "$answer" ] && task="$task | Contexto: $answer"
+        read -rp "Restricciones o criterios de éxito (opcional): " answer
+        [ -n "$answer" ] && task="$task | Criterios: $answer"
+    fi
+
+    local route_output intent route prompt
+    route_output=$(ask_route "$task")
+    intent=$(printf '%s\n' "$route_output" | sed -n '1p')
+    route=$(printf '%s\n' "$route_output" | sed -n '2p')
+    prompt=$(printf '%s\n' "$route_output" | sed '1,2d')
+
+    if [ "$dry_run" -eq 1 ] || [ "$explain" -eq 1 ]; then
+        echo "Intent: $intent"
+        echo "Route: $route"
+        echo "Prompt:"
+        printf '%s\n' "$prompt"
+    fi
+
+    [ "$dry_run" -eq 1 ] && return 0
+    _oc_run -p "$prompt"
 }
 
 list_profiles() {
@@ -1277,6 +1431,9 @@ Output as plain markdown. This will be saved to resume the session later."; then
         ;;
     --list-workflows)
         list_workflows
+        ;;
+    ask)
+        ask_command "$@"
         ;;
     analyze)
         quick_analyze "${2:-.}"

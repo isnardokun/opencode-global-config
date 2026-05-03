@@ -119,6 +119,16 @@ por qué falla el build?
 diagnostica el error
 ```
 
+Modo opcional con un solo comando:
+
+```bash
+oc ask "arregla el bug de login"
+oc ask --dry-run "revisa seguridad antes de publicar"
+oc ask --clarify "implementa autenticación"
+```
+
+`oc ask` mantiene todos los comandos explícitos disponibles, pero agrega un router en lenguaje natural que elige agente/workflow probable y hace preguntas puntuales cuando la solicitud es ambigua.
+
 El mapeo completo de intenciones está en `AGENTS.md`.
 
 ---
@@ -484,6 +494,11 @@ oc --wizard
 
 
 ```bash
+# Router natural opcional
+oc ask "arregla el bug de login"       # Asigna agente/workflow probable
+oc ask --dry-run "audita el release"   # Previsualiza sin ejecutar OpenCode
+oc ask --clarify "agrega auth"         # Pregunta aclaraciones primero
+
 # Análisis
 oc analyze ~/proyecto       # @architect + project-map
 oc plan "tarea compleja"    # @planner

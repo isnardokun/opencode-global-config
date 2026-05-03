@@ -324,6 +324,11 @@ Reportadas como OK por los agentes builder/reviewer:
    - Decisión: adoptar criterios formales y evidencia antes de copiar orquestación multi-CLI compleja.
    - Agentes impactados: `@reviewer`, `@security-auditor`, `@planner`.
 
+10. **Router natural opcional `oc ask`**
+   - Agrega un único comando para interpretar solicitudes en lenguaje natural y asignar agente/workflow probable.
+   - Soporta `--dry-run` para previsualizar routing, `--explain` para mostrar routing antes de ejecutar y `--clarify` para pedir contexto puntual local.
+   - Decisión: mantener todos los comandos explícitos existentes; `oc ask` es solo una capa opcional de UX.
+
 ### Correcciones aplicadas en sesión 2026-05-01
 Se hizo análisis profundo del estado del proyecto y se aplicaron correcciones funcionales y documentales:
 - `oc`: migrado de `opencode -p` a `opencode run` para compatibilidad con OpenCode 1.14.31.

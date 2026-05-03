@@ -22,6 +22,7 @@ Release de hardening y readiness: smoke tests funcionales ampliados, gates reuti
 
 ### CLI y documentación
 
+- **`oc ask`** — agrega router opcional de lenguaje natural con `--dry-run`, `--explain` y `--clarify`; asigna agentes/workflows sin quitar comandos explícitos.
 - **`oc`** — soporta `--remember -p project` y `--memory -p project -t type`; `oc --init` genera `pre-commit` y `pre-push` fail-closed.
 - **`VERSION`** — añade fuente simple de versión actual para validaciones.
 - **Docs** — alinea conteos visibles a 9 perfiles y registra `CONTEXTO_PROYECTO.md` como bitácora viva.
