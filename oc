@@ -883,7 +883,11 @@ ask_route() {
 
     local guardrail="Si falta información crítica, haz primero hasta 3 preguntas puntuales y espera respuesta antes de modificar o ejecutar acciones riesgosas."
 
-    if [[ "$lower" =~ (implementa|crea|agrega|add|build|feature) ]] && [[ "$lower" =~ (auth|autenticaci[oó]n|login) ]] && ! [[ "$lower" =~ (jwt|oauth|saml|passkey|session|sesi[oó]n|sesiones|cookie|2fa|mfa) ]]; then
+    if [[ "$lower" =~ (100%|readiness|release.?ready|release.?readiness|falta|pendiente|brecha|brechas) ]]; then
+        intent="readiness-analysis"
+        route="@architect + project-map -> @planner"
+        prompt="Usa @architect con project-map en modo solo lectura para evaluar readiness técnico del proyecto. No modifiques archivos. Evita bash salvo que el usuario lo apruebe; usa lectura, glob y grep cuando sea suficiente. Luego usa @planner para proponer fases verificables hacia 100%. $guardrail Solicitud: $task"
+    elif [[ "$lower" =~ (implementa|crea|agrega|add|build|feature) ]] && [[ "$lower" =~ (auth|autenticaci[oó]n|login) ]] && ! [[ "$lower" =~ (jwt|oauth|saml|passkey|session|sesi[oó]n|sesiones|cookie|2fa|mfa) ]]; then
         intent="clarify"
         route="interpreter -> ask clarifying questions"
         prompt=$(ask_prompt_for_route "$task" "$intent" "$route")

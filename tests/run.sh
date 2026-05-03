@@ -112,6 +112,11 @@ ask_unknown="$(run_oc ask --dry-run "ayuda con esto")"
 [[ "$ask_unknown" == *"Intent: clarify"* ]] || fail "ask should clarify ambiguous requests"
 [[ "$ask_unknown" == *"hasta 3 preguntas puntuales"* ]] || fail "ask clarify prompt should ask targeted questions"
 
+ask_readiness="$(run_oc ask --dry-run "revisa el proyecto y dime que falta para estar en 100%")"
+[[ "$ask_readiness" == *"Intent: readiness-analysis"* ]] || fail "ask should route readiness requests before generic review"
+[[ "$ask_readiness" == *"@architect"* ]] || fail "ask readiness route should include architect"
+[[ "$ask_readiness" == *"Evita bash"* ]] || fail "ask readiness prompt should avoid bash by default"
+
 ask_auth="$(run_oc ask --dry-run "implementa autenticación")"
 [[ "$ask_auth" == *"Intent: clarify"* ]] || fail "ask should clarify vague auth implementation requests"
 
