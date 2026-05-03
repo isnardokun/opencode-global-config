@@ -2,7 +2,7 @@
 
 Todos los cambios notables de este proyecto se documentarán en este archivo.
 
-## [Unreleased] - Bug-hunt hardening
+## [1.9.5] - 2026-05-03
 
 ### Seguridad y confiabilidad
 

@@ -127,7 +127,7 @@ fi
 
 echo -e "${BLUE}"
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║     OpenCode Global Config - Instalador v1.9.4            ║"
+echo "║     OpenCode Global Config - Instalador v1.9.5            ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 

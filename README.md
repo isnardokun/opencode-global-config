@@ -31,7 +31,7 @@ Inspired by [VILA-Lab/Dive-into-Claude-Code](https://github.com/VILA-Lab/Dive-in
 
 ## Features
 
-**v1.9.4 + reusable review rubrics, natural routing, and release-readiness hardening**
+**v1.9.5 + reusable review rubrics, natural routing, safety hardening, and installer diagnostics**
 
 - **11 specialized agents** — no hardcoded model; use whichever model you select in OpenCode's UI
 - **8 official slash commands** — `/analyze`, `/review`, `/secure`, `/feature`, `/bug-hunt`, `/docs`, `/devops`, `/oncall` — usable directly in OpenCode's TUI

@@ -46,7 +46,7 @@ Inspirado en análisis de Claude Code (VILA-Lab/Dive-into-Claude-Code) y directr
 
 Este repositorio contiene una configuración avanzada para [OpenCode CLI](https://opencode.ai) inspirada en Claude Code y proyectos de código abierto.
 
-### Características Principales (v1.9.4)
+### Características Principales (v1.9.5)
 
 - **11 agentes especializados** — sin modelo hardcodeado, usan el modelo que selecciones en OpenCode
 - **9 perfiles con enforcement por prompt** — reglas como `requireTests`, `checkpointBeforeChanges` se inyectan como instrucciones explícitas al LLM en cada llamada no interactiva de `oc`
