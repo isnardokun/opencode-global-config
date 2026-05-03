@@ -2,7 +2,9 @@
 
 Todos los cambios notables de este proyecto se documentarán en este archivo.
 
-## [Unreleased] - 2026-05-02
+## [1.9.4] - 2026-05-02
+
+Release de hardening y readiness: smoke tests funcionales ampliados, gates reutilizables por rubrics, validación instalada más estricta y documentación alineada al comportamiento real.
 
 ### Tests y validación
 

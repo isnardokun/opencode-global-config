@@ -30,7 +30,7 @@ Inspired by [VILA-Lab/Dive-into-Claude-Code](https://github.com/VILA-Lab/Dive-in
 
 ## Features
 
-**v1.9.3 + release-readiness hardening**
+**v1.9.4 + reusable review rubrics and release-readiness hardening**
 
 - **11 specialized agents** — no hardcoded model; use whichever model you select in OpenCode's UI
 - **8 official slash commands** — `/analyze`, `/review`, `/secure`, `/feature`, `/bug-hunt`, `/docs`, `/devops`, `/oncall` — usable directly in OpenCode's TUI
@@ -874,7 +874,7 @@ opencode-global-config/
 
 ## Changelog
 
-### Unreleased (2026-05-02)
+### v1.9.4 (2026-05-02)
 
 #### Release Readiness
 
@@ -885,6 +885,12 @@ opencode-global-config/
 - **`plugins/package.json`**: declares plugin JavaScript as ESM and removes Node's typeless-module warning.
 - **Hooks**: pass explicit diffs, require `BLOCKING_FINDINGS=false`, and run optional `gitleaks` when available.
 - **`oc --init`**: generates both `pre-commit` and `pre-push` fail-closed hooks.
+
+#### Release Notes
+
+- Adds reusable code/security/plan review rubrics inspired by `dsifry/metaswarm` without adding multi-CLI orchestration complexity.
+- Strengthens installed-config validation so missing rubrics fail `validate.sh --installed` and `oc --doctor`.
+- Keeps release gates green through expanded smoke tests, shell validation, plugin syntax checks, and CI.
 
 ---
 

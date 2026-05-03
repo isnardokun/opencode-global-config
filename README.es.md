@@ -46,7 +46,7 @@ Inspirado en análisis de Claude Code (VILA-Lab/Dive-into-Claude-Code) y directr
 
 Este repositorio contiene una configuración avanzada para [OpenCode CLI](https://opencode.ai) inspirada en Claude Code y proyectos de código abierto.
 
-### Características Principales (v1.9.3)
+### Características Principales (v1.9.4)
 
 - **11 agentes especializados** — sin modelo hardcodeado, usan el modelo que selecciones en OpenCode
 - **9 perfiles con enforcement por prompt** — reglas como `requireTests`, `checkpointBeforeChanges` se inyectan como instrucciones explícitas al LLM en cada llamada no interactiva de `oc`
@@ -535,7 +535,7 @@ oc --profile trusted   # Activar perfil
 oc --list-profiles     # Ver todos disponibles
 ```
 
-### Cómo funciona el enforcement de perfiles (v1.9.3)
+### Cómo funciona el enforcement de perfiles (v1.9.4)
 
 OpenCode no lee estos archivos como perfiles nativos. El script `oc` lee el campo `policy` y lo inyecta como instrucciones explícitas en cada prompt no interactivo enviado con `opencode run`:
 
