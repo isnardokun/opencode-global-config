@@ -334,6 +334,7 @@ Reportadas como OK por los agentes builder/reviewer:
    - `oc --memory` ahora soporta queries multi-palabra sin flags.
    - `track_turn` crea la config si falta y se recupera de `.session` corrupto.
    - `install.sh` usa `mktemp -d` y matching PATH delimitado; `uninstall.sh` no imprime restore si no hubo backup.
+   - `install.sh` ahora diagnostica requisitos requeridos/recomendados/opcionales y muestra hints sin instalar paquetes del sistema automáticamente.
    - Tests ampliados en `tests/run.sh`; validaciones reportadas OK: `make check`, `make test`, `./validate.sh`, `bash install.sh --dry-run`, `git diff --check`.
 
 ### Correcciones aplicadas en sesión 2026-05-01

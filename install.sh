@@ -37,6 +37,87 @@ run() {
     fi
 }
 
+command_status() {
+    local name="$1"
+    local description="$2"
+    if command -v "$name" >/dev/null 2>&1; then
+        printf "  [OK]      %-10s %s (%s)\n" "$name" "$description" "$(command -v "$name")"
+        return 0
+    fi
+    printf "  [MISSING] %-10s %s\n" "$name" "$description"
+    return 1
+}
+
+install_hint() {
+    local cmd="$1"
+    case "$cmd" in
+        opencode)
+            echo "    - OpenCode: https://opencode.ai"
+            ;;
+        git|jq|python3|node|fzf|gitleaks|shellcheck|shfmt)
+            if command -v apt >/dev/null 2>&1; then
+                case "$cmd" in
+                    node) echo "    - sudo apt install nodejs" ;;
+                    shfmt) echo "    - shfmt: install from https://github.com/mvdan/sh" ;;
+                    *) echo "    - sudo apt install $cmd" ;;
+                esac
+            elif command -v dnf >/dev/null 2>&1; then
+                case "$cmd" in
+                    node) echo "    - sudo dnf install nodejs" ;;
+                    shfmt) echo "    - sudo dnf install shfmt" ;;
+                    *) echo "    - sudo dnf install $cmd" ;;
+                esac
+            elif command -v brew >/dev/null 2>&1; then
+                case "$cmd" in
+                    python3) echo "    - brew install python" ;;
+                    node) echo "    - brew install node" ;;
+                    *) echo "    - brew install $cmd" ;;
+                esac
+            else
+                echo "    - Install $cmd with your system package manager"
+            fi
+            ;;
+    esac
+}
+
+print_requirements() {
+    echo "Requisitos del sistema:"
+    echo "  Requeridos:"
+    local missing_required=0
+    command_status git "clonar/actualizar configuración" || missing_required=$((missing_required + 1))
+    command_status opencode "ejecutar agentes y CLI OpenCode" || missing_required=$((missing_required + 1))
+
+    echo "  Recomendados:"
+    command_status python3 "memoria JSONL/frontmatter robusto" || true
+    command_status jq "validación JSON y doctor" || true
+    command_status node "validar/cargar plugin safety-guard.js" || true
+
+    echo "  Opcionales:"
+    command_status fzf "oc --interactive" || true
+    command_status gitleaks "escaneo de secretos en hooks" || true
+    command_status shellcheck "lint shell en desarrollo/CI" || true
+    command_status shfmt "formateo shell con make format" || true
+
+    if [ "$missing_required" -gt 0 ]; then
+        echo ""
+        warn "Faltan requisitos requeridos: $missing_required"
+        echo "Sugerencias de instalación:"
+        command -v git >/dev/null 2>&1 || install_hint git
+        command -v opencode >/dev/null 2>&1 || install_hint opencode
+    fi
+
+    return "$missing_required"
+}
+
+check_requirements() {
+    print_requirements
+    local missing_required=$?
+    if [ "$missing_required" -gt 0 ]; then
+        error "Instala los requisitos requeridos y vuelve a ejecutar el instalador."
+    fi
+    success "Requisitos requeridos verificados"
+}
+
 # Cleanup on any exit (success or failure)
 trap 'rm -rf "$INSTALL_DIR"' EXIT
 
@@ -51,8 +132,10 @@ echo "╚═══════════════════════�
 echo -e "${NC}"
 
 if [ "$DRY_RUN" -eq 1 ]; then
+    print_requirements || true
+    echo ""
     echo "Plan de instalación:"
-    echo "  - Verificar git y opencode"
+    echo "  - Verificar requisitos requeridos y listar recomendados/opcionales"
     echo "  - Clonar $REPO_URL en $INSTALL_DIR"
     echo "  - Crear backup si existe $CONFIG_DIR"
     echo "  - Instalar config en $CONFIG_DIR"
@@ -65,16 +148,7 @@ fi
 
 # 1. Check requirements
 info "Verificando requisitos..."
-
-if ! command -v git >/dev/null 2>&1; then
-    error "Git no está instalado. Instálalo primero."
-fi
-
-if ! command -v opencode >/dev/null 2>&1; then
-    error "OpenCode no está instalado. Instálalo desde: https://opencode.ai"
-fi
-
-success "Requisitos verificados"
+check_requirements
 
 # 2. Clone repo
 info "Descargando configuración..."

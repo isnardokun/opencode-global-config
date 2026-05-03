@@ -2,10 +2,12 @@
 
 ## Requisitos
 
-- [OpenCode CLI](https://opencode.ai) instalado
-- Git
-- `fzf` — solo para modo interactivo (`oc --interactive`)
+- **Requeridos:** [OpenCode CLI](https://opencode.ai) y Git
+- **Recomendados:** `python3`, `jq`, `node`
+- **Opcionales:** `fzf` para `oc --interactive`, `gitleaks` para secret scanning en hooks, `shellcheck` y `shfmt` para desarrollo
 - Compatible con: Linux (Ubuntu, Fedora, Debian, Arch), macOS (Intel y Apple Silicon)
+
+El instalador detecta estos comandos, reporta cuáles faltan y solo bloquea si faltan requisitos requeridos. No instala paquetes del sistema automáticamente.
 
 ## Instalación Rápida
 
@@ -14,10 +16,10 @@ curl -fsSL https://raw.githubusercontent.com/isnardokun/opencode-global-config/m
 ```
 
 El script:
-1. Verifica que `git` y `opencode` estén instalados
-2. Clona el repo en `/tmp`
+1. Verifica requisitos requeridos/recomendados/opcionales y muestra hints si falta algo
+2. Clona el repo en un directorio temporal seguro con `mktemp -d`
 3. Hace backup de `~/.config/opencode` si existe
-4. Copia agentes, skills, perfiles, plugins y hooks
+4. Copia agentes, skills, perfiles, plugins, hooks, comandos, memoria, souls y rubrics
 5. Genera `opencode.json` con rutas absolutas (sin `~`)
 6. Instala el comando `oc` en `~/.local/bin`
 7. Añade `~/.local/bin` al PATH en `.bashrc`, `.bash_profile` (macOS), `.zshrc`, y fish según lo que tengas
@@ -38,7 +40,7 @@ git clone https://github.com/isnardokun/opencode-global-config.git /tmp/opencode
 mkdir -p ~/.config/opencode
 
 # 4. Copiar solo los archivos de configuración (no README, CHANGELOG, etc.)
-for d in agents skills profiles plugins hooks memory souls commands; do
+for d in agents skills profiles plugins hooks memory souls commands rubrics; do
     [ -d "/tmp/opencode-config/$d" ] && cp -r "/tmp/opencode-config/$d" ~/.config/opencode/
 done
 cp /tmp/opencode-config/AGENTS.md ~/.config/opencode/

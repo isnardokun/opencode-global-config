@@ -67,9 +67,17 @@ Inspired by [VILA-Lab/Dive-into-Claude-Code](https://github.com/VILA-Lab/Dive-in
 curl -fsSL https://raw.githubusercontent.com/isnardokun/opencode-global-config/main/install.sh | bash
 ```
 
-The installer: backs up existing config, sets up PATH in bash/zsh/fish, works on Linux and macOS.
+The installer: backs up existing config, detects required/recommended/optional tools, sets up PATH in bash/zsh/fish, works on Linux and macOS.
 
-**Requirements:** `opencode` and `git` (required), `fzf` (only for `oc --interactive`)
+Installer requirement checks:
+
+| Level | Tools | Used for |
+|-------|-------|----------|
+| Required | `git`, `opencode` | clone/install config and run OpenCode agents |
+| Recommended | `python3`, `jq`, `node` | robust memory writes, JSON/doctor validation, plugin syntax/runtime checks |
+| Optional | `fzf`, `gitleaks`, `shellcheck`, `shfmt` | interactive menu, secret scanning in hooks, shell linting, formatting |
+
+If a required tool is missing, installation stops with install hints. Recommended/optional tools are reported but do not block installation; affected features gracefully degrade.
 
 Safer manual flow if you do not want to pipe directly into `bash`:
 

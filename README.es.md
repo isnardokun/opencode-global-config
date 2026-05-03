@@ -72,9 +72,11 @@ Este repositorio contiene una configuración avanzada para [OpenCode CLI](https:
 curl -fsSL https://raw.githubusercontent.com/isnardokun/opencode-global-config/main/install.sh | bash
 ```
 
-El instalador hace backup automático, configura el PATH en bash/zsh/fish y funciona en Linux y macOS.
+El instalador hace backup automático, detecta requisitos del sistema, configura el PATH en bash/zsh/fish y funciona en Linux y macOS.
 
-**Requisitos:** `opencode` y `git` (requeridos), `fzf` (solo para `oc --interactive`)
+**Requisitos:** `opencode` y `git` son requeridos. `python3`, `jq` y `node` son recomendados. `fzf`, `gitleaks`, `shellcheck` y `shfmt` son opcionales para menú interactivo, hooks y desarrollo.
+
+El instalador reporta qué falta y solo bloquea si faltan requisitos requeridos.
 
 Ver [INSTALL.md](INSTALL.md) para instalación manual y solución de problemas.
 

@@ -177,6 +177,8 @@ pass "doctor, installed validation and installer dry-run pass in fixtures"
 
 dry_run_output="$(bash "$ROOT/install.sh" --dry-run)"
 [[ "$dry_run_output" == *"opencode-config-install."* ]] || fail "install dry-run should show mktemp-style install dir"
+[[ "$dry_run_output" == *"Requisitos del sistema:"* ]] || fail "install dry-run should report system requirements"
+[[ "$dry_run_output" == *"opencode"* ]] || fail "install dry-run should mention opencode requirement"
 uninstall_output="$(HOME="$TMPDIR/no-config-home" bash "$ROOT/uninstall.sh" --force)"
 [[ "$uninstall_output" != *"To restore:"* ]] || fail "uninstall should not print restore command without backup"
 pass "installer and uninstaller handle temp paths and missing backups"

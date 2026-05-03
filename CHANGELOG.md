@@ -10,6 +10,7 @@ Todos los cambios notables de este proyecto se documentarán en este archivo.
 - **`oc`** — `track_turn` crea el directorio de configuración si falta y se recupera de `.session` corrupto/no numérico.
 - **`oc --memory`** — búsquedas multi-palabra sin flags usan toda la query en lugar de interpretar palabras extra como proyecto/tipo posicional.
 - **`install.sh`** — usa `mktemp -d` para workspace temporal y matching de PATH delimitado por `:`.
+- **`install.sh`** — diagnostica herramientas requeridas/recomendadas/opcionales (`opencode`, `git`, `python3`, `jq`, `node`, `fzf`, `gitleaks`, `shellcheck`, `shfmt`) y muestra hints si falta algo.
 - **`uninstall.sh`** — solo muestra instrucciones de restore cuando realmente se creó backup.
 - **`tests/run.sh`** — agrega regresiones para safety guard, memoria multi-palabra, sesión corrupta, instalador y uninstall sin backup.
 
