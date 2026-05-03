@@ -90,6 +90,7 @@ ask_security="$(run_oc ask --dry-run "revisa seguridad antes de publicar")"
 [[ "$ask_security" == *"Intent: security-review"* ]] || fail "ask should route security requests"
 [[ "$ask_security" == *"@security-auditor"* ]] || fail "ask security route should include security auditor"
 [[ "$ask_security" == *"hasta 3 preguntas puntuales"* ]] || fail "ask security prompt should keep clarification guardrail"
+[[ "$ask_security" != *"~/.config/opencode/rubrics"* ]] || fail "ask should not require external rubric file reads"
 
 ask_feature="$(run_oc ask --dry-run "implementa dark mode")"
 [[ "$ask_feature" == *"Intent: feature"* ]] || fail "ask should route feature requests"

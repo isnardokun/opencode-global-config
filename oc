@@ -870,7 +870,7 @@ Reglas:
 - Si la solicitud es clara, usa la ruta sugerida y los agentes/skills/rubrics indicados.
 - Prioriza cambios pequeños, verificables y reversibles.
 - Mantén compatibilidad con comandos existentes de este proyecto.
-- Usa rubrics instaladas en ~/.config/opencode/rubrics/ cuando correspondan.
+- Aplica los criterios de las rubrics de review/seguridad/plan cuando correspondan, sin leer archivos fuera del workspace.
 
 Ejecuta la solicitud usando la ruta sugerida.
 EOF
@@ -894,11 +894,11 @@ ask_route() {
     elif [[ "$lower" =~ (seguridad|security|vulnerab|audit|audita|auditar|auditor[ií]a|secret|token|credencial|xss|sql) ]]; then
         intent="security-review"
         route="@security-auditor + rubrics/security-review.md"
-        prompt="Usa @security-auditor con ~/.config/opencode/rubrics/security-review.md. $guardrail Audita y reporta hallazgos verificados con severidad y file:line. Solicitud: $task"
+        prompt="Usa @security-auditor y aplica la security review rubric: hallazgos verificados, severidad, file:line, remediación y riesgos residuales. $guardrail Solicitud: $task"
     elif [[ "$lower" =~ (review|revisa|verifica|check|pre.?commit|diff|c[oó]digo) ]]; then
         intent="code-review"
         route="@reviewer + precommit-review + rubrics/code-review.md"
-        prompt="Usa @reviewer con precommit-review y ~/.config/opencode/rubrics/code-review.md. $guardrail Revisa bloqueantes, riesgos y pruebas faltantes. Solicitud: $task"
+        prompt="Usa @reviewer con precommit-review y aplica la code review rubric: bloqueantes, recomendaciones importantes, mejoras opcionales y aprobación explícita. $guardrail Solicitud: $task"
     elif [[ "$lower" =~ (doc|docs|documenta|readme|changelog|manual) ]]; then
         intent="documentation"
         route="@docs-writer -> @reviewer"
@@ -910,7 +910,7 @@ ask_route() {
     elif [[ "$lower" =~ (plan|planifica|diseña|dise[ñn]ar|c[oó]mo|fases) ]]; then
         intent="planning"
         route="@planner + rubrics/plan-review.md"
-        prompt="Usa @planner con ~/.config/opencode/rubrics/plan-review.md. $guardrail Divide en fases verificables, supuestos, riesgos y criterios de éxito. Solicitud: $task"
+        prompt="Usa @planner y aplica la plan review rubric: fases verificables, supuestos, riesgos, tradeoffs y criterios de éxito. $guardrail Solicitud: $task"
     elif [[ "$lower" =~ (analiza|analyze|arquitectura|estructura|stack|entender) ]]; then
         intent="architecture-analysis"
         route="@architect + project-map"
@@ -922,7 +922,7 @@ ask_route() {
     elif [[ "$lower" =~ (implementa|crea|agrega|add|build|feature|mejora|cambia|modifica) ]]; then
         intent="feature"
         route="@architect -> @planner -> @builder -> @reviewer"
-        prompt="Usa flujo feature: $guardrail @architect para contexto, @planner con ~/.config/opencode/rubrics/plan-review.md, @builder con safe-implementation/test-first, y @reviewer con ~/.config/opencode/rubrics/code-review.md. Solicitud: $task"
+        prompt="Usa flujo feature: $guardrail @architect para contexto, @planner aplicando plan review rubric, @builder con safe-implementation/test-first, y @reviewer aplicando code review rubric. Solicitud: $task"
     else
         intent="clarify"
         route="interpreter -> ask clarifying questions"
