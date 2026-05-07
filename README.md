@@ -18,6 +18,7 @@ Inspired by [VILA-Lab/Dive-into-Claude-Code](https://github.com/VILA-Lab/Dive-in
 - [How Profile Enforcement Works](#how-profile-enforcement-works)
 - [Memory Bank](#memory-bank)
 - [Workflows](#workflows)
+- [Docs-First Project Context](#docs-first-project-context)
 - [Context Compaction](#context-compaction)
 - [Security Plugin](#security-plugin)
 - [Git Hooks](#git-hooks)
@@ -31,7 +32,7 @@ Inspired by [VILA-Lab/Dive-into-Claude-Code](https://github.com/VILA-Lab/Dive-in
 
 ## Features
 
-**v1.9.5 + reusable review rubrics, natural routing, safety hardening, and installer diagnostics**
+**v1.9.5 + Docs-First project context, reusable review rubrics, natural routing, safety hardening, and installer diagnostics**
 
 - **11 specialized agents** — no hardcoded model; use whichever model you select in OpenCode's UI
 - **8 official slash commands** — `/analyze`, `/review`, `/secure`, `/feature`, `/bug-hunt`, `/docs`, `/devops`, `/oncall` — usable directly in OpenCode's TUI
@@ -42,6 +43,7 @@ Inspired by [VILA-Lab/Dive-into-Claude-Code](https://github.com/VILA-Lab/Dive-in
 - **Optional `oc ask` router** — natural-language intent routing with `--dry-run`, `--explain`, and `--clarify`
 - **3-layer Memory Bank** (search / timeline / full detail) + JSONL index + project/type filters
 - **5 single-pass workflows** (bug-hunt, new-project, debug, document, feature)
+- **Docs-First Project Context** — agents inspect or create `docs/` before implementation/debug/refactor work, using it as living project context
 - **Souls / Personas** for different work contexts
 - **Git hooks** for automatic review; fail-closed markers + optional `gitleaks` if installed
 - **Quick commands** with optional context argument
@@ -749,16 +751,58 @@ oc --workflow feature "add OAuth2" ~/api      # 4 phases (description + path)
 | Workflow | Phases | Agent chain |
 |----------|--------|-------------|
 | `bug-hunt` | 5 | architect → security-auditor → planner → builder → reviewer |
-| `new-project` | 4 | architect → planner → builder → docs-writer |
+| `new-project` | Docs-First + 4 | docs context/questions → architect → planner → builder → docs-writer |
 | `debug` | 3 | oncall → builder → security-auditor |
-| `document` | 3 | architect → docs-writer → reviewer |
-| `feature` | 4 | architect → planner → builder → reviewer |
+| `document` | Docs-First + 3 | docs scan/drift check → architect → docs-writer → reviewer |
+| `feature` | Docs-First + 4 | docs context check → architect → planner → builder → reviewer |
 
 **`feature` workflow takes two arguments:**
 ```bash
 oc --workflow feature "add OAuth2 login" ~/myapi
 #                      ↑ description      ↑ path
 ```
+
+---
+
+## Docs-First Project Context
+
+Docs-First makes project documentation a required context layer before substantial work. When OpenCode is launched with this configuration, agents are instructed to check `docs/` before implementing, debugging, refactoring, or generating documentation.
+
+For existing projects, the agent should:
+
+- read relevant files under `docs/` first, if present;
+- compare docs against the real code/configuration;
+- report or fix documentation drift before relying on stale context;
+- update docs when business logic, data structures, architecture, decisions, tasks, risks, or conversational context change.
+
+For new projects, the agent should ask targeted questions before scaffolding if critical information is missing, then create `docs/` as the project guide.
+
+Recommended `docs/` structure:
+
+```text
+docs/
+├── PROJECT_CONTEXT.md    # purpose, users, scope, current state
+├── BUSINESS_LOGIC.md     # domain rules, workflows, constraints
+├── DATA_STRUCTURE.md     # entities, models, persistence, relationships
+├── ARCHITECTURE.md       # stack, entry points, components, data flow
+├── DECISIONS.md          # technical decisions, tradeoffs, consequences
+├── CHANGELOG.md          # project-level changes and impact
+├── CONVERSATION.md       # curated context from user conversations
+├── TASKS.md              # pending work, bugs, priorities
+├── RISKS.md              # technical, security, operational risks
+└── ONBOARDING.md         # what to read first and how to work safely
+```
+
+Entrypoints that now include Docs-First behavior:
+
+- `oc docs` / `oc ask "document this project"`
+- `oc ask "implement ..."`
+- `oc ask "fix ..."`
+- `oc --workflow new-project ...`
+- `oc --workflow document ...`
+- `oc --workflow feature ...`
+
+The rule is also installed globally through `AGENTS.md` and `CLAUDE.md`, so it complements agents and slash commands even outside the wrapper workflows.
 
 ---
 

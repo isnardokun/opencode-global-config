@@ -4,6 +4,13 @@ Todos los cambios notables de este proyecto se documentarán en este archivo.
 
 ## [1.9.5] - 2026-05-03
 
+### Docs-First Project Context
+
+- **`AGENTS.md` / `CLAUDE.md`** — agregan la regla global Docs-First: revisar o crear `docs/` como contexto vivo antes de implementar, depurar, refactorizar o documentar.
+- **`oc`** — `oc docs`, `oc ask` para documentación/features/bugfixes, y los workflows `new-project`, `document` y `feature` incluyen una fase Docs-First.
+- **`README.md` / `README.es.md`** — documentan la estructura recomendada de `docs/` y los entrypoints que activan Docs-First.
+- **`tests/run.sh`** — agrega smoke tests para asegurar que el router `oc ask` incluye Docs-First.
+
 ### Seguridad y confiabilidad
 
 - **`plugins/safety-guard.js`** — bloquea variantes destructivas adicionales de `rm -rf` con `$HOME`, `${HOME}`, rutas HOME entrecomilladas, subpaths críticos absolutos (`/home/*`, `/etc/*`, `/var/*`, `/root/*`) y separadores shell posteriores al target.

@@ -33,6 +33,7 @@ Inspirado en análisis de Claude Code (VILA-Lab/Dive-into-Claude-Code) y directr
 - [Modo Interactivo](#modo-interactivo)
 - [Modo Wizard](#modo-wizard)
 - [Workflows](#workflows)
+- [Docs-First Project Context](#docs-first-project-context)
 - [Plugin de Seguridad](#plugin-de-seguridad)
 - [Inicializar Proyecto](#inicializar-proyecto)
 - [Git Hooks](#git-hooks)
@@ -55,6 +56,7 @@ Este repositorio contiene una configuración avanzada para [OpenCode CLI](https:
 - **1 plugin de seguridad** con regex hardening (whitespace-normalized matching)
 - **Sistema de Memory Bank** con 3-layer retrieval (search/timeline/get)
 - **5 workflows single-pass** (bug-hunt, new-project, debug, document, feature)
+- **Docs-First Project Context** — los agentes revisan o crean `docs/` antes de implementar, depurar o refactorizar, y lo usan como contexto vivo del proyecto
 - **Souls/Personas** para diferentes contextos
 - **Git Hooks** para revisión automática
 - **Comandos rápidos** con soporte de contexto opcional
@@ -715,10 +717,10 @@ oc --workflow feature "add OAuth2" ~/api       # 4 fases (descripción + path)
 | Workflow | Fases | Cadena de agentes |
 |----------|-------|-------------------|
 | `bug-hunt` | 5 | architect → security-auditor → planner → builder → reviewer |
-| `new-project` | 4 | architect → planner → builder → docs-writer |
+| `new-project` | Docs-First + 4 | contexto/preguntas → architect → planner → builder → docs-writer |
 | `debug` | 3 | oncall → builder → security-auditor |
-| `document` | 3 | architect → docs-writer → reviewer |
-| `feature` | 4 | architect → planner → builder → reviewer |
+| `document` | Docs-First + 3 | revisión de docs/drift → architect → docs-writer → reviewer |
+| `feature` | Docs-First + 4 | revisión de contexto docs → architect → planner → builder → reviewer |
 
 ### Nota sobre `feature` workflow
 
@@ -745,6 +747,48 @@ FASE 2 - @docs-writer:
 FASE 3 - @reviewer:
   Verifica..."
 ```
+
+---
+
+## Docs-First Project Context
+
+Docs-First convierte la documentación del proyecto en una capa obligatoria de contexto antes de trabajo sustancial. Cuando OpenCode corre con esta configuración, los agentes deben revisar `docs/` antes de implementar, depurar, refactorizar o documentar.
+
+En proyectos existentes, el agente debe:
+
+- leer primero los documentos relevantes de `docs/`, si existen;
+- comparar la documentación contra el código/configuración real;
+- reportar o corregir drift documental antes de depender de contexto obsoleto;
+- actualizar docs cuando cambien lógica de negocio, datos, arquitectura, decisiones, tareas, riesgos o contexto conversacional relevante.
+
+En proyectos nuevos, el agente debe hacer preguntas puntuales si falta información crítica y luego crear `docs/` como guía inicial del proyecto.
+
+Estructura recomendada:
+
+```text
+docs/
+├── PROJECT_CONTEXT.md    # propósito, usuarios, alcance, estado actual
+├── BUSINESS_LOGIC.md     # reglas de dominio, flujos, restricciones
+├── DATA_STRUCTURE.md     # entidades, modelos, persistencia, relaciones
+├── ARCHITECTURE.md       # stack, entry points, componentes, flujo de datos
+├── DECISIONS.md          # decisiones técnicas, tradeoffs, consecuencias
+├── CHANGELOG.md          # cambios del proyecto e impacto
+├── CONVERSATION.md       # contexto curado de conversaciones con el usuario
+├── TASKS.md              # pendientes, bugs, prioridades
+├── RISKS.md              # riesgos técnicos, seguridad y operación
+└── ONBOARDING.md         # qué leer primero y cómo trabajar con seguridad
+```
+
+Entrypoints que ahora incluyen Docs-First:
+
+- `oc docs` / `oc ask "documenta este proyecto"`
+- `oc ask "implementa ..."`
+- `oc ask "corrige ..."`
+- `oc --workflow new-project ...`
+- `oc --workflow document ...`
+- `oc --workflow feature ...`
+
+La regla también se instala globalmente mediante `AGENTS.md` y `CLAUDE.md`, así que complementa agentes y slash commands incluso fuera de los workflows del wrapper.
 
 ---
 
