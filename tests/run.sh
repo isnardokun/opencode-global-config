@@ -111,9 +111,15 @@ ask_feature="$(run_oc ask --dry-run "implementa dark mode")"
 [[ "$ask_feature" == *"Intent: feature"* ]] || fail "ask should route feature requests"
 [[ "$ask_feature" == *"@builder"* ]] || fail "ask feature route should include builder"
 [[ "$ask_feature" == *"hasta 3 preguntas puntuales"* ]] || fail "ask feature prompt should keep clarification guardrail"
+[[ "$ask_feature" == *"Docs-First"* ]] || fail "ask feature prompt should include Docs-First"
 
 ask_auth_sessions="$(run_oc ask --dry-run "implementa autenticación con sesiones")"
 [[ "$ask_auth_sessions" == *"Intent: feature"* ]] || fail "ask should accept detailed Spanish auth requests"
+
+ask_docs="$(run_oc ask --dry-run "documenta este proyecto")"
+[[ "$ask_docs" == *"Intent: documentation"* ]] || fail "ask should route documentation requests"
+[[ "$ask_docs" == *"Docs-First"* ]] || fail "ask docs prompt should include Docs-First"
+[[ "$ask_docs" == *"PROJECT_CONTEXT"* ]] || fail "ask docs prompt should mention docs-first files"
 
 ask_ci="$(run_oc ask --dry-run "configura CI")"
 [[ "$ask_ci" == *"Intent: devops"* ]] || fail "ask should route standalone CI requests to devops"

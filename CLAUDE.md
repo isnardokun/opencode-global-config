@@ -28,8 +28,9 @@ Las reglas completas, el mapeo de intenciones y los workflows están en AGENTS.m
    - `safe-implementation` en cualquier modificación
    - `test-first` en implementación nueva
    - `precommit-review` antes de finalizar cambios
-4. **No expongas secretos**: No hagas commit de API keys, passwords, tokens
-5. **Documenta cambios**: Después de modificar, actualiza documentación relevante
+4. **Docs-First**: Antes de implementar, depurar o refactorizar, revisa `docs/` si existe. Si no existe o es proyecto nuevo, propone/crea documentación inicial con contexto, lógica de negocio, datos, arquitectura, decisiones, changelog, conversación, tareas, riesgos y onboarding.
+5. **No expongas secretos**: No hagas commit de API keys, passwords, tokens
+6. **Documenta cambios**: Después de modificar, actualiza documentación relevante
 
 ## Formato de Respuesta
 

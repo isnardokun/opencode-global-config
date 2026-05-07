@@ -64,12 +64,54 @@ Inspiradas en Andrej Karpathy para reducir errores comunes de LLMs en codificaci
 
 ---
 
+## Docs-First Project Context
+
+Antes de implementar, depurar, refactorizar o documentar un proyecto, usa `docs/` como fuente de contexto viva.
+
+### Al abrir o retomar un proyecto existente
+
+1. Revisar si existe `docs/`.
+2. Si existe, leer primero los documentos relevantes antes de tocar código:
+   - `docs/PROJECT_CONTEXT.md`
+   - `docs/BUSINESS_LOGIC.md`
+   - `docs/DATA_STRUCTURE.md`
+   - `docs/ARCHITECTURE.md`
+   - `docs/DECISIONS.md`
+   - `docs/CHANGELOG.md`
+   - `docs/CONVERSATION.md`
+   - `docs/TASKS.md`
+   - `docs/RISKS.md`
+   - `docs/ONBOARDING.md`
+3. Si `docs/` no existe o está incompleto, analizar el proyecto con `@architect` + `project-map` y proponer/crear la carpeta `docs/` con documentación inicial antes de continuar.
+4. Detectar drift entre documentación y código real. Si hay conflicto, confiar en el código/configuración real y actualizar o reportar la documentación obsoleta.
+
+### Al iniciar un proyecto nuevo
+
+Antes de crear estructura o código, hacer preguntas puntuales si falta información crítica:
+
+- ¿Qué problema resuelve el proyecto?
+- ¿Quién lo usará?
+- ¿Qué funcionalidades mínimas debe tener?
+- ¿Qué datos manejará?
+- ¿Qué tipo de sistema será: frontend, backend, CLI, bot, API, automatización u otro?
+- ¿Qué integraciones externas necesita?
+- ¿Qué restricciones de seguridad, privacidad o despliegue existen?
+
+Luego crear `docs/` como guía inicial del proyecto con los documentos aplicables. No inventar reglas de negocio, datos ni integraciones: marcar supuestos y preguntas abiertas.
+
+### Mantenimiento periódico
+
+Actualizar `docs/` cuando cambien reglas de negocio, estructura de datos, arquitectura, decisiones técnicas, tareas, riesgos o contexto conversacional relevante. `docs/CONVERSATION.md` debe ser resumen curado, no transcripción completa.
+
+---
+
 ## Skills preferidas
 
 - project-map
 - safe-implementation
 - test-first (Goal-Driven)
 - precommit-review
+- docs-writer (Docs-First)
 
 ---
 
@@ -162,7 +204,7 @@ Para tareas completas, encadena agentes automáticamente:
 
 | Tarea | Pipeline |
 |-------|----------|
-| "nuevo proyecto" | `@architect` → `@planner` → `@builder` → `@docs-writer` |
+| "nuevo proyecto" | Docs-First → `@architect` → `@planner` → `@builder` → `@docs-writer` |
 | "bug hunt" | `@architect` → `@security-auditor` → `@planner` → `@builder` → `@reviewer` |
 | "documentar" | `@architect` → `@docs-writer` → `@reviewer` |
 | "feature nueva" | `@architect` → `@planner` → `@builder` → `@reviewer` |

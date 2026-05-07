@@ -828,7 +828,15 @@ quick_secure() {
 
 quick_docs() {
     local context="${1:-.}"
-    _oc_run -p "Usa @docs-writer. Genera documentación del proyecto en: $context"
+    _oc_run -p "Usa @architect con project-map y luego @docs-writer. Aplica Docs-First en: $context
+
+Objetivo:
+- Revisar documentación existente.
+- Si falta docs/, crear o proponer docs/ como fuente de contexto viva.
+- Incluir, según aplique: PROJECT_CONTEXT.md, BUSINESS_LOGIC.md, DATA_STRUCTURE.md, ARCHITECTURE.md, DECISIONS.md, CHANGELOG.md, CONVERSATION.md, TASKS.md, RISKS.md, ONBOARDING.md.
+- No inventar features, reglas de negocio, datos ni integraciones.
+- Si el proyecto es nuevo o ambiguo, haz preguntas puntuales antes de asumir.
+- Reporta archivos creados/actualizados y secciones que requieren input humano."
 }
 
 quick_devops() {
@@ -911,7 +919,7 @@ ask_route() {
     elif [[ "$lower" =~ (doc|docs|documenta|readme|changelog|manual) ]]; then
         intent="documentation"
         route="@docs-writer -> @reviewer"
-        prompt="Usa @docs-writer para actualizar/generar documentación técnica y luego @reviewer para revisar consistencia. $guardrail Solicitud: $task"
+        prompt="Usa Docs-First: primero @architect con project-map para revisar docs/ existente y código real; luego @docs-writer para crear/actualizar docs/ como contexto vivo del proyecto; finalmente @reviewer para revisar consistencia. Incluye PROJECT_CONTEXT, BUSINESS_LOGIC, DATA_STRUCTURE, ARCHITECTURE, DECISIONS, CHANGELOG, CONVERSATION, TASKS, RISKS y ONBOARDING según aplique. No inventes features ni reglas de negocio. $guardrail Solicitud: $task"
     elif [[ "$lower" =~ (docker|ci/cd|cicd|deploy|kubernetes|terraform|infra|pipeline|devops) ]] || [[ "$lower" =~ (^|[[:space:]])ci([[:space:]]|$) ]] || [[ "$lower" =~ (^|[[:space:]])cd([[:space:]]|$) ]]; then
         intent="devops"
         route="@devops"
@@ -927,11 +935,11 @@ ask_route() {
     elif [[ "$lower" =~ (bug|fix|arregla|corrige|error|falla|failing|broken) ]]; then
         intent="bugfix"
         route="@architect -> @planner -> @builder -> @reviewer"
-        prompt="Usa flujo bugfix: $guardrail @architect para causa probable, @planner con criterios verificables, @builder con safe-implementation/test-first, y @reviewer con precommit-review. Solicitud: $task"
+        prompt="Usa flujo bugfix con Docs-First: revisa docs/ existente antes de diagnosticar; si falta docs/ o está desactualizado, reporta el gap y crea/actualiza solo lo necesario para contexto. $guardrail @architect para causa probable, @planner con criterios verificables, @builder con safe-implementation/test-first, y @reviewer con precommit-review. Solicitud: $task"
     elif [[ "$lower" =~ (implementa|crea|agrega|add|build|feature|mejora|cambia|modifica) ]]; then
         intent="feature"
         route="@architect -> @planner -> @builder -> @reviewer"
-        prompt="Usa flujo feature: $guardrail @architect para contexto, @planner aplicando plan review rubric, @builder con safe-implementation/test-first, y @reviewer aplicando code review rubric. Solicitud: $task"
+        prompt="Usa flujo feature con Docs-First: antes de diseñar o editar, revisa docs/ como fuente de contexto; si es proyecto nuevo o faltan datos críticos, pregunta primero; si no existe docs/, crea/propon documentación inicial mínima. $guardrail @architect para contexto, @planner aplicando plan review rubric, @builder con safe-implementation/test-first, y @reviewer aplicando code review rubric. Solicitud: $task"
     else
         intent="clarify"
         route="interpreter -> ask clarifying questions"
@@ -1057,6 +1065,21 @@ Ejecuta todas las fases en secuencia. Reporta resultados de cada fase antes de c
             if [ "$interactive" == "true" ]; then confirm "¿Iniciar?" || return 0; fi
             if ! _oc_run -p "Ejecuta el siguiente workflow completo para nuevo proyecto: $target
 
+FASE 0 - Docs-First:
+Antes de crear código, determina si hay información suficiente. Si faltan datos críticos, haz preguntas puntuales al usuario y espera respuesta.
+Crea o propone una carpeta docs/ como guía viva del proyecto con, según aplique:
+- PROJECT_CONTEXT.md
+- BUSINESS_LOGIC.md
+- DATA_STRUCTURE.md
+- ARCHITECTURE.md
+- DECISIONS.md
+- CHANGELOG.md
+- CONVERSATION.md
+- TASKS.md
+- RISKS.md
+- ONBOARDING.md
+No inventes reglas de negocio, datos ni integraciones. Marca supuestos y preguntas abiertas.
+
 FASE 1 - @architect:
 Analiza el contexto: $target
 Identifica stack recomendado, dependencias y arquitectura inicial.
@@ -1073,10 +1096,15 @@ Crea la estructura básica del proyecto: $target
 Genera los archivos base según el plan.
 
 FASE 4 - @docs-writer:
-Genera documentación inicial:
-- README.md con instalación y uso
-- ARCHITECTURE.md con estructura
-- CONTRIBUTING.md si es proyecto colaborativo
+Completa y alinea la documentación inicial en docs/ y README.md:
+- contexto del proyecto
+- lógica de negocio
+- estructura de datos
+- arquitectura
+- decisiones
+- changelog inicial
+- conversación/contexto curado
+- tareas, riesgos y onboarding
 
 Ejecuta todas las fases en secuencia."; then return 1; fi
             echo -e "${GREEN}=== New Project Completado ===${NC}"
@@ -1111,17 +1139,28 @@ Ejecuta todas las fases en secuencia."; then return 1; fi
             if [ "$interactive" == "true" ]; then confirm "¿Iniciar?" || return 0; fi
             if ! _oc_run -p "Ejecuta el siguiente workflow de documentación para: $target
 
+FASE 0 - Docs-First:
+Revisa si existe docs/. Si existe, léelo primero y detecta drift con el código real. Si no existe, crea o propone la carpeta docs/ como fuente de contexto viva.
+
 FASE 1 - @architect con project-map:
 Análisis completo de: $target
 Documenta: stack tecnológico, estructura de archivos, entry points, APIs, dependencias, configuraciones.
 
 FASE 2 - @docs-writer:
 Genera documentación completa para: $target
-Crea o actualiza:
-- README.md (propósito, instalación, uso, ejemplos)
-- ARCHITECTURE.md (diagrama, componentes, flujo de datos)
-- API.md (endpoints, formatos, ejemplos) si aplica
-- DEPLOY.md (instrucciones de deployment) si aplica
+Crea o actualiza docs/ con:
+- PROJECT_CONTEXT.md
+- BUSINESS_LOGIC.md
+- DATA_STRUCTURE.md
+- ARCHITECTURE.md
+- DECISIONS.md
+- CHANGELOG.md
+- CONVERSATION.md
+- TASKS.md
+- RISKS.md
+- ONBOARDING.md
+También actualiza README.md, API.md o DEPLOY.md si aplican al proyecto real.
+No inventes features. Si falta información de negocio o datos, deja preguntas abiertas.
 
 FASE 3 - @reviewer:
 Verifica que la documentación:
@@ -1141,6 +1180,9 @@ Ejecuta todas las fases en secuencia."; then return 1; fi
             echo "Target: $target"
             if [ "$interactive" == "true" ]; then confirm "¿Iniciar?" || return 0; fi
             if ! _oc_run -p "Ejecuta el siguiente workflow para implementar: $feature_desc en: $target
+
+FASE 0 - Docs-First:
+Antes de diseñar o editar, revisa docs/ si existe. Si falta docs/ o no contiene contexto suficiente para la feature, crea/actualiza documentación mínima o haz preguntas puntuales.
 
 FASE 1 - @architect:
 Analiza: $target para implementar: $feature_desc
