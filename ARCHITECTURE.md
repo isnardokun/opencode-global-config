@@ -265,7 +265,7 @@ Node.js emits `MODULE_TYPELESS_PACKAGE_JSON` warning when loading `.js` files wi
 ```
 opencode-global-config/
 ├── oc                          # Main wrapper script (~1100 lines)
-├── VERSION                     # "1.9.5"
+├── VERSION                     # "1.9.6"
 ├── opencode.json               # Native OpenCode config (permissions, plugins, instructions)
 ├── opencode.strict.json        # Paranoid mode: webfetch/websearch/external_dir: deny
 │

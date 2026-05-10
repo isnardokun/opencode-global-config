@@ -1,7 +1,7 @@
 # opencode-global-config — Contexto del Proyecto
 
 **Repo GitHub:** https://github.com/isnardokun/opencode-global-config  
-**Versión actual:** 1.9.5
+**Versión actual:** 1.9.6
 **Última sesión:** 2026-05-02  
 **Directorio de trabajo en sesiones:** `/tmp/opencode-global-config` (clonar si no existe)
 
@@ -139,6 +139,7 @@ Este archivo es la **bitácora viva del proyecto**. Debe registrar:
 
 | Versión | Qué cambió |
 |---------|-----------|
+| **1.9.6** | Self-Improvement Agent: detect_project, auto_compact, auto_reflect, track_outcome, analyze_outcomes; memory templates; Harness Engineering exit conditions; agents/manifest.json |
 | **1.9.4** | Rubrics/gates reutilizables para code review, security review y plan review; validación instalada estricta; `oc --doctor` falla con exit code si faltan artefactos críticos; release-readiness y smoke tests ampliados |
 | **1.9.3** | Fix compat OpenCode 1.14: `opencode run` en lugar de `opencode -p`; validator de permisos en validate.sh; `--dry-run` corregido; `auto.json` permisos inválidos fijados |
 | **1.9.2** | `validate.sh`: line count sanity check + frontmatter validation; `Makefile`: target `format` + `jq` strict |
