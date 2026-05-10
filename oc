@@ -57,11 +57,318 @@ check_fzf() {
     fi
 }
 
+# Auto-detect project from current directory.
+# Uses git remote or directory basename as project identifier.
+detect_project() {
+    local cwd="${1:-$(pwd)}"
+
+    # Check for .git to identify project root
+    if [ -d "${cwd}/.git" ]; then
+        # Try to get project name from git remote
+        local remote_url=$(git -C "$cwd" remote get-url origin 2>/dev/null || true)
+        if [ -n "$remote_url" ]; then
+            # Extract last path component from git URL
+            local project_name=$(printf '%s' "$remote_url" | sed 's/.*\///' | sed 's/\.git$//')
+            [ -n "$project_name" ] && printf '%s' "$project_name" && return 0
+        fi
+        # Fallback: use directory name
+        basename "$cwd" && return 0
+    fi
+
+    # Walk up to find .git parent
+    local dir="$cwd"
+    while [ "$dir" != "/" ] && [ "$dir" != "." ] && [ -n "$dir" ]; do
+        if [ -d "${dir}/.git" ]; then
+            basename "$dir" && return 0
+        fi
+        dir=$(dirname "$dir")
+    done
+
+    # Default fallback
+    printf '%s' "global"
+}
+
+# Auto-compact: compact session if turns exceed threshold
+auto_compact_if_needed() {
+    local turns=0
+    [ -f "${OC_SESSION_FILE}" ] && turns=$(cat "${OC_SESSION_FILE}" 2>/dev/null || echo 0)
+
+    if [ "${turns:-0}" -gt 20 ]; then
+        info "Auto-compacting session (${turns} turns)..."
+        if _oc_run -p "Summarize this entire session in a structured markdown document with these sections:
+## Goal
+What was the main task or objective?
+
+## Findings
+Key things discovered or analyzed (file paths, functions, issues found).
+
+## Changes Made
+Every file modified or created, with a one-line description of what changed and why.
+
+## Decisions
+Technical decisions made and the reasoning behind each.
+
+## Current State
+What is the state of the project/task right now?
+
+## Remaining Work
+What has not been done yet, if anything?
+
+Keep all technical details. Output as plain markdown." 2>/dev/null; then
+            echo "0" > "${OC_SESSION_FILE}"
+            success "Session auto-compacted. Turn counter reset."
+        fi
+    fi
+}
+
+# Auto-reflect: create observation after workflow completion (non-interactive)
+auto_reflect() {
+    local workflow="$1"
+    local target="$2"
+    local project
+    project=$(detect_project "$target")
+
+    local turns=0
+    [ -f "${OC_SESSION_FILE}" ] && turns=$(cat "${OC_SESSION_FILE}" 2>/dev/null || echo 0)
+
+    local template=""
+    case "$workflow" in
+        bug-hunt)
+            template="Bug hunt completado en ${project}. Turns: ${turns}."
+            ;;
+        new-project)
+            template="Nuevo proyecto inicializado: ${project}. Turns: ${turns}."
+            ;;
+        debug)
+            template="Debug completado en ${project}. Turns: ${turns}."
+            ;;
+        document)
+            template="Documentación generada para ${project}. Turns: ${turns}."
+            ;;
+        feature)
+            template="Feature implementada en ${project}. Turns: ${turns}."
+            ;;
+        *)
+            template="Workflow ${workflow} completado en ${project}. Turns: ${turns}."
+            ;;
+    esac
+
+    create_observation "note" "$template" "$project"
+}
+
+# Analyze patterns from outcomes and suggest improvements (non-interactive)
+analyze_outcomes() {
+    local outcome_dir="${OC_MEMORY}/outcomes"
+    [ ! -d "$outcome_dir" ] && return 0
+
+    local failure_count=0
+
+    while IFS= read -r -d '' f; do
+        local content=$(cat "$f" 2>/dev/null || echo "{}")
+        if echo "$content" | grep -q '"failure"'; then
+            failure_count=$((failure_count + 1))
+        fi
+    done < <(find "$outcome_dir" -name "*.json" -mtime -7 -print0 2>/dev/null)
+
+    if [ "$failure_count" -ge 3 ]; then
+        warn "Detected ${failure_count} workflow failures in recent history"
+        info "Pattern detected. Consider documenting in memory:"
+        echo "  oc --remember -t decision 'workflow failure pattern: ...'"
+    fi
+}
+
+# Analyze patterns from outcomes and suggest improvements
+analyze_outcomes() {
+    local outcome_dir="${OC_MEMORY}/outcomes"
+    [ ! -d "$outcome_dir" ] && return 0
+
+    local failure_count=0
+    local patterns=""
+
+    while IFS= read -r -d '' f; do
+        local content=$(cat "$f" 2>/dev/null || echo "{}")
+        if echo "$content" | grep -q '"failure"'; then
+            failure_count=$((failure_count + 1))
+        fi
+    done < <(find "$outcome_dir" -name "*.json" -mtime -7 -print0 2>/dev/null)
+
+    if [ "$failure_count" -ge 3 ]; then
+        warn "Detected ${failure_count} workflow failures in recent history"
+        info "Pattern detected. Consider documenting in memory:"
+        echo "  oc --remember -t decision 'workflow failure pattern: ...'"
+    fi
+}
+
+show_status() {
+    local turns=0
+    [ -f "${OC_SESSION_FILE}" ] && turns=$(cat "${OC_SESSION_FILE}")
+
+    profile=$(get_active_profile 2>/dev/null || echo "default")
+    [ -z "$profile" ] && profile="none"
+
+    local project
+    project=$(detect_project "$(pwd)")
+
+    local hooks_dir="${HOME}/.config/opencode/hooks"
+    if [ -f "${hooks_dir}/pre-commit" ] && [ -f "${hooks_dir}/pre-push" ]; then
+        hook_installed="✅ installed (pre-commit + pre-push)"
+    else
+        hook_installed="❌ not installed"
+    fi
+
+    local last_cmd=""
+    if [ -f "${OC_MEMORY}/.last_obs_id" ]; then
+        last_cmd=$(cat "${OC_MEMORY}/.last_obs_id" 2>/dev/null || echo "none")
+    fi
+
+    echo ""
+    echo "=== OpenCode Status ==="
+    echo "Session turns: ${turns}"
+    echo "Active profile: ${profile}"
+    echo "Current project: ${project}"
+    echo "Hooks: ${hook_installed}"
+    echo "Last observation: ${last_cmd}"
+    echo ""
+    echo "Recent memory entries:"
+    if [ -f "${OC_MEMORY}/index.jsonl" ]; then
+        tail -5 "${OC_MEMORY}/index.jsonl" 2>/dev/null | while IFS= read -r line; do
+            echo "  $line"
+        done
+    else
+        echo "  (no entries)"
+    fi
+    echo ""
+    if [ "$turns" -gt 20 ]; then
+        echo "⚠️  Auto-compact will trigger at 25 turns (or use: oc --compact)"
+    fi
+}
+
+show_budget() {
+    local turns=0
+    [ -f "${OC_SESSION_FILE}" ] && turns=$(cat "${OC_SESSION_FILE}")
+    echo "Session turns: $turns"
+    [ "$turns" -gt 20 ] && echo "Auto-compact threshold: 25 turns (use oc --compact to force)"
+}
+
 show_budget() {
     local turns=0
     [ -f "${OC_SESSION_FILE}" ] && turns=$(cat "${OC_SESSION_FILE}")
     echo "Session turns: $turns"
     [ "$turns" -gt 20 ] && echo "Consider running: oc --compact"
+}
+
+render_observation_template() {
+    local type="$1"
+    local project="${2:-}"
+    shift 2
+    local custom="$*"
+
+    case "$type" in
+        bugfix)
+            printf '%s\n' \
+                "## Bug Report" \
+                "" \
+                "**Project:** ${project:-unknown}" \
+                "**Date:** $(date +%Y-%m-%d)" \
+                "" \
+                "## Problema" \
+                "Descripción clara del bug:" \
+                "" \
+                "## Causa Raíz" \
+                "Cuál era el problema real:" \
+                "" \
+                "## Solución" \
+                "Cómo se corrigió:" \
+                "" \
+                "## Evidencia" \
+                "- Test que reproduce: ..." \
+                "- Test que pasa: ..." \
+                "" \
+                "## Lecciones" \
+                "1. ..." \
+                "2. ..."
+            ;;
+        decision)
+            printf '%s\n' \
+                "## Architectural Decision" \
+                "" \
+                "**Project:** ${project:-unknown}" \
+                "**Date:** $(date +%Y-%m-%d)" \
+                "" \
+                "## Contexto" \
+                "Situación que motivó la decisión:" \
+                "" \
+                "## Opciones Consideradas" \
+                "1. ..." \
+                "2. ..." \
+                "" \
+                "## Decisión" \
+                "Qué se eligió y por qué:" \
+                "" \
+                "## Consecuencias" \
+                "**Positivas:** ..." \
+                "**Negativas:** ..." \
+                "" \
+                "## Alternativas" \
+                "Qué se descartõ y por qué:"
+            ;;
+        feature)
+            printf '%s\n' \
+                "## Feature Implemented" \
+                "" \
+                "**Project:** ${project:-unknown}" \
+                "**Date:** $(date +%Y-%m-%d)" \
+                "" \
+                "## Descripción" \
+                "Qué hace esta feature:" \
+                "" \
+                "## Motivación" \
+                "Por qué se necesitaba:" \
+                "" \
+                "## Implementación" \
+                "Archivos modificados/creados:" \
+                "- ..." \
+                "" \
+                "## Uso" \
+                "Cómo se usa:" \
+                "" \
+                "## Tests" \
+                "- ..."
+            ;;
+        config)
+            printf '%s\n' \
+                "## Configuration Note" \
+                "" \
+                "**Project:** ${project:-unknown}" \
+                "**Date:** $(date +%Y-%m-%d)" \
+                "" \
+                "## Qué" \
+                "Qué configuración cambió:" \
+                "" \
+                "## Por qué" \
+                "Por qué era necesaria esta configuración:" \
+                "" \
+                "## Valor actual" \
+                "Valor puesto:" \
+                "" \
+                "## Impacto" \
+                "Efecto en el sistema:"
+            ;;
+        *)
+            echo "${custom}"
+            ;;
+    esac
+}
+
+list_observation_templates() {
+    echo "Available observation templates:"
+    echo "  bugfix   — Bug report: problema, causa raíz, solución, evidencia, lecciones"
+    echo "  decision — Architectural decision: contexto, opciones, decisión, consecuencias"
+    echo "  feature  — Feature implemented: descripción, motivación, implementación, uso"
+    echo "  config   — Configuration note: qué, por qué, valor, impacto"
+    echo "  note     — Free-form note (default, no template)"
+    echo ""
+    echo "Use: oc --remember -t bugfix 'my project' or oc --remember --template bugfix -p my-project"
 }
 
 # Real entropy: od is POSIX — works on Linux and macOS without xxd
@@ -343,6 +650,7 @@ PYEOF
 }
 
 # Inject active profile rules into every non-interactive opencode run.
+# Also auto-compact if session turns exceed threshold.
 _oc_run() {
     local profile rules_text
     profile=$(get_active_profile)
@@ -356,6 +664,22 @@ _oc_run() {
         opencode run "${prompt}${rules_text}" "$@"
     else
         opencode "$@"
+    fi
+
+    # Auto-compact if turns are high (runs silently, doesn't block)
+    auto_compact_if_needed
+}
+
+# Emit post-execution hint if session turns are high
+# Call this after workflows and heavy agent runs, not after every command.
+auto_summary_hint() {
+    local turns=0
+    [ -f "${OC_SESSION_FILE}" ] && turns=$(cat "${OC_SESSION_FILE}" 2>/dev/null || echo 0)
+    if [ "${turns:-0}" -gt 15 ]; then
+        echo ""
+        warn "Session turns: ${turns}. Consider saving a summary:"
+        echo "  oc --remember -p <project> -t note 'session summary: ...'"
+        echo "  oc --compact   # structured summary + reset counter"
     fi
 }
 
@@ -751,6 +1075,7 @@ OPCIONES:
     -l, --list-profiles  Listar perfiles disponibles
     --compact            Summarize session context + reset turn counter
     --budget             Ver uso de turns en sesión actual
+    --status             Ver estado: turns, perfil, hooks, memoria
     --doctor             Diagnose installation health
     ask [opts] <pedido>  Router natural opcional para agentes/workflows
     -h, --help           Mostrar esta ayuda
@@ -761,6 +1086,8 @@ MEMORY (3-Layer Workflow):
     --get <id1,id2>      Capa 3: Detalle completo de observaciones
     --remember <texto>   Crear observación nueva
     --remember [-p proyecto] [-t tipo] <texto>  Observación con proyecto/tipo
+    --remember --template [-t tipo]            Mostrar template de observación (bugfix/decision/feature/config)
+    --list-templates     Listar templates disponibles
     --capture            Capturar estado actual de sesión
     -t <tipo> <query>    Filtrar búsqueda por tipo (bugfix|feature|decision|note|config)
 
@@ -1021,17 +1348,102 @@ confirm() {
     [[ "$response" == "y" ]] || [[ "$response" == "Y" ]]
 }
 
+track_outcome() {
+    local workflow="$1"
+    local status="$2"
+    local project="${3:-global}"
+    local details="${4:-}"
+
+    local outcome_dir="${OC_MEMORY}/outcomes"
+    mkdir -p "$outcome_dir"
+
+    local ts=$(date +%Y%m%d-%H%M%S)
+    local outcome_file="${outcome_dir}/${workflow}-${ts}.json"
+
+    python3 - "$outcome_file" "$workflow" "$status" "$project" "$details" << 'PYEOF'
+import json, sys
+path, workflow, status, project, details = sys.argv[1:]
+with open(path, "w") as f:
+    json.dump({"workflow": workflow, "status": status, "project": project, "details": details, "date": sys.argv[5] if len(sys.argv) > 5 else ""}, f, ensure_ascii=False)
+PYEOF
+}
+
+auto_reflect() {
+    local workflow="$1"
+    local target="$2"
+    local turns=0
+    [ -f "${OC_SESSION_FILE}" ] && turns=$(cat "${OC_SESSION_FILE}" 2>/dev/null || echo 0)
+
+    local project=$(basename "$target" 2>/dev/null || echo "unknown")
+
+    cat << REFLECTION
+
+--- Post-Workflow Reflection ---
+Workflow: $workflow
+Target: $target
+Session turns: ${turns}
+Was this successful? [y/n/skip]:
+REFLECTION
+
+    read -rp "Reflection (what went well/what didn't): " reflection
+
+    if [[ "$reflection" == "skip" ]] || [[ -z "$reflection" ]]; then
+        return 0
+    fi
+
+    local type="note"
+    if [[ "$reflection" == "n" ]] || [[ "$reflection" == "N" ]]; then
+        type="bugfix"
+    fi
+
+    create_observation "$type" "${workflow} outcome for ${project}: ${reflection}" "$project"
+}
+
+analyze_patterns() {
+    local outcome_dir="${OC_MEMORY}/outcomes"
+    [ ! -d "$outcome_dir" ] && return 0
+
+    local failure_count=0
+    local recent_failures=""
+
+    for f in "${outcome_dir}"/*.json; do
+        [ -f "$f" ] || continue
+        local content=$(cat "$f" 2>/dev/null)
+        if echo "$content" | grep -q '"failure"'; then
+            failure_count=$((failure_count + 1))
+            recent_failures="${recent_failures}  - $(echo "$content" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("workflow","?") + ": " + d.get("details","?"))' 2>/dev/null)\n"
+        fi
+    done
+
+    if [ "$failure_count" -ge 3 ]; then
+        echo ""
+        warn "Pattern detected: ${failure_count} workflow failures in recent history"
+        echo "Recent failures:"
+        printf '%b' "$recent_failures"
+        echo ""
+        info "Suggestion: Consider creating a rule in AGENTS.md or adjusting workflow parameters"
+        echo "  oc --list-templates   # to document lessons learned"
+        echo "  oc --remember -t decision 'workflow pattern: ...'"
+    fi
+}
+
 run_workflow() {
     local workflow="${1:-}"
     local target="${2:-.}"
     local interactive="${3:-false}"
     local feature_desc="${4:-nueva funcionalidad}"
+    local exit_conditions="CRITICAL: After completing all phases, respond with exactly one line: WORKFLOW_COMPLETE=true"
 
     case "$workflow" in
         bug-hunt)
             echo -e "${BLUE}=== Bug Hunt Pipeline (single-pass) ===${NC}"
             if [ "$interactive" == "true" ]; then confirm "¿Iniciar?" || return 0; fi
             if ! _oc_run -p "Ejecuta el siguiente workflow completo para: $target
+
+EXIT_CONDITIONS:
+- Maximum 8 agent turns total across all phases
+- If no bugs found after Phase 2, stop and report
+- After Phase 5, respond with exactly: WORKFLOW_COMPLETE=true
 
 FASE 1 - @architect con project-map:
 Analiza el proyecto en: $target
@@ -1057,13 +1469,20 @@ Reporta resultado final.
 
 Ejecuta todas las fases en secuencia. Reporta resultados de cada fase antes de continuar a la siguiente."; then return 1; fi
             echo -e "${GREEN}=== Bug Hunt Completado ===${NC}"
-            create_observation "bugfix" "Bug hunt completado en $target" "$(basename "$target")"
+            auto_reflect "bug-hunt" "$target"
+            track_outcome "bug-hunt" "success" "$(detect_project "$target")"
+            analyze_outcomes
             ;;
 
         new-project)
             echo -e "${BLUE}=== New Project Setup Pipeline (single-pass) ===${NC}"
             if [ "$interactive" == "true" ]; then confirm "¿Iniciar?" || return 0; fi
             if ! _oc_run -p "Ejecuta el siguiente workflow completo para nuevo proyecto: $target
+
+EXIT_CONDITIONS:
+- Maximum 6 agent turns total across all phases
+- If critical information is missing after Phase 0, stop and ask questions before proceeding
+- After Phase 4, respond with exactly: WORKFLOW_COMPLETE=true
 
 FASE 0 - Docs-First:
 Antes de crear código, determina si hay información suficiente. Si faltan datos críticos, haz preguntas puntuales al usuario y espera respuesta.
@@ -1108,13 +1527,20 @@ Completa y alinea la documentación inicial en docs/ y README.md:
 
 Ejecuta todas las fases en secuencia."; then return 1; fi
             echo -e "${GREEN}=== New Project Completado ===${NC}"
-            create_observation "feature" "Proyecto inicializado: $target" "$(basename "$target")"
+            auto_reflect "new-project" "$target"
+            track_outcome "new-project" "success" "$(detect_project "$target")"
+            analyze_outcomes
             ;;
 
         debug)
             echo -e "${BLUE}=== Production Debug Pipeline (single-pass) ===${NC}"
             if [ "$interactive" == "true" ]; then confirm "¿Iniciar?" || return 0; fi
             if ! _oc_run -p "Ejecuta el siguiente workflow de debug para: $target
+
+EXIT_CONDITIONS:
+- Maximum 5 agent turns total across all phases
+- If P1 critical issue found in Phase 1, prioritize immediate mitigation before continuing
+- After Phase 3, respond with exactly: WORKFLOW_COMPLETE=true
 
 FASE 1 - @oncall:
 Diagnostica el problema en: $target
@@ -1131,13 +1557,20 @@ Confirma que el fix es correcto y completo.
 
 Ejecuta todas las fases en secuencia."; then return 1; fi
             echo -e "${GREEN}=== Debug Completado ===${NC}"
-            create_observation "bugfix" "Debug completado en $target" "$(basename "$target")"
+            auto_reflect "debug" "$target"
+            track_outcome "debug" "success" "$(detect_project "$target")"
+            analyze_outcomes
             ;;
 
         document)
             echo -e "${BLUE}=== Codebase Documentation Pipeline (single-pass) ===${NC}"
             if [ "$interactive" == "true" ]; then confirm "¿Iniciar?" || return 0; fi
             if ! _oc_run -p "Ejecuta el siguiente workflow de documentación para: $target
+
+EXIT_CONDITIONS:
+- Maximum 6 agent turns total across all phases
+- If docs/ already complete and no drift detected, skip to Phase 3
+- After Phase 3, respond with exactly: WORKFLOW_COMPLETE=true
 
 FASE 0 - Docs-First:
 Revisa si existe docs/. Si existe, léelo primero y detecta drift con el código real. Si no existe, crea o propone la carpeta docs/ como fuente de contexto viva.
@@ -1171,7 +1604,9 @@ Reporta solo problemas encontrados.
 
 Ejecuta todas las fases en secuencia."; then return 1; fi
             echo -e "${GREEN}=== Documentation Completada ===${NC}"
-            create_observation "feature" "Documentación generada para $target" "$(basename "$target")"
+            auto_reflect "document" "$target"
+            track_outcome "document" "success" "$(detect_project "$target")"
+            analyze_outcomes
             ;;
 
         feature)
@@ -1180,6 +1615,11 @@ Ejecuta todas las fases en secuencia."; then return 1; fi
             echo "Target: $target"
             if [ "$interactive" == "true" ]; then confirm "¿Iniciar?" || return 0; fi
             if ! _oc_run -p "Ejecuta el siguiente workflow para implementar: $feature_desc en: $target
+
+EXIT_CONDITIONS:
+- Maximum 8 agent turns total across all phases
+- If critical info missing after Phase 0, stop and ask before proceeding
+- After Phase 4, respond with exactly: WORKFLOW_COMPLETE=true
 
 FASE 0 - Docs-First:
 Antes de diseñar o editar, revisa docs/ si existe. Si falta docs/ o no contiene contexto suficiente para la feature, crea/actualiza documentación mínima o haz preguntas puntuales.
@@ -1207,7 +1647,9 @@ Verifica: correctitud, tests, no regresiones, código limpio.
 
 Ejecuta todas las fases en secuencia."; then return 1; fi
             echo -e "${GREEN}=== Feature Completada ===${NC}"
-            create_observation "feature" "Feature implementada: $feature_desc" "$(basename "$target")"
+            auto_reflect "feature" "$target"
+            track_outcome "feature" "success" "$(detect_project "$target")"
+            analyze_outcomes
             ;;
 
         "")
@@ -1267,6 +1709,9 @@ case "$1" in
     --get)
         get_observations "$2"
         ;;
+    --list-templates)
+        list_observation_templates
+        ;;
     --capture)
         capture_session
         ;;
@@ -1274,6 +1719,7 @@ case "$1" in
         shift
         _type="note"
         _project="global"
+        _use_template=0
         while [ $# -gt 0 ]; do
             case "$1" in
                 -t|--type)
@@ -1286,12 +1732,30 @@ case "$1" in
                     _project="${1:-global}"
                     shift || true
                     ;;
+                --template)
+                    _use_template=1
+                    shift || true
+                    ;;
                 *)
                     break
                     ;;
             esac
         done
-        create_observation "$_type" "$*" "$_project"
+
+        if [ "$_use_template" -eq 1 ] || [ -z "$*" ]; then
+            # Show template guide (interactive or copy-paste)
+            list_observation_templates
+            echo ""
+            echo "To fill a template, use:"
+            echo "  oc --remember -t ${_type} -p ${_project} '<your content>'"
+            echo ""
+            if [ "$_use_template" -eq 1 ]; then
+                echo "--- Template Preview for '${_type}' ---"
+                render_observation_template "$_type" "$_project" ""
+            fi
+        else
+            create_observation "$_type" "$*" "$_project"
+        fi
         ;;
     --memory)
         shift
@@ -1359,9 +1823,13 @@ Output as plain markdown. This will be saved to resume the session later."; then
         echo "0" > "${OC_SESSION_FILE}"
         success "Context compacted. Turn counter reset."
         info "Save the summary above to memory with: oc --remember -p <project> '<summary>'"
+        auto_summary_hint
         ;;
     --budget)
         show_budget
+        ;;
+    --status)
+        show_status
         ;;
     --doctor)
         _doc_ok=1

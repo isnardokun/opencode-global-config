@@ -1,0 +1,191 @@
+{
+  "manifest_version": "1.0",
+  "description": "Agent registry for OpenCode Global Config — machine-readable agent cards for discovery and orchestration",
+  "agents": [
+    {
+      "id": "architect",
+      "file": "agents/architect.md",
+      "description": "Analiza arquitectura, dependencias y riesgos antes de modificar código.",
+      "mode": "subagent",
+      "permission": { "edit": "deny", "bash": "deny" },
+      "skills": ["project-map"],
+      "tags": ["analysis", "architecture", "risks", "read-only"],
+      "entrypoints": ["oc analyze", "oc ask analyze", "/analyze"],
+      "special": "No modifica archivos ni ejecuta comandos. Entrega diagnóstico, stack, archivos críticos, riesgos, plan por fases y pruebas recomendadas."
+    },
+    {
+      "id": "planner",
+      "file": "agents/planner.md",
+      "description": "Divide tareas complejas en fases pequeñas y verificables.",
+      "mode": "subagent",
+      "permission": { "edit": "deny", "bash": "deny" },
+      "skills": [],
+      "tags": ["planning", "phases", "success-criteria", "read-only"],
+      "entrypoints": ["oc plan", "oc ask plan"],
+      "special": "Crea planes con criterios de éxito verificables. Divide en fases ordenadas por prioridad. Requiere que cada fase tenga condición de éxito medible."
+    },
+    {
+      "id": "builder",
+      "file": "agents/builder.md",
+      "description": "Implementa cambios controlados y verificables.",
+      "mode": "primary",
+      "permission": { "edit": "allow", "bash": "ask" },
+      "skills": ["safe-implementation", "test-first"],
+      "tags": ["implementation", "coding", "karpathy-principles"],
+      "entrypoints": ["oc build", "oc ask implement", "oc ask fix"],
+      "special": "Usa 4 principios Karpathy: Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven. test-first: escribe test antes de implementación."
+    },
+    {
+      "id": "builder-safe",
+      "file": "agents/builder-safe.md",
+      "description": "Implementa con confirmación antes de cada edición — máximo control.",
+      "mode": "subagent",
+      "permission": { "edit": "ask", "bash": "ask" },
+      "skills": ["safe-implementation"],
+      "tags": ["implementation", "conservative", "confirm-before-edit"],
+      "entrypoints": ["oc ask safe"],
+      "special": "Misma lógica que builder pero confirma antes de cada edición. Para proyectos nuevos o paths críticos (auth, payments, DB schema, infra)."
+    },
+    {
+      "id": "reviewer",
+      "file": "agents/reviewer.md",
+      "description": "Revisa bugs, seguridad, edge cases, estilo y pruebas.",
+      "mode": "subagent",
+      "permission": { "edit": "deny", "bash": "deny" },
+      "skills": ["precommit-review"],
+      "tags": ["review", "security", "quality", "read-only"],
+      "entrypoints": ["oc review", "oc ask review", "/review"],
+      "special": "Usa rubrics/code-review.md como gate. Reporta bloqueantes, recomendaciones importantes y mejoras opcionales. Aprobado/No aprobado."
+    },
+    {
+      "id": "security-auditor",
+      "file": "agents/security-auditor.md",
+      "description": "Auditoría de seguridad, vulnerabilidades y configuración de riesgo.",
+      "mode": "subagent",
+      "permission": { "edit": "deny", "bash": "deny" },
+      "skills": [],
+      "tags": ["security", "audit", "vulnerabilities", "read-only"],
+      "entrypoints": ["oc secure", "oc ask security", "/secure"],
+      "special": "Busca: SQL injection, XSS, credenciales hardcodeadas, tokens en logs, config insegura. Usa rubrics/security-review.md como gate."
+    },
+    {
+      "id": "docs-writer",
+      "file": "agents/docs-writer.md",
+      "description": "Genera y mantiene documentación técnica del proyecto.",
+      "mode": "subagent",
+      "permission": { "edit": "allow", "bash": "deny" },
+      "skills": ["docs-writer"],
+      "tags": ["documentation", "docs", "write"],
+      "entrypoints": ["oc docs", "oc ask document", "/docs"],
+      "special": "Genera README.md, ARCHITECTURE.md, API.md, DEPLOY.md según el proyecto. Docs-First: revisa docs/ existente antes de crear nuevo."
+    },
+    {
+      "id": "devops",
+      "file": "agents/devops.md",
+      "description": "Automatización DevOps, CI/CD, infraestructura y monitoreo.",
+      "mode": "subagent",
+      "permission": { "edit": "allow", "bash": "allow" },
+      "skills": [],
+      "tags": ["devops", "infrastructure", "docker", "kubernetes", "terraform", "ci-cd"],
+      "entrypoints": ["oc devops", "oc ask devops", "/devops"],
+      "special": "Dockerfile, CI/CD, Kubernetes, Terraform. Requiere profile devops activo para ejecutar cambios de infraestructura."
+    },
+    {
+      "id": "oncall",
+      "file": "agents/oncall.md",
+      "description": "Diagnostica y resuelve problemas de producción, logs y errores.",
+      "mode": "subagent",
+      "permission": { "edit": "deny", "bash": "ask" },
+      "skills": [],
+      "tags": ["production", "debug", "incident", "logs", "diagnostics"],
+      "entrypoints": ["oc oncall", "oc ask production", "/oncall"],
+      "special": "Reversibility-weighted risk: acciones reversibles requieren menos aprobación. Clasifica P1/P2/P3, identifica causa raíz, lista mitigaciones."
+    },
+    {
+      "id": "migration-planner",
+      "file": "agents/migration-planner.md",
+      "description": "Diseña migraciones incrementales reversibles sin tocar producción.",
+      "mode": "subagent",
+      "permission": { "edit": "deny", "bash": "deny" },
+      "skills": [],
+      "tags": ["migration", "database", "api", " reversible", "read-only"],
+      "entrypoints": ["oc ask migrate"],
+      "special": "Solo lectura. Diseña migraciones incrementales y reversibles para DB, servicios o datos. Cada paso debe tener rollback listo."
+    },
+    {
+      "id": "performance-profiler",
+      "file": "agents/performance-profiler.md",
+      "description": "Detecta cuellos de botella de performance — sin modificaciones.",
+      "mode": "subagent",
+      "permission": { "edit": "deny", "bash": "deny" },
+      "skills": [],
+      "tags": ["performance", "profiling", "n-plus-1", "optimization", "read-only"],
+      "entrypoints": ["oc ask performance", "oc ask optimize"],
+      "special": "Detecta: N+1 queries, O(n²) algoritmos, I/O bloqueante, índices faltantes. Solo lectura, no modifica código."
+    }
+  ],
+  "skills": [
+    {
+      "id": "project-map",
+      "path": "skills/project-map/",
+      "description": "Análisis de estructura de proyecto"
+    },
+    {
+      "id": "safe-implementation",
+      "path": "skills/safe-implementation/",
+      "description": "Cambios mínimos, verificables y reversibles"
+    },
+    {
+      "id": "test-first",
+      "path": "skills/test-first/",
+      "description": "Goal-Driven Execution — verificar antes de implementar"
+    },
+    {
+      "id": "precommit-review",
+      "path": "skills/precommit-review/",
+      "description": "Revisión de diff antes de commit"
+    },
+    {
+      "id": "memory-retrieval",
+      "path": "skills/memory-retrieval/",
+      "description": "3-layer progressive disclosure (search/timeline/get)"
+    },
+    {
+      "id": "docs-writer",
+      "path": "skills/docs-writer/",
+      "description": "Documentación técnica"
+    }
+  ],
+  "workflows": [
+    {
+      "id": "bug-hunt",
+      "phases": 5,
+      "agents": ["architect", "security-auditor", "planner", "builder", "reviewer"],
+      "exit_conditions": { "max_turns": 8, "early_stop_if": "no_bugs_found_after_phase2" }
+    },
+    {
+      "id": "new-project",
+      "phases": 4,
+      "agents": ["architect", "planner", "builder", "docs-writer"],
+      "exit_conditions": { "max_turns": 6, "early_stop_if": "missing_critical_info_phase0" }
+    },
+    {
+      "id": "debug",
+      "phases": 3,
+      "agents": ["oncall", "builder", "security-auditor"],
+      "exit_conditions": { "max_turns": 5, "early_stop_if": "p1_priority_immediate_mitigation" }
+    },
+    {
+      "id": "document",
+      "phases": 3,
+      "agents": ["architect", "docs-writer", "reviewer"],
+      "exit_conditions": { "max_turns": 6, "early_stop_if": "docs_complete_no_drift" }
+    },
+    {
+      "id": "feature",
+      "phases": 4,
+      "agents": ["architect", "planner", "builder", "reviewer"],
+      "exit_conditions": { "max_turns": 8, "early_stop_if": "missing_critical_info_phase0" }
+    }
+  ]
+}

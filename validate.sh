@@ -58,6 +58,7 @@ check_dir  "agents"
 check_dir  "skills"
 check_dir  "plugins"
 check_dir  "profiles"
+check_file "agents/manifest.json"
 check_dir  "commands"
 check_dir  "hooks"
 check_dir  "memory"
@@ -214,6 +215,55 @@ for md in "${ROOT}/agents/"*.md "${ROOT}/commands/"*.md; do
         fail "Invalid frontmatter: $fname"
     fi
 done
+echo ""
+
+echo "Custom linters:"
+_linter_errors=0
+
+# 1. No TODO without issue reference (TODO: that has no #issue or JIRA- style ref)
+while IFS= read -r -d '' f; do
+    fname="${f#${ROOT}/}"
+    if grep -n 'TODO:' "$f" | grep -v -E '(#[0-9]+|JIRA-[0-9]+|[a-zA-Z0-9]+-[0-9]+)' >/dev/null 2>&1; then
+        fail "TODO without issue ref: $fname (add #issue or JIRA- ref)"
+        _linter_errors=$((_linter_errors + 1))
+    fi
+done < <(find "${ROOT}/agents" "${ROOT}/skills" -name '*.md' -print0 2>/dev/null)
+
+# 2. No obvious hardcoded secrets/credentials in agents and skills
+# Only flag assignment patterns: key=value, "key": "value", ENV_VAR=value, key: value
+_credential_patterns="(api[_-]?key|secret[_-]?key|password|token|aws[_-]?access|jwt[_-]?secret)[=:]"
+while IFS= read -r -d '' f; do
+    fname="${f#${ROOT}/}"
+    if grep -iE "$_credential_patterns" "$f" | grep -v -E '(example|sample|mock|placeholder|SKIP|REMOVE|FIXME|allowEnvEdit|allow|deny|ask|summary|title|description)' >/dev/null 2>&1; then
+        fail "Possible hardcoded credential assignment: $fname (use env var or redact)"
+        _linter_errors=$((_linter_errors + 1))
+    fi
+done < <(find "${ROOT}/agents" "${ROOT}/skills" -name '*.md' -print0 2>/dev/null)
+
+# 3. Skill directories should not exceed 1000 lines total (smell: oversized skill)
+while IFS= read -r -d '' d; do
+    sname="${d#${ROOT}/}"
+    total=$(find "$d" -name '*.md' -exec cat {} \; 2>/dev/null | wc -l | tr -d ' ')
+    if [ "${total:-0}" -gt 1000 ]; then
+        warn "Oversized skill (>1000 lines): $sname ($total lines)"
+    fi
+done < <(find "${ROOT}/skills" -mindepth 1 -maxdepth 1 -type d -print0 2>/dev/null)
+
+# 4. Skills must have SKILL.md
+_missing_skill=0
+while IFS= read -r -d '' d; do
+    sname="${d#${ROOT}/}"
+    if [ ! -f "$d/SKILL.md" ]; then
+        fail "Missing SKILL.md: $sname/"
+        _linter_errors=$((_linter_errors + 1))
+    fi
+done < <(find "${ROOT}/skills" -mindepth 1 -maxdepth 1 -type d -print0 2>/dev/null)
+
+if [ "$_linter_errors" -eq 0 ]; then
+    pass "Custom linters passed"
+else
+    fail "Custom linters: $_linter_errors error(s)"
+fi
 echo ""
 
 echo "Documentation consistency:"
