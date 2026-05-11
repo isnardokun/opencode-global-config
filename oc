@@ -73,9 +73,29 @@ sync_to_project_docs() {
     project_root=$(find_project_root 2>/dev/null || true)
     [ -z "$project_root" ] && return 1
 
-    # Target: <project_root>/docs/memory/
-    local target_dir="${project_root}/docs/memory"
+    # Create docs/ and docs/memory/ if they don't exist
+    local docs_dir="${project_root}/docs"
+    local target_dir="${docs_dir}/memory"
     mkdir -p "$target_dir"
+
+    # If docs/ was just created (empty), create minimal docs/README.md
+    if [ ! -f "${docs_dir}/README.md" ]; then
+        cat > "${docs_dir}/README.md" << 'EOF'
+# Project Documentation
+
+This folder contains project documentation managed by OpenCode Global Config.
+Memory and observations are stored in `docs/memory/` and synced with the global memory bank.
+
+## Structure
+
+- `memory/` — Observations and outcomes synced from global memory
+- Other docs — Project-specific documentation
+
+## Purpose
+
+This documentation is auto-generated and synced to provide context across sessions and devices.
+EOF
+    fi
 
     local target_file="${target_dir}/$(basename "$source_file")"
     cp "$source_file" "$target_file" 2>/dev/null && info "Synced to project: ${target_file#$HOME/}"
