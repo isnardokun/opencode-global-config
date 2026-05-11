@@ -581,6 +581,8 @@ oc --remember "note"                 # Save to global memory
 oc --remember -t bugfix "note"       # Save with type
 oc --remember -p project "note"      # Save to project memory
 oc --remember -p project -t decision "note"  # Save with project and type
+oc --list-templates                 # Show available observation templates
+oc --save-all                       # Full state save: project + outcomes + reflection
 
 # Session
 oc --budget               # Show session turns
@@ -1054,7 +1056,7 @@ opencode-global-config/
 - **`oc`** — `analyze_outcomes()` analiza outcomes de workflows y detecta patterns de failures; sugiere documentar en memory si hay 3+ fallas recientes
 - **`oc`** — `track_outcome()` ahora usa `detect_project()` en lugar de `basename`
 - **`oc --status`** — ahora muestra "Current project" además de session turns, profile y hooks
-- **`oc --budget`** — ahora indica threshold de auto-compact (25 turns) en lugar de solo "consider running oc --compact"
+- **`oc --budget`** — ahora indica threshold de auto-compact (20 turns) en lugar de solo "consider running oc --compact"
 - **Removido** — `auto_summary_hint()` interactivo; reemplazado por auto-compact silencioso + auto-reflect automático
 
 #### Memory Bank — Templates

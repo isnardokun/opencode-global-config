@@ -183,6 +183,37 @@ memory/
 2. **Timeline** (Layer 2) — chronological context, ~200 tokens
 3. **Get** (Layer 3) — full observation content, ~500-1000 tokens
 
+### Memory Sync to Project
+
+Observations and outcomes are automatically synced to the project's `docs/memory/` directory via `sync_to_project_docs()`:
+
+```
+Project root (has .git/)
+└── docs/
+    ├── README.md            # Docs-First structure explanation
+    ├── PROJECT_CONTEXT.md   # Project context skeleton
+    ├── BUSINESS_LOGIC.md    # Business rules skeleton
+    ├── DATA_STRUCTURE.md    # Data models skeleton
+    ├── ARCHITECTURE.md      # Architecture skeleton
+    ├── DECISIONS.md         # Decision log table
+    ├── CHANGELOG.md         # Version history
+    ├── CONVERSATION.md      # Conversation summary
+    ├── TASKS.md             # Task tracking
+    ├── RISKS.md             # Risk register
+    ├── ONBOARDING.md        # Developer onboarding guide
+    └── memory/              # Synced from global memory
+        ├── INDEX.md
+        └── [outcome/observation files]
+```
+
+**Behavior:**
+1. `find_project_root()` walks up from PWD to find `.git` parent
+2. If `docs/` doesn't exist, creates full Docs-First structure with skeletons
+3. Copies observation/outcome to `docs/memory/`
+4. Updates `docs/memory/INDEX.md` with entry
+
+This enables portability: on another machine, opencode-memory syncs back to global memory via the same mechanism.
+
 ### Souls
 
 Located in `souls/souls.md`. Predefined personas for different work contexts:

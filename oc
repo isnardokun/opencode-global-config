@@ -441,7 +441,7 @@ show_status() {
     fi
     echo ""
     if [ "$turns" -gt 20 ]; then
-        echo "⚠️  Auto-compact will trigger at 25 turns (or use: oc --compact)"
+        echo "⚠️  Auto-compact will trigger at 20 turns (or use: oc --compact)"
     fi
 }
 
@@ -449,7 +449,7 @@ show_budget() {
     local turns=0
     [ -f "${OC_SESSION_FILE}" ] && turns=$(cat "${OC_SESSION_FILE}")
     echo "Session turns: $turns"
-    [ "$turns" -gt 20 ] && echo "Auto-compact threshold: 25 turns (use oc --compact to force)"
+    [ "$turns" -gt 20 ] && echo "Auto-compact threshold: 20 turns (use oc --compact to force)"
 }
 
 show_budget() {
