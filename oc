@@ -59,6 +59,43 @@ check_deps() {
     fi
 }
 
+# Sync observation/outcome to project's docs/memory/ for portability
+# Args: project_name source_file type
+sync_to_project_docs() {
+    local project="$1"
+    local source_file="$2"
+    local type="$3"
+
+    [ -z "$project" ] || [ -z "$source_file" ] || [ -z "$type" ] && return 1
+
+    # Find project root (has .git)
+    local project_root
+    project_root=$(find_project_root 2>/dev/null || true)
+    [ -z "$project_root" ] && return 1
+
+    # Target: <project_root>/docs/memory/
+    local target_dir="${project_root}/docs/memory"
+    mkdir -p "$target_dir"
+
+    local target_file="${target_dir}/$(basename "$source_file")"
+    cp "$source_file" "$target_file" 2>/dev/null && info "Synced to project: ${target_file#$HOME/}"
+
+    # Also create/update docs/memory/INDEX.md
+    local index_file="${target_dir}/INDEX.md"
+    local obs_id=$(basename "$source_file" .md)
+    echo "obs_${obs_id} | $(date +%Y-%m-%d) | ${project} | ${type}" >> "$index_file" 2>/dev/null || true
+}
+
+# Find project root by walking up for .git
+find_project_root() {
+    local dir="${1:-$(pwd)}"
+    while [ "$dir" != "/" ] && [ -n "$dir" ]; do
+        [ -d "${dir}/.git" ] && printf '%s' "$dir" && return 0
+        dir=$(dirname "$dir")
+    done
+    return 1
+}
+
 check_fzf() {
     if ! command -v fzf >/dev/null 2>&1; then
         error "fzf required for interactive mode. Install: dnf install fzf"
@@ -427,6 +464,10 @@ ${content}
 EOF
 
     echo "$obs_id" > "${OC_MEMORY}/.last_obs_id"
+
+    # Sync to project's docs/memory/ for portability
+    sync_to_project_docs "$project" "$obs_file" "observation"
+
     success "Observation created: obs_${obs_id}"
 
     # Append to markdown INDEX
@@ -1375,6 +1416,8 @@ path, workflow, status, project, details = sys.argv[1:]
 with open(path, "w") as f:
     json.dump({"workflow": workflow, "status": status, "project": project, "details": details, "date": sys.argv[5] if len(sys.argv) > 5 else ""}, f, ensure_ascii=False)
 PYEOF
+
+    sync_to_project_docs "$project" "$outcome_file" "outcome"
 }
 
 auto_reflect() {
