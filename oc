@@ -1739,6 +1739,15 @@ if [ $# -eq 0 ]; then
     exit 0
 fi
 
+save_all() {
+    info "Guardando estado completo en memoria..."
+    local project
+    project=$(detect_project "$(pwd)")
+    track_outcome "manual-save" "active" "$project" "Manual full save triggered"
+    auto_reflect "manual-save" "$(pwd)" 0
+    success "Estado guardado: proyecto=$project"
+}
+
 case "$1" in
     -w|--wizard)
         run_wizard
@@ -1766,6 +1775,9 @@ case "$1" in
         ;;
     --capture)
         capture_session
+        ;;
+    --save-all)
+        save_all
         ;;
     --remember)
         shift
@@ -1795,7 +1807,6 @@ case "$1" in
         done
 
         if [ "$_use_template" -eq 1 ] || [ -z "$*" ]; then
-            # Show template guide (interactive or copy-paste)
             list_observation_templates
             echo ""
             echo "To fill a template, use:"
@@ -1878,12 +1889,7 @@ Output as plain markdown. This will be saved to resume the session later."; then
         auto_summary_hint
         ;;
     --save-all)
-        info "Guardando estado completo en memoria..."
-        local project
-        project=$(detect_project "$(pwd)")
-        track_outcome "manual-save" "active" "$project" "Manual full save triggered"
-        auto_reflect "manual-save" "$(pwd)" 0
-        success "Estado guardado: proyecto=$project"
+        save_all
         ;;
     --budget)
         show_budget
