@@ -34,6 +34,14 @@ track_turn() {
     if [ "$turns" -gt 20 ]; then
         warn "Session turns: $turns (consider context compaction)"
     fi
+
+    # Self-Improvement: track outcomes and reflect periodically
+    if [ "${turns}" -gt 0 ] && [ $((turns % 5)) -eq 0 ]; then
+        track_outcome "interaction" "active" "$(detect_project 2>/dev/null || echo 'unknown')" "Session turn ${turns}"
+    fi
+    if [ "${turns}" -gt 0 ] && [ $((turns % 15)) -eq 0 ]; then
+        auto_reflect "interaction" "$(pwd 2>/dev/null || echo '.')" 0
+    fi
 }
 
 check_budget() {
@@ -1077,6 +1085,7 @@ OPCIONES:
     --budget             Ver uso de turns en sesión actual
     --status             Ver estado: turns, perfil, hooks, memoria
     --doctor             Diagnose installation health
+    --save-all           Guardar estado completo en memoria (proyecto + outcomes + reflection)
     ask [opts] <pedido>  Router natural opcional para agentes/workflows
     -h, --help           Mostrar esta ayuda
 
@@ -1824,6 +1833,14 @@ Output as plain markdown. This will be saved to resume the session later."; then
         success "Context compacted. Turn counter reset."
         info "Save the summary above to memory with: oc --remember -p <project> '<summary>'"
         auto_summary_hint
+        ;;
+    --save-all)
+        info "Guardando estado completo en memoria..."
+        local project
+        project=$(detect_project "$(pwd)")
+        track_outcome "manual-save" "active" "$project" "Manual full save triggered"
+        auto_reflect "manual-save" "$(pwd)" 0
+        success "Estado guardado: proyecto=$project"
         ;;
     --budget)
         show_budget
