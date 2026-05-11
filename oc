@@ -73,28 +73,165 @@ sync_to_project_docs() {
     project_root=$(find_project_root 2>/dev/null || true)
     [ -z "$project_root" ] && return 1
 
-    # Create docs/ and docs/memory/ if they don't exist
+    # Create docs/ structure if not exists
     local docs_dir="${project_root}/docs"
     local target_dir="${docs_dir}/memory"
     mkdir -p "$target_dir"
 
-    # If docs/ was just created (empty), create minimal docs/README.md
+    # If docs/ was just created, populate full structure
     if [ ! -f "${docs_dir}/README.md" ]; then
         cat > "${docs_dir}/README.md" << 'EOF'
 # Project Documentation
 
-This folder contains project documentation managed by OpenCode Global Config.
-Memory and observations are stored in `docs/memory/` and synced with the global memory bank.
+Documentación del proyecto gestionada por OpenCode Global Config.
+`docs/memory/` contiene observaciones y outcomes sincronizados con la memoria global.
 
-## Structure
+## Estructura Docs-First
 
-- `memory/` — Observations and outcomes synced from global memory
-- Other docs — Project-specific documentation
+- `memory/` — Observaciones y outcomes (sync automático)
+- `PROJECT_CONTEXT.md` — Contexto general del proyecto
+- `BUSINESS_LOGIC.md` — Reglas de negocio y lógica de dominio
+- `DATA_STRUCTURE.md` — Modelos de datos y esquemas
+- `ARCHITECTURE.md` — Arquitectura técnica del sistema
+- `DECISIONS.md` — Decisiones técnicas registradas
+- `CHANGELOG.md` — Historial de cambios
+- `CONVERSATION.md` — Resumen de decisiones de conversación
+- `TASKS.md` — Lista de tareas y seguimiento
+- `RISKS.md` — Riesgos identificados
+- `ONBOARDING.md` — Guía para nuevos desarrolladores
 
-## Purpose
+## Propósito
 
-This documentation is auto-generated and synced to provide context across sessions and devices.
+Esta documentación es auto-generada y sincronizada. Se usa como contexto vivo para sesiones de OpenCode.
 EOF
+
+        cat > "${docs_dir}/PROJECT_CONTEXT.md" << 'EOF'
+# Contexto del Proyecto
+
+## Resumen
+(Sin definir aún — analizar proyecto para completar)
+
+## Problema que resuelve
+(Sin definir aún)
+
+## Stack tecnológico
+(Sin definir aún)
+
+## Equipo
+(Sin definir aún)
+EOF
+
+        cat > "${docs_dir}/BUSINESS_LOGIC.md" << 'EOF'
+# Lógica de Negocio
+
+## Reglas de negocio
+(Sin definir aún)
+
+## Casos de uso principales
+(Sin definir aún)
+
+## Restricciones y validaciones
+(Sin definir aún)
+EOF
+
+        cat > "${docs_dir}/DATA_STRUCTURE.md" << 'EOF'
+# Estructura de Datos
+
+## Modelos / Entidades principales
+(Sin definir aún)
+
+## Relaciones entre entidades
+(Sin definir aún)
+
+## APIs y contratos de datos
+(Sin definir aún)
+EOF
+
+        cat > "${docs_dir}/ARCHITECTURE.md" << 'EOF'
+# Arquitectura
+
+## Visión general
+(Sin definir aún)
+
+## Componentes principales
+(Sin definir aún)
+
+## Flujos de datos
+(Sin definir aún)
+
+## Tecnologías y dependencias
+(Sin definir aún)
+EOF
+
+        cat > "${docs_dir}/DECISIONS.md" << 'EOF'
+# Decisiones Técnicas
+
+| Fecha | Decisión | Justificación | Status |
+|-------|----------|---------------|--------|
+| (fecha) | (descripción) | (razón) | (accepted/deprecated) |
+EOF
+
+        cat > "${docs_dir}/CHANGELOG.md" << 'EOF'
+# Changelog
+
+## [Unreleased]
+- (pending changes)
+
+## [v0.0.1] - (fecha)
+- Initial project setup
+EOF
+
+        cat > "${docs_dir}/CONVERSATION.md" << 'EOF'
+# Resumen de Conversación
+
+## Decisiones clave
+(Sin definir aún)
+
+## Direcciones futuras
+(Sin definir aún)
+
+## Contextos importantes
+(Sin definir aún)
+EOF
+
+        cat > "${docs_dir}/TASKS.md" << 'EOF'
+# Tareas
+
+## Pendientes
+- [ ] (tarea pendiente)
+
+## En progreso
+- [ ] (tarea en curso)
+
+## Completadas
+- [x] (tarea completada)
+EOF
+
+        cat > "${docs_dir}/RISKS.md" << 'EOF'
+# Riesgos
+
+## Identificados
+(Sin definir aún)
+
+## Mitigaciones
+(Sin definir aún)
+EOF
+
+        cat > "${docs_dir}/ONBOARDING.md" << 'EOF'
+# Guía de Onboarding
+
+## Primeros pasos
+1. (instrucción 1)
+2. (instrucción 2)
+
+## Setup del entorno
+(Sin definir aún)
+
+## Recursos
+(Sin definir aún)
+EOF
+
+        info "Created docs/ structure for project"
     fi
 
     local target_file="${target_dir}/$(basename "$source_file")"
