@@ -1230,6 +1230,18 @@ HOOK
         warn "${target_dir} no es un repo Git; se omiten hooks pre-commit/pre-push."
     fi
 
+    # Auto-install skills via autoskills if available
+    if command -v node >/dev/null 2>&1 && node -v 2>/dev/null | grep -q "^v[0-9]*\."; then
+        info "Instalando skills automáticamente con autoskills..."
+        if npx --yes autoskills -y --dry-run 2>/dev/null | grep -q "Would install\|Installing"; then
+            if npx --yes autoskills -y 2>/dev/null; then
+                success "Skills instalados via autoskills"
+            else
+                warn "autoskills no disponible o falló — instalando skills manualmente después"
+            fi
+        fi
+    fi
+
     success "Proyecto inicializado en ${opencode_dir}/"
 }
 
