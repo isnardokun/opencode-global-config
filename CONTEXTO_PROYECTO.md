@@ -2,7 +2,7 @@
 
 **Repo GitHub:** https://github.com/isnardokun/opencode-global-config  
 **Versión actual:** 1.9.6
-**Última sesión:** 2026-05-02  
+**Última sesión:** 2026-05-12  
 **Directorio de trabajo en sesiones:** `/tmp/opencode-global-config` (clonar si no existe)
 
 ---

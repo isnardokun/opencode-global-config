@@ -12,7 +12,7 @@ Todos los cambios notables de este proyecto se documentarán en este archivo.
 - **`oc`** — `analyze_outcomes()` analiza outcomes de workflows y detecta patterns de failures; sugiere documentar en memory si hay 3+ fallas recientes
 - **`oc`** — `track_outcome()` ahora usa `detect_project()` en lugar de `basename`
 - **`oc --status`** — ahora muestra "Current project" además de session turns, profile y hooks
-- **`oc --budget`** — ahora indica threshold de auto-compact (25 turns) en lugar de solo "consider running oc --compact"
+- **`oc --budget`** — ahora indica threshold de auto-compact (20 turns) en lugar de solo "consider running oc --compact"
 - **Removido** — `auto_summary_hint()` interactivo; reemplazado por auto-compact silencioso + auto-reflect automático
 
 ### Memory Bank — Templates
@@ -26,6 +26,15 @@ Todos los cambios notables de este proyecto se documentarán en este archivo.
 - **`ARCHITECTURE.md`** — nueva sección Self-Improvement Agent con diagrama de automation flow y tabla de funciones
 - **`README.md`** — actualizado features y Context Compaction para reflejar auto-compact silencioso
 
+### Seguridad y confiabilidad
+
+- **`plugins/safety-guard.js`** — bloquea variantes destructivas adicionales de `rm -rf` con `$HOME`, `${HOME}`, rutas HOME entrecomilladas, subpaths críticos absolutos (`/home/*`, `/etc/*`, `/var/*`, `/root/*`) y separadores shell posteriores al target
+- **`oc`** — `track_turn` crea el directorio de configuración si falta y se recupera de `.session` corrupto
+- **`oc --memory`** — búsquedas multi-palabra sin flags usan toda la query en lugar de interpretar palabras extra como proyecto/tipo posicional
+- **`install.sh`** — usa `mktemp -d` para workspace temporal y matching de PATH delimitado por `:`
+- **`uninstall.sh`** — solo muestra instrucciones de restore cuando realmente se creó backup
+- **`tests/run.sh`** — agrega regresiones para safety guard, memoria multi-palabra, sesión corrupta, instalador y uninstall sin backup
+
 ### Mejora de versión (análisis interno)
 
 | Área | Impacto | % Mejora vs v1.9.5 |
@@ -35,7 +44,7 @@ Todos los cambios notables de este proyecto se documentarán en este archivo.
 | Memory | Templates + auto-storage en proyecto correcto | +35% |
 | Harness Engineering | Exit conditions + quality linters | +30% |
 | Observabilidad | `oc --status` con project auto-detectado | +25% |
-| **TOTAL PONDERADA** | | **~44%** |
+| **TOTAL PONDERADA** | | **~44%**
 
 ## [1.9.5] - 2026-05-03
 

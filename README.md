@@ -547,62 +547,136 @@ oc --wizard
 
 ## Quick Commands Reference
 
+### Natural Language Router (optional `oc ask`)
+
 ```bash
-# Natural router (optional)
-oc ask "fix the login bug"        # Routes to the likely agent/workflow
-oc ask --dry-run "audit release"  # Preview route without running OpenCode
-oc ask --clarify "add auth"       # Ask local clarification questions first
+oc ask "fix the login bug"              # Routes to bugfix workflow
+oc ask --dry-run "audit release"        # Preview route without running
+oc ask --clarify "add auth"             # Ask local questions first
+oc ask --explain "implement OAuth2"     # Print routing + run
+```
 
-# Analysis
-oc analyze ~/project      # @architect + project-map
-oc plan "complex task"    # @planner
-oc build "new feature"    # @builder + test-first
-oc review                 # @reviewer + precommit-review
+### Analysis Commands
 
-# Specialized (all accept optional context path)
-oc secure [path]          # @security-auditor
-oc docs [path]            # @docs-writer
-oc devops "dockerfile"    # @devops
-oc oncall [description]   # @oncall
+```bash
+oc analyze ~/project                    # @architect + project-map
+oc analyze .                             # Analyze current directory
+oc plan "migrate to PostgreSQL"         # @planner with task
+oc build "add pagination"               # @builder + test-first + safe-implementation
+oc review                               # @reviewer + precommit-review (uses git diff)
+oc review src/api/                      # Review specific path
+```
 
-# Profiles (persists for all following commands)
-oc --profile deny         # Maximum restrictive
-oc --profile plan         # Planning only
-oc --profile trusted      # Direct edits allowed
-oc --profile devops       # Infrastructure
-oc --list-profiles        # List all available
+### Specialized Commands (all accept optional context path)
 
-# Memory
-oc --memory "query"                  # Search (Layer 1: fast)
-oc --memory "query" -p project -t decision  # Filter by project/type
-oc --memory --timeline <obs_id>      # Timeline context (Layer 2)
-oc --memory --get <obs_id>           # Full detail (Layer 3)
-oc --remember "note"                 # Save to global memory
-oc --remember -t bugfix "note"       # Save with type
-oc --remember -p project "note"      # Save to project memory
-oc --remember -p project -t decision "note"  # Save with project and type
-oc --list-templates                 # Show available observation templates
-oc --save-all                       # Full state save: project + outcomes + reflection
+```bash
+oc secure                               # @security-auditor (current dir)
+oc secure src/auth/                     # Audit specific path
+oc docs                                 # @docs-writer (Docs-First + project-map)
+oc docs ~/my-project                    # Document specific project
+oc devops "create Dockerfile"           # @devops with task description
+oc oncall                               # @oncall (interactive diagnosis)
+oc oncall "JWT token expiring"          # @oncall with context
+```
+
+### Profile Management (persists for session)
+
+```bash
+oc --profile deny                       # Maximum restrictive (read-only)
+oc --profile plan                       # Planning only (no modifications)
+oc --profile review                     # Read and report (bash: ask)
+oc --profile default                    # General dev (confirm each change)
+oc --profile work                       # Professional work (conservative)
+oc --profile research                   # Research (more permissions)
+oc --profile auto                       # Assisted mode with tracking
+oc --profile trusted                    # Direct edits allowed
+oc --profile devops                     # Infrastructure + checkpoint
+oc -l, --list-profiles                  # List all available profiles
+```
+
+### Memory Bank Commands
+
+```bash
+# Layer 1: Search (~50-100 tokens/result)
+oc --memory "docker"                                   # Search all projects
+oc --memory "auth" -t decision                         # Filter by type
+oc --memory "redis" -p my-api -t config                 # Filter by project + type
+oc -t bugfix "query"                                    # Short form: -t = --type
+
+# Layer 2: Timeline (~200 tokens)
+oc --memory --timeline 20260501-143022-a1b2c3d4        # Chronological context
+
+# Layer 3: Full detail (~500-1000 tokens)
+oc --memory --get 20260501-143022-a1b2c3d4             # Full observation
+oc --get obs_20260501-143022-a1b2c3d4                  # Alternative syntax
+
+# Create observations
+oc --remember "General note"                            # Create note in global
+oc --remember -t bugfix "Fixed JWT bug"                 # With type
+oc --remember -p project "Context about this project"    # Literal 'project' example
+oc --remember -p my-api "Redis config decision"         # With project
+oc --remember -p my-api -t decision "Chose Redis"      # Project + type
+oc --remember --template -t feature                     # Preview template
+oc --list-templates                                     # Show available templates
 
 # Session
-oc --budget               # Show session turns
-oc --compact              # Summarize + reset counter
+oc --budget                                             # Show session turns
+oc --compact                                            # Summarize + reset counter
+oc --status                                             # Full status report
+oc --save-all                                           # Save project + outcomes + reflection
+oc --capture                                            # Capture session state
+```
 
-# Workflows
-oc --workflow bug-hunt ~/project              # 5 phases
-oc --workflow new-project "my-api"            # 4 phases
-oc --workflow debug "error description"       # 3 phases
-oc --workflow document ~/project              # 3 phases
-oc --workflow feature "add auth" ~/api        # 4 phases
+### Workflows (single-pass, all phases in one session)
 
-# Direct
-oc "any task"             # Sends directly to OpenCode
+```bash
+oc --workflow bug-hunt ~/project              # 5 phases: architect → security → planner → builder → reviewer
+oc --workflow new-project "my-api"            # 4 phases: docs-first → architect → planner → builder → docs-writer
+oc --workflow debug "JWT failing"             # 3 phases: oncall → builder → security
+oc --workflow document ~/project              # 3 phases: docs-first → architect → docs-writer → reviewer
+oc --workflow feature "add auth" ~/api       # 4 phases: docs-first → architect → planner → builder → reviewer
 
-# Validation
-make check                 # Syntax + JSON checks
-make test                  # Functional smoke tests
-./validate.sh              # Full repo validation
-bash install.sh --dry-run  # Safe installation simulation
+# With interactive confirmation between phases
+oc --workflow bug-hunt ~/project --interactive
+
+# List available workflows
+oc --list-workflows
+```
+
+### Initialization and Setup
+
+```bash
+oc --init ~/my-project                       # Initialize project with .opencode/
+oc --init                                    # Initialize current directory
+# Creates: .opencode/opencode.json, .opencode/CLAUDE.md, .git/hooks/pre-commit, .git/hooks/pre-push
+```
+
+### Diagnostic Commands
+
+```bash
+oc --doctor                                  # Installation health check
+# Checks: opencode, oc, config files, directories, JSON validity, fzf, profile, audit log
+
+make check                                   # Syntax + JSON validation
+make test                                    # Functional smoke tests
+./validate.sh                                # Full repo validation
+./validate.sh --installed                    # Validate installed config
+bash install.sh --dry-run                    # Simulate installation
+git diff --check                             # Check for whitespace errors
+```
+
+### Direct OpenCode Access
+
+```bash
+oc "any task"                                # Send directly to OpenCode
+opencode                                     # Start interactive OpenCode session
+```
+
+### Interactive Modes
+
+```bash
+oc --interactive, oc -i                       # fzf menu (requires fzf)
+oc --wizard, oc -w                            # Step-by-step guided mode
 ```
 
 ---
@@ -811,28 +885,65 @@ The rule is also installed globally through `AGENTS.md` and `CLAUDE.md`, so it c
 
 ## Context Compaction
 
+### Session Turn Tracking
+
+Every command increments the session turn counter (`~/.config/opencode/.session`). At 20+ turns, `auto_compact_if_needed()` triggers automatically in `_oc_run()`.
+
 ```bash
 oc --budget    # Show current session turns
+# Session turns: 34
+# Auto-compact threshold: 20 turns (use oc --compact to force)
+
 oc --compact   # Force compaction (auto-triggers at 20 turns)
-oc --status     # Show turns, profile, project, hooks, recent memory
+# Generates structured summary, resets counter
+
+oc --status    # Full status: turns, profile, project, hooks, recent memory
 ```
 
-**Automatic:** When session turns exceed 20, `_oc_run()` triggers auto-compact silently after each command. The counter resets and context is summarized without user intervention.
+### When Auto-Compaction Triggers
 
-Manual `--compact` invokes OpenCode with a structured summarization prompt that produces:
+The auto-compact runs **silently after every command** when turns exceed 20. It:
 
-- **Goal** — what was the session objective?
-- **Findings** — what was analyzed or discovered?
-- **Changes Made** — every file modified and why
-- **Decisions** — technical decisions with reasoning
-- **Current State** — state of the project/task now
-- **Remaining Work** — what hasn't been done yet
+1. Calls OpenCode with a structured summarization prompt
+2. Generates a summary with: Goal, Findings, Changes Made, Decisions, Current State, Remaining Work
+3. Resets the turn counter to 0
+4. Shows confirmation message
 
-For project-specific continuity:
+### Manual Compaction
 
 ```bash
-oc --remember "session summary: ..."
-# Automatically saved to correct project (auto-detected from PWD)
+oc --compact   # Invoke structured LLM summarization + reset
+# Output is plain markdown — save with:
+oc --remember "session summary: <paste summary>"
+```
+
+### Auto-Reflect Post-Workflow
+
+After every workflow (`bug-hunt`, `new-project`, `debug`, `document`, `feature`):
+
+1. `auto_reflect()` creates an observation automatically using `detect_project()`
+2. `track_outcome()` records success/failure in `memory/outcomes/`
+3. `analyze_outcomes()` checks for failure patterns (3+ in 7 days = warning)
+
+```bash
+oc --workflow bug-hunt ~/project
+# After completion:
+# → auto_reflect creates observation in project memory
+# → track_outcome writes to memory/outcomes/bug-hunt-TIMESTAMP.json
+# → analyze_outcomes warns if 3+ recent failures
+```
+
+### Failure Pattern Detection
+
+`analyze_outcomes()` runs after each workflow and checks for 3+ failures in the past 7 days:
+
+```
+$ oc --workflow bug-hunt ~/broken-project
+=== Bug Hunt Completado ===
+[INFO] Workflow complete. Analyzing outcomes...
+[WARN] Detected 3 workflow failures in recent history
+[INFO] Pattern detected. Consider documenting in memory:
+  oc --remember -t decision 'workflow failure pattern: ...'
 ```
 
 ---
