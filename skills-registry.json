@@ -1,0 +1,256 @@
+{
+  "$schema": "https://opencode.ai/skills-registry-schema.json",
+  "version": "1.0.0",
+  "updated": "2026-05-12",
+  "registry_url": "https://github.com/isnardokun/opencode-global-config",
+  "skills": {
+    "universal": [
+      {
+        "id": "project-map",
+        "name": "Project Map",
+        "description": "Analyze project structure, stack, entrypoints and commands",
+        "source": "local",
+        "stars": 0,
+        "tags": ["analysis", "structure", "architecture"]
+      },
+      {
+        "id": "safe-implementation",
+        "name": "Safe Implementation",
+        "description": "Implement changes small, verifiable and reversible",
+        "source": "local",
+        "stars": 0,
+        "tags": ["implementation", "safety", "best-practices"]
+      },
+      {
+        "id": "test-first",
+        "name": "Test First",
+        "description": "Identify and execute tests before and after code changes",
+        "source": "local",
+        "stars": 0,
+        "tags": ["testing", "quality", "tdd"]
+      },
+      {
+        "id": "precommit-review",
+        "name": "Precommit Review",
+        "description": "Final audit before commit or delivery",
+        "source": "local",
+        "stars": 0,
+        "tags": ["review", "quality", "precommit"]
+      },
+      {
+        "id": "memory-retrieval",
+        "name": "Memory Retrieval",
+        "description": "3-layer memory search with progressive disclosure",
+        "source": "local",
+        "stars": 0,
+        "tags": ["memory", "context", "retrieval"]
+      },
+      {
+        "id": "docs-writer",
+        "name": "Docs Writer",
+        "description": "Generate and maintain technical documentation",
+        "source": "local",
+        "stars": 0,
+        "tags": ["documentation", "docs"]
+      }
+    ],
+    "python": [
+      {
+        "id": "python-expert",
+        "name": "Python Expert",
+        "description": "Python patterns, idioms and best practices",
+        "source": "autoskills",
+        "repo": "https://github.com/midudev/autoskills",
+        "path": "skills/python-expert",
+        "stars": 5200,
+        "tags": ["python", "patterns", "best-practices"]
+      },
+      {
+        "id": "fastapi-templates",
+        "name": "FastAPI Templates",
+        "description": "FastAPI project templates and patterns",
+        "source": "autoskills",
+        "repo": "https://github.com/midudev/autoskills",
+        "path": "skills/fastapi-templates",
+        "stars": 3100,
+        "tags": ["python", "fastapi", "api"]
+      },
+      {
+        "id": "django-expert",
+        "name": "Django Expert",
+        "description": "Django patterns, security and performance",
+        "source": "autoskills",
+        "repo": "https://github.com/midudev/autoskills",
+        "path": "skills/django-expert",
+        "stars": 2800,
+        "tags": ["python", "django", "web"]
+      },
+      {
+        "id": "pytest-best-practices",
+        "name": "Pytest Best Practices",
+        "description": "Testing Python applications with pytest",
+        "source": "autoskills",
+        "repo": "https://github.com/midudev/autoskills",
+        "path": "skills/python-testing-patterns",
+        "stars": 1900,
+        "tags": ["python", "testing", "pytest"]
+      }
+    ],
+    "typescript": [
+      {
+        "id": "typescript-advanced",
+        "name": "TypeScript Advanced",
+        "description": "Advanced TypeScript patterns and type-level programming",
+        "source": "autoskills",
+        "repo": "https://github.com/midudev/autoskills",
+        "path": "skills/typescript-advanced-types",
+        "stars": 4800,
+        "tags": ["typescript", "types", "advanced"]
+      },
+      {
+        "id": "react-best-practices",
+        "name": "React Best Practices",
+        "description": "React patterns, composition and performance",
+        "source": "autoskills",
+        "repo": "https://github.com/midudev/autoskills",
+        "path": "skills/react-best-practices",
+        "stars": 6200,
+        "tags": ["react", "frontend", "patterns"]
+      },
+      {
+        "id": "next-best-practices",
+        "name": "Next.js Best Practices",
+        "description": "Next.js caching, components and deployment",
+        "source": "autoskills",
+        "repo": "https://github.com/midudev/autoskills",
+        "path": "skills/next-best-practices",
+        "stars": 5500,
+        "tags": ["nextjs", "react", "ssr"]
+      },
+      {
+        "id": "nodejs-backend",
+        "name": "Node.js Backend Patterns",
+        "description": "Node.js backend architecture and patterns",
+        "source": "autoskills",
+        "repo": "https://github.com/midudev/autoskills",
+        "path": "skills/nodejs-backend-patterns",
+        "stars": 3900,
+        "tags": ["nodejs", "backend", "api"]
+      }
+    ],
+    "go": [
+      {
+        "id": "golang-patterns",
+        "name": "Go Patterns",
+        "description": "Go idioms, patterns and best practices",
+        "source": "autoskills",
+        "repo": "https://github.com/midudev/autoskills",
+        "path": "skills/golang-patterns",
+        "stars": 4100,
+        "tags": ["go", "backend", "patterns"]
+      },
+      {
+        "id": "golang-testing",
+        "name": "Go Testing",
+        "description": "Testing Go applications with standard library and beyond",
+        "source": "autoskills",
+        "repo": "https://github.com/midudev/autoskills",
+        "path": "skills/golang-testing",
+        "stars": 1800,
+        "tags": ["go", "testing"]
+      }
+    ],
+    "rust": [
+      {
+        "id": "rust-best-practices",
+        "name": "Rust Best Practices",
+        "description": "Rust patterns, safety and performance",
+        "source": "autoskills",
+        "repo": "https://github.com/midudev/autoskills",
+        "path": "skills/rust-best-practices",
+        "stars": 3600,
+        "tags": ["rust", "systems", "safety"]
+      }
+    ],
+    "ruby": [
+      {
+        "id": "ruby-on-rails",
+        "name": "Ruby on Rails",
+        "description": "Rails patterns, conventions and security",
+        "source": "autoskills",
+        "repo": "https://github.com/midudev/autoskills",
+        "path": "skills/ruby-on-rails-best-practices",
+        "stars": 4900,
+        "tags": ["ruby", "rails", "web"]
+      }
+    ],
+    "swift": [
+      {
+        "id": "swiftui-expert",
+        "name": "SwiftUI Expert",
+        "description": "SwiftUI patterns, concurrency and testing",
+        "source": "autoskills",
+        "repo": "https://github.com/midudev/autoskills",
+        "path": "skills/swiftui-expert-skills",
+        "stars": 2800,
+        "tags": ["swift", "swiftui", "ios"]
+      }
+    ],
+    "kotlin": [
+      {
+        "id": "kotlin-multiplatform",
+        "name": "Kotlin Multiplatform",
+        "description": "Kotlin Multiplatform tooling and migrations",
+        "source": "autoskills",
+        "repo": "https://github.com/midudev/autoskills",
+        "path": "skills/kotlin-tooling-cocoapods-spm-migration",
+        "stars": 1200,
+        "tags": ["kotlin", "mobile", "multiplatform"]
+      }
+    ],
+    "java": [
+      {
+        "id": "java-springboot",
+        "name": "Spring Boot",
+        "description": "Java Spring Boot patterns and best practices",
+        "source": "autoskills",
+        "repo": "https://github.com/midudev/autoskills",
+        "path": "skills/java-springboot",
+        "stars": 3400,
+        "tags": ["java", "spring", "backend"]
+      }
+    ],
+    "devops": [
+      {
+        "id": "docker-best-practices",
+        "name": "Docker Best Practices",
+        "description": "Docker patterns, security and optimization",
+        "source": "autoskills",
+        "repo": "https://github.com/midudev/autoskills",
+        "path": "skills/docker-best-practices",
+        "stars": 4100,
+        "tags": ["docker", "containers", "devops"]
+      },
+      {
+        "id": "kubernetes-patterns",
+        "name": "Kubernetes Patterns",
+        "description": "Kubernetes deployment and orchestration patterns",
+        "source": "autoskills",
+        "repo": "https://github.com/midudev/autoskills",
+        "path": "skills/kubernetes-patterns",
+        "stars": 3800,
+        "tags": ["kubernetes", "k8s", "devops"]
+      },
+      {
+        "id": "terraform-best",
+        "name": "Terraform Best Practices",
+        "description": "Terraform style guide and module patterns",
+        "source": "autoskills",
+        "repo": "https://github.com/midudev/autoskills",
+        "path": "skills/terraform-style-guide",
+        "stars": 2100,
+        "tags": ["terraform", "iac", "devops"]
+      }
+    ]
+  }
+}

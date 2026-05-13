@@ -1021,6 +1021,156 @@ detect_test_commands() {
     [ -f "${dir}/Makefile" ] && grep -q "^test:" "${dir}/Makefile"          && echo "make test"
 }
 
+# Get skill IDs for a given stack from registry
+get_skills_for_stack() {
+    local stack="$1"
+    local registry_file="${OC_CONFIG}/skills-registry.json"
+
+    if [ ! -f "$registry_file" ]; then
+        # Fallback to local skills if registry not installed
+        case "$stack" in
+            "Node.js") echo "project-map safe-implementation test-first" ;;
+            "Python") echo "project-map safe-implementation test-first" ;;
+            "Go") echo "project-map safe-implementation test-first" ;;
+            "Rust") echo "project-map safe-implementation test-first" ;;
+            "Docker") echo "project-map safe-implementation precommit-review" ;;
+            *) echo "project-map" ;;
+        esac
+        return
+    fi
+
+    # Parse registry with jq
+    if command -v jq >/dev/null 2>&1; then
+        jq -r ".skills.$stack[]?.id // empty" "$registry_file" 2>/dev/null | grep -v "^$"
+    else
+        # Fallback without jq
+        case "$stack" in
+            "Node.js") echo "project-map safe-implementation test-first precommit-review memory-retrieval" ;;
+            "Python") echo "project-map safe-implementation test-first precommit-review memory-retrieval" ;;
+            "Go") echo "project-map safe-implementation test-first precommit-review" ;;
+            "Rust") echo "project-map safe-implementation test-first" ;;
+            "Docker"|"Terraform") echo "project-map safe-implementation precommit-review" ;;
+            *) echo "project-map safe-implementation" ;;
+        esac
+    fi
+}
+
+# Install skills for detected stacks
+install_skills_for_stacks() {
+    local target_dir="${1:-.}"
+    local detected_stacks
+    detected_stacks=$(detect_stack "$target_dir")
+
+    if [ -z "$detected_stacks" ]; then
+        info "No se detectó stack definido — instalando skills universales"
+        detected_stacks="universal"
+    fi
+
+    local installed_count=0
+    local skipped_count=0
+
+    while IFS= read -r stack; do
+        [ -z "$stack" ] && continue
+
+        local skill_ids
+        skill_ids=$(get_skills_for_stack "$stack")
+
+        for skill_id in $skill_ids; do
+            # Check if skill already exists locally
+            if [ -d "${OC_CONFIG}/skills/${skill_id}" ]; then
+                skipped_count=$((skipped_count + 1))
+                continue
+            fi
+
+            # Install from registry if source is autoskills
+            local registry_file="${OC_CONFIG}/skills-registry.json"
+            if [ -f "$registry_file" ] && command -v jq >/dev/null 2>&1; then
+                local source
+                source=$(jq -r ".skills.$stack[] | select(.id==\"$skill_id\") | .source // empty" "$registry_file" 2>/dev/null)
+                if [ "$source" = "autoskills" ]; then
+                    local skill_url
+                    skill_url=$(jq -r ".skills.$stack[] | select(.id==\"$skill_id\") | .repo + \"/raw/main/\" + .path + \"/SKILL.md\" // empty" "$registry_file" 2>/dev/null)
+                    if [ -n "$skill_url" ] && [ "$skill_url" != "null" ]; then
+                        mkdir -p "${OC_CONFIG}/skills/${skill_id}"
+                        if curl -sSL "$skill_url" -o "${OC_CONFIG}/skills/${skill_id}/SKILL.md" 2>/dev/null; then
+                            info "Installed skill: $skill_id ($stack)"
+                            installed_count=$((installed_count + 1))
+                        fi
+                    fi
+                fi
+            fi
+        done
+    done <<< "$detected_stacks"
+
+    # Always ensure universal skills are present
+    # Try to find skills in: OC_CONFIG (global install), same dir as oc, or current dir
+    for universal_skill in project-map safe-implementation test-first precommit-review memory-retrieval docs-writer; do
+        if [ ! -d "${OC_CONFIG}/skills/${universal_skill}" ]; then
+            local source_dir=""
+            # Check global config first
+            [ -d "${OC_CONFIG}/skills/${universal_skill}" ] && source_dir="${OC_CONFIG}/skills"
+            # Check relative to oc binary location
+            if [ -z "$source_dir" ] && [ -f "${BASH_SOURCE[0]}" ]; then
+                local oc_dir
+                oc_dir=$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "${0}")")
+                [ -d "${oc_dir}/../skills/${universal_skill}" ] && source_dir="${oc_dir}/../skills"
+            fi
+            # Check current working directory (repo)
+            if [ -z "$source_dir" ] && [ -d "$(pwd)/skills/${universal_skill}" ]; then
+                source_dir="$(pwd)/skills"
+            fi
+            if [ -n "$source_dir" ] && [ -d "${source_dir}/${universal_skill}" ]; then
+                cp -r "${source_dir}/${universal_skill}" "${OC_CONFIG}/skills/${universal_skill}" 2>/dev/null && installed_count=$((installed_count + 1))
+            fi
+        fi
+    done
+
+    if [ "$installed_count" -gt 0 ]; then
+        success "Skills instalados: $installed_count"
+    fi
+    if [ "$skipped_count" -gt 0 ]; then
+        info "Skills ya existentes (omitidos): $skipped_count"
+    fi
+}
+
+# List available skills for detected stack
+list_skills_for_stack() {
+    local target_dir="${1:-.}"
+
+    if [ ! -f "${OC_CONFIG}/skills-registry.json" ]; then
+        echo "Registry no instalado. Ejecuta: oc --install-skills-registry"
+        return
+    fi
+
+    local detected_stacks
+    detected_stacks=$(detect_stack "$target_dir")
+
+    if [ -z "$detected_stacks" ]; then
+        detected_stacks="universal"
+    fi
+
+    echo ""
+    echo "=== Skills disponibles para tu stack ==="
+    echo ""
+
+    while IFS= read -r stack; do
+        [ -z "$stack" ] && continue
+        echo "[$stack]"
+
+        local skill_ids
+        skill_ids=$(get_skills_for_stack "$stack")
+
+        for skill_id in $skill_ids; do
+            local installed=""
+            [ -d "${OC_CONFIG}/skills/${skill_id}" ] && installed=" ✅"
+
+            local desc=$(jq -r ".skills.$stack[] | select(.id==\"$skill_id\") | .description // \"\" " "${OC_CONFIG}/skills-registry.json" 2>/dev/null)
+            echo "  • $skill_id$installed — $desc"
+        done
+        echo ""
+    done <<< "$detected_stacks"
+}
+
 run_init() {
     local target_dir="${1:-.}"
     local opencode_dir="${target_dir}/.opencode"
@@ -1230,17 +1380,9 @@ HOOK
         warn "${target_dir} no es un repo Git; se omiten hooks pre-commit/pre-push."
     fi
 
-    # Auto-install skills via autoskills if available
-    if command -v node >/dev/null 2>&1 && node -v 2>/dev/null | grep -q "^v[0-9]*\."; then
-        info "Instalando skills automáticamente con autoskills..."
-        if npx --yes autoskills -y --dry-run 2>/dev/null | grep -q "Would install\|Installing"; then
-            if npx --yes autoskills -y 2>/dev/null; then
-                success "Skills instalados via autoskills"
-            else
-                warn "autoskills no disponible o falló — instalando skills manualmente después"
-            fi
-        fi
-    fi
+    # Auto-install skills for detected stack
+    info "Detectando stack e instalando skills..."
+    install_skills_for_stacks "$target_dir"
 
     success "Proyecto inicializado en ${opencode_dir}/"
 }
@@ -1296,6 +1438,8 @@ OPCIONES:
     --status             Ver estado: turns, perfil, hooks, memoria
     --doctor             Diagnose installation health
     --save-all           Guardar estado completo en memoria (proyecto + outcomes + reflection)
+    --detect-skills      Mostrar skills disponibles para el stack del proyecto
+    --install-skills-registry  Descargar registry de skills desde GitHub
     ask [opts] <pedido>  Router natural opcional para agentes/workflows
     -h, --help           Mostrar esta ayuda
 
@@ -2059,6 +2203,14 @@ Output as plain markdown. This will be saved to resume the session later."; then
         ;;
     --save-all)
         save_all
+        ;;
+    --install-skills-registry)
+        info "Instalando registry de skills..."
+        mkdir -p "${OC_CONFIG}"
+        curl -sSL "https://raw.githubusercontent.com/isnardokun/opencode-global-config/main/skills-registry.json" -o "${OC_CONFIG}/skills-registry.json" 2>/dev/null && success "Registry instalado" || error "Falló descarga del registry"
+        ;;
+    --detect-skills)
+        list_skills_for_stack "${2:-.}"
         ;;
     --budget)
         show_budget
