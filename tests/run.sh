@@ -129,19 +129,20 @@ EOF
 chmod +x "$bin_dir/oc"
 
 hook_path="$bin_dir:/usr/bin:/bin"
-PATH="$hook_path" OC_TEST_MARKER=false "$hook_dir/pre-commit" >/dev/null || fail "pre-commit should pass on pass marker as final line"
-if PATH="$hook_path" OC_TEST_MARKER=fail "$hook_dir/pre-commit" >/dev/null 2>&1; then fail "pre-commit should fail on fail marker"; fi
-if PATH="$hook_path" OC_TEST_MARKER=missing "$hook_dir/pre-push" >/dev/null 2>&1; then fail "pre-push should fail on missing marker"; fi
-if PATH="$hook_path" OC_TEST_MARKER=old "$hook_dir/pre-push" >/dev/null 2>&1; then fail "pre-push should reject old BLOCKING_FINDINGS marker"; fi
-if PATH="$hook_path" OC_TEST_MARKER=notlast "$hook_dir/pre-commit" >/dev/null 2>&1; then fail "pre-commit should require pass marker as last non-empty line"; fi
-if PATH="$hook_path" OC_TEST_MARKER=nonzero "$hook_dir/pre-push" >/dev/null 2>&1; then fail "pre-push should fail on non-zero oc"; fi
+PATH="$hook_path" "$hook_dir/pre-commit" >/dev/null || fail "pre-commit should pass with default deterministic checks"
+PATH="$hook_path" OC_HOOK_LLM=1 OC_TEST_MARKER=false "$hook_dir/pre-commit" >/dev/null || fail "pre-commit should pass on pass marker as final line"
+if PATH="$hook_path" OC_HOOK_LLM=1 OC_TEST_MARKER=fail "$hook_dir/pre-commit" >/dev/null 2>&1; then fail "pre-commit should fail on fail marker"; fi
+if PATH="$hook_path" OC_HOOK_LLM=1 OC_TEST_MARKER=missing "$hook_dir/pre-push" >/dev/null 2>&1; then fail "pre-push should fail on missing marker"; fi
+if PATH="$hook_path" OC_HOOK_LLM=1 OC_TEST_MARKER=old "$hook_dir/pre-push" >/dev/null 2>&1; then fail "pre-push should reject old BLOCKING_FINDINGS marker"; fi
+if PATH="$hook_path" OC_HOOK_LLM=1 OC_TEST_MARKER=notlast "$hook_dir/pre-commit" >/dev/null 2>&1; then fail "pre-commit should require pass marker as last non-empty line"; fi
+if PATH="$hook_path" OC_HOOK_LLM=1 OC_TEST_MARKER=nonzero "$hook_dir/pre-push" >/dev/null 2>&1; then fail "pre-push should fail on non-zero oc"; fi
 
 cat > "$bin_dir/timeout" <<'EOF'
 #!/usr/bin/env bash
 exit 124
 EOF
 chmod +x "$bin_dir/timeout"
-if PATH="$hook_path" OC_TEST_MARKER=false OC_HOOK_TIMEOUT_SECONDS=1 "$hook_dir/pre-commit" >/dev/null 2>&1; then fail "pre-commit should fail closed on timeout"; fi
+if PATH="$hook_path" OC_HOOK_LLM=1 OC_TEST_MARKER=false OC_HOOK_TIMEOUT_SECONDS=1 "$hook_dir/pre-commit" >/dev/null 2>&1; then fail "pre-commit should fail closed on timeout"; fi
 rm -f "$bin_dir/timeout"
 
 hook_repo="$TMPDIR/hook-repo"
@@ -155,7 +156,7 @@ git -C "$hook_repo" commit -m init >/dev/null 2>&1
 printf 'baseline\nFULL_DIFF_SENTINEL_SHOULD_NOT_APPEAR\n' > "$hook_repo/file.txt"
 git -C "$hook_repo" add file.txt
 hook_prompt_capture="$TMPDIR/hook-prompt"
-(cd "$hook_repo" && PATH="$hook_path" OC_CAPTURE="$hook_prompt_capture" OC_TEST_MARKER=false "$hook_dir/pre-commit" >/dev/null) || fail "pre-commit should pass in fixture repo"
+(cd "$hook_repo" && PATH="$hook_path" OC_HOOK_LLM=1 OC_CAPTURE="$hook_prompt_capture" OC_TEST_MARKER=false "$hook_dir/pre-commit" >/dev/null) || fail "pre-commit should pass in fixture repo"
 if grep -q 'FULL_DIFF_SENTINEL_SHOULD_NOT_APPEAR' "$hook_prompt_capture"; then fail "pre-commit prompt should not include full diff body when gitleaks is missing"; fi
 grep -q 'file.txt' "$hook_prompt_capture" || fail "pre-commit prompt should include metadata for changed file"
 pass "hooks require final pass marker, fail closed, and omit full diff body"
@@ -240,7 +241,7 @@ if grep -q 'BLOCKING_FINDINGS=false' "$init_repo/.git/hooks/pre-push"; then fail
 bash -n "$init_repo/.git/hooks/pre-commit"
 bash -n "$init_repo/.git/hooks/pre-push"
 generated_push_prompt_capture="$TMPDIR/generated-pre-push-prompt"
-(cd "$init_repo" && PATH="$hook_path" OC_CAPTURE="$generated_push_prompt_capture" OC_TEST_MARKER=false "$init_repo/.git/hooks/pre-push" >/dev/null) || fail "generated pre-push should pass in fixture repo"
+(cd "$init_repo" && PATH="$hook_path" OC_HOOK_LLM=1 OC_CAPTURE="$generated_push_prompt_capture" OC_TEST_MARKER=false "$init_repo/.git/hooks/pre-push" >/dev/null) || fail "generated pre-push should pass in fixture repo"
 if grep -q 'GENERATED_PRE_PUSH_SENTINEL_SHOULD_NOT_APPEAR' "$generated_push_prompt_capture"; then fail "generated pre-push prompt should not include full diff body"; fi
 grep -q 'push-file.txt' "$generated_push_prompt_capture" || fail "generated pre-push prompt should include metadata for changed file"
 pass "oc --init generates fail-closed git hooks"

@@ -29,6 +29,14 @@ if command -v gitleaks >/dev/null 2>&1; then
         echo "❌ Pre-commit rechazado. gitleaks detectó posibles secretos."
         exit 1
     fi
+else
+    echo "⚠️  gitleaks no está instalado; se omite escaneo local de secretos."
+fi
+
+if [ "${OC_HOOK_LLM:-0}" != "1" ]; then
+    echo "ℹ️  Revisión LLM omitida (actívala con OC_HOOK_LLM=1)."
+    echo "✅ Pre-commit aprobado"
+    exit 0
 fi
 
 prompt="
