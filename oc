@@ -1050,7 +1050,7 @@ get_skills_for_stack() {
 
     # Parse registry with jq
     if command -v jq >/dev/null 2>&1; then
-        jq -r ".skills.$stack[]?.id // empty" "$registry_file" 2>/dev/null | grep -v "^$"
+        jq -r ".skills.${stack}[]?.id // empty" "$registry_file" 2>/dev/null | grep -v "^$"
     else
         # Fallback without jq
         case "$stack" in
@@ -1095,10 +1095,10 @@ install_skills_for_stacks() {
             local registry_file="${OC_CONFIG}/skills-registry.json"
             if [ -f "$registry_file" ] && command -v jq >/dev/null 2>&1; then
                 local source
-                source=$(jq -r ".skills.$stack[] | select(.id==\"$skill_id\") | .source // empty" "$registry_file" 2>/dev/null)
+                source=$(jq -r ".skills.${stack}[] | select(.id==\"$skill_id\") | .source // empty" "$registry_file" 2>/dev/null)
                 if [ "$source" = "autoskills" ]; then
                     local skill_url
-                    skill_url=$(jq -r ".skills.$stack[] | select(.id==\"$skill_id\") | .repo + \"/raw/main/\" + .path + \"/SKILL.md\" // empty" "$registry_file" 2>/dev/null)
+                    skill_url=$(jq -r ".skills.${stack}[] | select(.id==\"$skill_id\") | .repo + \"/raw/main/\" + .path + \"/SKILL.md\" // empty" "$registry_file" 2>/dev/null)
                     if [ -n "$skill_url" ] && [ "$skill_url" != "null" ]; then
                         mkdir -p "${OC_CONFIG}/skills/${skill_id}"
                         if curl -sSL "$skill_url" -o "${OC_CONFIG}/skills/${skill_id}/SKILL.md" 2>/dev/null; then
@@ -1173,7 +1173,7 @@ list_skills_for_stack() {
             local installed=""
             [ -d "${OC_CONFIG}/skills/${skill_id}" ] && installed=" ✅"
 
-            local desc=$(jq -r ".skills.$stack[] | select(.id==\"$skill_id\") | .description // \"\" " "${OC_CONFIG}/skills-registry.json" 2>/dev/null)
+            local desc=$(jq -r ".skills.${stack}[] | select(.id==\"$skill_id\") | .description // \"\" " "${OC_CONFIG}/skills-registry.json" 2>/dev/null)
             echo "  • $skill_id$installed — $desc"
         done
         echo ""
