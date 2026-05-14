@@ -39,6 +39,14 @@ Al ejecutar un agente, muestra:
 2. Acción realizada
 3. Archivos modificados o resultado
 
+## Conceptos clave de sesión
+
+- **Smart zone**: Primera parte de la sesión (0-20 turns). El agente es agudo, focused, buena memoria. Priorizar trabajo complejo aquí.
+- **Dumb zone**: ~20+ turns. El agente se vuelve olvidadizo, errores aumentan. Auto-compact activa a los 20 turns (no bloquea, solo sugiere).
+- **Non-determinism**: Mismo prompt puede dar diferente output. No es regresión del modelo — es distribución normal.
+- **Sycophancy**: El agente соглашается con inputs confiados. Escribir prompts neutrales para mejor análisis.
+- **Compaction**: `oc --compact` resume la sesión y resetea el contador. Usar cuando la sesión tiene >20 turns y el agente empieza a cometer errores.
+
 ## Notas
 
 - Agentes: `~/.config/opencode/agents/`

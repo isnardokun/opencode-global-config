@@ -212,6 +212,80 @@ Para tareas completas, encadena agentes automáticamente:
 
 ---
 
+## Fundamentos de AI Coding (del dictionary-of-ai-coding)
+
+Entender cómo funciona el modelo permite escribir mejores prompts y detectar problemas.
+
+### Smart Zone vs Dumb Zone
+
+Sesión nueva = smart zone (agudo, enfocado, buena memoria). Session >20 turns ≈ dumb zone (olvidadizo, errores, más [hallucinations](#hallucination) de fidelidad).
+
+**Regla:** No empujar a través de la dumb zone. Si la sesión tiene >20 turns y el agente empieza a cometer errores, hacer [compaction](#compaction) o clear en vez de seguir.
+
+### Attention Budget
+
+Cada token tiene presupuesto de atención finito. Más contexto = menos señal por token. Archivos importantes perto del final del prompt reciben más atención.
+
+**Regla:** Poner información crítica (schemas, decisiones, constraints) cerca del final del contexto. No prepender grandes bloques de documentación — usar skills y punteros en vez.
+
+### Sycophancy
+
+El modelo tiende a acordar con inputs confiados incluso cuando están equivocados. Inputs neutrales producen mejor análisis.
+
+**Regla:** Escribir prompts neutrales — "revisa este código" no "este código es bueno, revísalo". Si el usuario muestra sesgo, el agente lo seguirá. Antes de pedir review, no signalar la calidad esperada.
+
+### Non-determinism
+
+Mismo prompt ≠ mismo output. Sin cambio en el código, los resultados pueden variar entre ejecuciones. Los "malos días" del modelo son distribución, no regresión.
+
+**Regla:** Si un resultado parece peor que ayer, intentar de nuevo antes de culpar al modelo. Regenerar o reformular es válido.
+
+### Hallucination
+
+Dos tipos:
+- **Factual:** inventa facts (API que no existe). Fix: cargar docs en contexto.
+- **De fidelidad:** se desvía del contexto cargado. Sintoma de [attention degradation](#attention-budget). Fix: clear o compact.
+
+**Regla:** "Me inventó el método" → agregar docs al contexto. "Dejó de leer los docs que le di" → sesión muy larga, compactar.
+
+### Compaction
+
+Resumir historia de sesión en un prompt fresco. Lossy pero necesario cuando el contexto se acerca al límite.
+
+**Regla:** `oc --compact` antes de continuar una sesión larga. Guardar lo load-bearing en docs/memory/ para persistencia cross-session.
+
+### Non-determinism
+
+Output del modelo varía incluso con input idéntico. Same prompt → different outputs across runs. No hay setting para eliminarlo.
+
+**Regla:** Si el agente "empeoró" un día, probar de nuevo antes de buscar causas. Los malos días son distribución normal, no regresión.
+
+### Sycophancy
+
+El modelo соглашается con inputs confiados incluso incorrectos. Training lo hizo asociar "acuerdo" con "recompensa".
+
+**Síntomas:**
+- Cede ante pushback sin razón
+- Alaba planesrotos porque el usuario sounds confident
+- Sesgo en review (positivo si el usuario sounds like author, negativo si sounds como otro)
+
+**Fix:** Escribir prompts neutrales. "analiza este código" no "es buen código?". Diagnostic: ¿el modelo habría dicho esto sin tu tono/señal?
+
+### Contextual vs Parametric Knowledge
+
+- **Parametric:** lo que el modelo "sabe" de training. Fuera de contexto = blur en temas raros.
+- **Contextual:** lo que el agente puede leer directo del window. En contexto = preciso.
+
+**Regla:** Si el modelo inventa sobre APIs internas → cargar docs en contexto. Si知道了 el schema pero ignora lo cargado → sesión muy larga, compactar.
+
+### Handoff
+
+Transferir contexto de una sesión a otra. No es clearing (que borra todo), es carry.
+
+**Regla:** Para sesiones largas, escribir handoff artifact (resumen de decisiones, files, constraints) antes de clear. El agente nuevo empieza con el artifact como contexto inicial.
+
+---
+
 ## Tradeoff
 
 Estas reglas bias hacia **precisión sobre velocidad**. Para tareas triviales, usar juicio - no cada cambio necesita rigor completo. El objetivo es reducir errores costosos en trabajo no trivial.
