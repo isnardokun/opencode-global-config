@@ -434,28 +434,6 @@ analyze_outcomes() {
     fi
 }
 
-# Analyze patterns from outcomes and suggest improvements
-analyze_outcomes() {
-    local outcome_dir="${OC_MEMORY}/outcomes"
-    [ ! -d "$outcome_dir" ] && return 0
-
-    local failure_count=0
-    local patterns=""
-
-    while IFS= read -r -d '' f; do
-        local content=$(cat "$f" 2>/dev/null || echo "{}")
-        if echo "$content" | grep -q '"failure"'; then
-            failure_count=$((failure_count + 1))
-        fi
-    done < <(find "$outcome_dir" -name "*.json" -mtime -7 -print0 2>/dev/null)
-
-    if [ "$failure_count" -ge 3 ]; then
-        warn "Detected ${failure_count} workflow failures in recent history"
-        info "Pattern detected. Consider documenting in memory:"
-        echo "  oc --remember -t decision 'workflow failure pattern: ...'"
-    fi
-}
-
 show_status() {
     local turns=0
     [ -f "${OC_SESSION_FILE}" ] && turns=$(cat "${OC_SESSION_FILE}")
@@ -972,15 +950,49 @@ run_agent() {
 }
 
 run_wizard() {
-    echo -e "${BLUE}=== Modo Wizard - Paso a Paso ===${NC}"
+    echo -e "${BLUE}=== OpenCode Wizard — Modo Guiado ===${NC}"
     echo ""
-    echo "Selecciona el tipo de tarea:"
-    echo "1) Analizar proyecto (architecture + risks)"
+    echo "El wizard te guía paso a paso usando los agentes especializados."
+    echo "Cada fase te pregunta si querés continuar antes de pasar a la siguiente."
+    echo ""
+    echo "Opciones disponibles:"
+    echo ""
+    echo "1) Analizar proyecto"
+    echo "   → Qué hace: Ejecuta @architect + project-map"
+    echo "   → Ideal para: Entender estructura, stack, entrypoints y riesgos"
+    echo "   → Requiere: Ruta del proyecto"
+    echo ""
     echo "2) Planificar tarea compleja"
+    echo "   → Qué hace: Ejecuta @planner para dividir en fases verificables"
+    echo "   → Ideal para: Tareas con múltiples pasos que necesitan tracking"
+    echo "   → Después: Podés continuar a @builder para implementación"
+    echo ""
     echo "3) Implementar nuevo feature"
+    echo "   → Qué hace: Pipeline completo @architect → @planner → @builder → @reviewer"
+    echo "   → Ideal para: Features nuevos que requieren análisis, plan e implementación"
+    echo "   → Incluye: grilling rubric para cuestionar el plan antes de implementar"
+    echo "   → Después: Review automático con precommit-review"
+    echo ""
     echo "4) Revisar código existente"
+    echo "   → Qué hace: Ejecuta @reviewer en los archivos especificados"
+    echo "   → Ideal para: Code review antes de commit o merge"
+    echo "   → Opcional: Agregar auditoría de seguridad con @security-auditor"
+    echo ""
     echo "5) Auditoría de seguridad"
-    echo "6) DevOps (Docker, CI/CD, etc)"
+    echo "   → Qué hace: Ejecuta @security-auditor en busca de vulnerabilidades"
+    echo "   → Ideal para: Revisión de credenciales, inyección, permisos, secretos"
+    echo "   → No modifica archivos — solo detecta y reporta"
+    echo ""
+    echo "6) Tarea DevOps (Docker, CI/CD, Kubernetes, Terraform)"
+    echo "   → Qué hace: Ejecuta @devops para infraestructura y deployment"
+    echo "   → Ideal para: Docker, CI/CD pipelines, Kubernetes, Terraform"
+    echo ""
+    echo "---"
+    echo "Comandos relacionados (para uso directo):"
+    echo "  oc ask 'tu pregunta'     → Interpreta y rutea a agente correcto"
+    echo "  oc --workflow bug-hunt  → Pipeline completo de bug hunting"
+    echo "  oc --memory <texto>      → Buscar en memoria global"
+    echo "  oc --remember <texto>    → Crear observación persistente"
     echo ""
 
     read -rp "Opción [1-6]: " option
@@ -988,72 +1000,129 @@ run_wizard() {
 
     case $option in
         1)
-            read -rp "Ruta del proyecto: " path
+            echo "=== Analizar Proyecto ==="
+            read -rp "Ruta del proyecto (Enter = actual): " path
+            [ -z "$path" ] && path="."
             echo ""
             info "Fase 1: @architect + project-map"
+            echo "  - Detecta stack tecnológico"
+            echo "  - Mapea estructura de archivos"
+            echo "  - Identifica entrypoints y comandos"
+            echo "  - Genera/actualiza docs/ con Docs-First structure"
+            echo ""
             _oc_run -p "Usa @architect con project-map. Analiza: $path"
             echo ""
             read -rp "Continuar a planificación? [y/n]: " cont
             if [[ "$cont" == "y" ]]; then
                 echo ""
                 info "Fase 2: @planner"
+                echo "  - Divide el análisis en fases verificables"
+                echo "  - Define criterios de éxito para cada fase"
+                echo ""
                 _oc_run -p "Usa @planner. Divide en fases verificables esta tarea: análisis de $path"
             fi
             ;;
         2)
+            echo "=== Planificar Tarea Compleja ==="
             read -rp "Describe la tarea: " task
             echo ""
             info "Fase 1: @planner"
+            echo "  - Descompone la tarea en pasos pequeños"
+            echo "  - Define verificación para cada paso"
+            echo "  - Identifica riesgos y dependencias"
+            echo ""
             _oc_run -p "Usa @planner. Divide esta tarea en fases: $task"
             echo ""
             read -rp "Continuar a implementación? [y/n]: " cont
             if [[ "$cont" == "y" ]]; then
                 echo ""
-                info "Fase 2: @builder"
+                info "Fase 2: @builder con safe-implementation + test-first"
+                echo "  - Implementa cada fase con cambios mínimos verificables"
+                echo "  - Ejecuta tests antes/después de cada cambio"
+                echo ""
                 _oc_run -p "Usa @builder con safe-implementation y test-first. Implementa: $task"
             fi
             ;;
         3)
+            echo "=== Implementar Feature ==="
             read -rp "Descripción del feature: " feature
             echo ""
-            info "Fase 1: @architect"
+            info "Fase 1: @architect (contexto)"
+            echo "  - Analiza proyecto para contexto del feature"
+            echo "  - Detecta si hay docs/ y qué falta"
+            echo ""
             _oc_run -p "Usa @architect. Analiza el proyecto actual para implementar: $feature"
             echo ""
-            info "Fase 2: @planner"
+            info "Fase 2: @planner + grilling rubric (planificación)"
+            echo "  - Planifica implementación con criterios verificables"
+            echo "  - Aplica grilling: 3 preguntas antes de proceder"
+            echo ""
             _oc_run -p "Usa @planner. Planifica la implementación de: $feature"
             echo ""
-            info "Fase 3: @builder"
+            info "Fase 3: @builder + safe-implementation + test-first (implementación)"
+            echo "  - Cambios quirúrgicos, máximo 3 archivos por iteración"
+            echo "  - Tests verifican cada cambio"
+            echo ""
             _oc_run -p "Usa @builder con safe-implementation y test-first. Implementa: $feature"
             echo ""
-            info "Fase 4: @reviewer"
+            info "Fase 4: @reviewer + precommit-review (revisión)"
+            echo "  - Audit de diff, detecta blocking issues"
+            echo "  - Verifica que no hay regresiones"
+            echo ""
             _oc_run -p "Usa @reviewer con precommit-review. Revisa los cambios."
             ;;
         4)
-            read -rp "Archivos a revisar: " files
+            echo "=== Revisar Código ==="
+            read -rp "Archivos a revisar (Enter = todos): " files
+            [ -z "$files" ] && files="todo el proyecto"
             echo ""
             info "Fase 1: @reviewer"
+            echo "  - Busca errores, code smells, problemas de estilo"
+            echo "  - Verifica tests existentes"
+            echo ""
             _oc_run -p "Usa @reviewer. Revisa: $files"
             echo ""
-            read -rp "Ejecutar auditoría de seguridad? [y/n]: " sec
+            read -rp "Ejecutar auditoría de seguridad también? [y/n]: " sec
             if [[ "$sec" == "y" ]]; then
                 echo ""
                 info "Fase 2: @security-auditor"
+                echo "  - Detecta credenciales hardcodeadas"
+                echo "  - Busca injection paths, permisos incorrectos"
+                echo "  - Reporta sin modificar"
+                echo ""
                 _oc_run -p "Usa @security-auditor. Busca vulnerabilidades en: $files"
             fi
             ;;
         5)
-            read -rp "Ruta a auditar: " path
+            echo "=== Auditoría de Seguridad ==="
+            read -rp "Ruta a auditar (Enter = actual): " path
+            [ -z "$path" ] && path="."
             echo ""
-            info "Fase 1: @security-auditor"
+            info "@security-auditor — Análisis completo"
+            echo "  - Credenciales y secretos expuestos"
+            echo "  - Injection paths (SQL, command, XSS)"
+            echo "  - Permisos y accesos insecureos"
+            echo "  - Dependencias con vulnerabilidades conocidas"
+            echo "  - Hooks de git mal configurados"
+            echo ""
             _oc_run -p "Usa @security-auditor. Auditoría completa de: $path"
             ;;
         6)
-            read -rp "Descripción tarea DevOps: " task
+            echo "=== Tarea DevOps ==="
+            read -rp "Descripción de la tarea: " task
             echo ""
-            info "Fase 1: @devops"
+            info "@devops — Infraestructura y deployment"
+            echo "  - Docker / docker-compose"
+            echo "  - CI/CD (GitHub Actions, GitLab, etc)"
+            echo "  - Kubernetes / Helm"
+            echo "  - Terraform / Infrastructure as Code"
+            echo "  - Monitoreo y logging"
+            echo ""
             _oc_run -p "Usa @devops. $task"
             ;;
     esac
+    echo ""
+    success "Wizard completado"
 }
 
 detect_stack() {
@@ -1788,65 +1857,6 @@ with open(path, "w") as f:
 PYEOF
 
     sync_to_project_docs "$project" "$outcome_file" "outcome"
-}
-
-auto_reflect() {
-    local workflow="$1"
-    local target="$2"
-    local turns=0
-    [ -f "${OC_SESSION_FILE}" ] && turns=$(cat "${OC_SESSION_FILE}" 2>/dev/null || echo 0)
-
-    local project=$(basename "$target" 2>/dev/null || echo "unknown")
-
-    cat << REFLECTION
-
---- Post-Workflow Reflection ---
-Workflow: $workflow
-Target: $target
-Session turns: ${turns}
-Was this successful? [y/n/skip]:
-REFLECTION
-
-    read -rp "Reflection (what went well/what didn't): " reflection
-
-    if [[ "$reflection" == "skip" ]] || [[ -z "$reflection" ]]; then
-        return 0
-    fi
-
-    local type="note"
-    if [[ "$reflection" == "n" ]] || [[ "$reflection" == "N" ]]; then
-        type="bugfix"
-    fi
-
-    create_observation "$type" "${workflow} outcome for ${project}: ${reflection}" "$project"
-}
-
-analyze_patterns() {
-    local outcome_dir="${OC_MEMORY}/outcomes"
-    [ ! -d "$outcome_dir" ] && return 0
-
-    local failure_count=0
-    local recent_failures=""
-
-    for f in "${outcome_dir}"/*.json; do
-        [ -f "$f" ] || continue
-        local content=$(cat "$f" 2>/dev/null)
-        if echo "$content" | grep -q '"failure"'; then
-            failure_count=$((failure_count + 1))
-            recent_failures="${recent_failures}  - $(echo "$content" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("workflow","?") + ": " + d.get("details","?"))' 2>/dev/null)\n"
-        fi
-    done
-
-    if [ "$failure_count" -ge 3 ]; then
-        echo ""
-        warn "Pattern detected: ${failure_count} workflow failures in recent history"
-        echo "Recent failures:"
-        printf '%b' "$recent_failures"
-        echo ""
-        info "Suggestion: Consider creating a rule in AGENTS.md or adjusting workflow parameters"
-        echo "  oc --list-templates   # to document lessons learned"
-        echo "  oc --remember -t decision 'workflow pattern: ...'"
-    fi
 }
 
 run_workflow() {
