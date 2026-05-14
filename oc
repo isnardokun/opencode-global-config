@@ -2123,9 +2123,31 @@ save_all() {
     info "Guardando estado completo en memoria..."
     local project
     project=$(detect_project "$(pwd)")
+
     track_outcome "manual-save" "active" "$project" "Manual full save triggered"
-    auto_reflect "manual-save" "$(pwd)" 0
-    success "Estado guardado: proyecto=$project"
+
+    local turns=0
+    [ -f "${OC_SESSION_FILE}" ] && turns=$(cat "${OC_SESSION_FILE}" 2>/dev/null || echo 0)
+    create_observation "note" "Manual full save. Turns: ${turns}. Project: ${project}" "$project"
+
+    local outcome_dir="${OC_MEMORY}/outcomes"
+    mkdir -p "$outcome_dir"
+    local ts=$(date +%Y%m%d-%H%M%S)
+    python3 - "${outcome_dir}/save-all-${ts}.json" "save-all" "success" "$project" "Manual full save" << 'PYEOF'
+import json, sys
+path, workflow, status, project, details = sys.argv[1:]
+with open(path, "w") as f:
+    json.dump({"workflow": workflow, "status": status, "project": project, "details": details, "date": sys.argv[5] if len(sys.argv) > 5 else ""}, f, ensure_ascii=False)
+PYEOF
+
+    sync_to_project_docs "$project" "${outcome_dir}/save-all-${ts}.json" "outcome"
+
+    success "Estado guardado: proyecto=$project, turns=$turns"
+    echo ""
+    echo "Para retomar esta sesión más tarde:"
+    echo "  1) Ejecutá 'oc --compact' para resumir contexto actual"
+    echo "  2) Guardá el resumen en docs/memory/ si es proyecto nuevo"
+    echo "  3) La próxima sesión puede usar 'oc --memory <texto>' para buscar aquí"
 }
 
 case "$1" in
