@@ -1682,11 +1682,11 @@ ask_route() {
     elif [[ "$lower" =~ (bug|fix|arregla|corrige|error|falla|failing|broken) ]]; then
         intent="bugfix"
         route="@architect -> @planner -> @builder -> @reviewer"
-        prompt="Usa flujo bugfix con Docs-First: revisa docs/ existente antes de diagnosticar; si falta docs/ o está desactualizado, reporta el gap y crea/actualiza solo lo necesario para contexto. $guardrail @architect para causa probable, @planner con criterios verificables, @builder con safe-implementation/test-first, y @reviewer con precommit-review. Solicitud: $task"
+        prompt="Usa flujo bugfix con Docs-First + Grilling: revisa docs/ existente antes de diagnosticar; si falta docs/ o está desactualizado, reporta el gap y crea/actualiza solo lo necesario para contexto. Aplica grilling rubric para cuestionar si el diagnóstico es correcto. $guardrail @architect para causa probable, @planner con criterios verificables, @builder con safe-implementation/test-first, y @reviewer con precommit-review. Solicitud: $task"
     elif [[ "$lower" =~ (implementa|crea|agrega|add|build|feature|mejora|cambia|modifica) ]]; then
         intent="feature"
         route="@architect -> @planner -> @builder -> @reviewer"
-        prompt="Usa flujo feature con Docs-First: antes de diseñar o editar, revisa docs/ como fuente de contexto; si es proyecto nuevo o faltan datos críticos, pregunta primero; si no existe docs/, crea/propon documentación inicial mínima. $guardrail @architect para contexto, @planner aplicando plan review rubric, @builder con safe-implementation/test-first, y @reviewer aplicando code review rubric. Solicitud: $task"
+        prompt="Usa flujo feature con Docs-First + Grilling: antes de diseñar o editar, revisa docs/ como fuente de contexto; si es proyecto nuevo o faltan datos críticos, pregunta primero; si no existe docs/, crea/propon documentación inicial mínima. Aplica grilling rubric (rubrics/grilling.md) en la fase @planner: cuestiona el plan con las 3 preguntas antes de proceder. $guardrail @architect para contexto, @planner aplicando plan review rubric + grilling, @builder con safe-implementation/test-first, y @reviewer aplicando code review rubric. Solicitud: $task"
     else
         intent="clarify"
         route="interpreter -> ask clarifying questions"
