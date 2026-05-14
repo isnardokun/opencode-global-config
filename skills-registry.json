@@ -52,6 +52,64 @@
         "source": "local",
         "stars": 0,
         "tags": ["documentation", "docs"]
+      },
+      {
+        "id": "caveman",
+        "name": "Caveman (Light)",
+        "description": "Compressed communication: fewer filler words, use project jargon, ~30% token reduction",
+        "source": "local",
+        "stars": 0,
+        "tags": ["communication", "compression", "efficiency"]
+      },
+      {
+        "id": "grill-with-docs",
+        "name": "Grill with Docs",
+        "description": "Alignment session: challenge plan against domain model, update CONTEXT.md and ADRs",
+        "source": "mattpocock",
+        "repo": "https://github.com/mattpocock/skills",
+        "path": "skills/engineering/grill-with-docs",
+        "stars": 81800,
+        "tags": ["alignment", "planning", "docs"]
+      },
+      {
+        "id": "diagnose",
+        "name": "Diagnose",
+        "description": "Disciplined debugging loop: reproduce → minimise → hypothesise → instrument → fix → regression",
+        "source": "mattpocock",
+        "repo": "https://github.com/mattpocock/skills",
+        "path": "skills/engineering/diagnose",
+        "stars": 81800,
+        "tags": ["debugging", "diagnosis", "engineering"]
+      },
+      {
+        "id": "tdd",
+        "name": "TDD (Light)",
+        "description": "Test-driven development with red-green-refactor, one vertical slice at a time",
+        "source": "mattpocock",
+        "repo": "https://github.com/mattpocock/skills",
+        "path": "skills/engineering/tdd",
+        "stars": 81800,
+        "tags": ["testing", "tdd", "engineering"]
+      },
+      {
+        "id": "zoom-out",
+        "name": "Zoom Out",
+        "description": "Explain code in context of whole system, high-level perspective",
+        "source": "mattpocock",
+        "repo": "https://github.com/mattpocock/skills",
+        "path": "skills/engineering/zoom-out",
+        "stars": 81800,
+        "tags": ["architecture", "context", "understanding"]
+      },
+      {
+        "id": "handoff",
+        "name": "Handoff",
+        "description": "Compact conversation into handoff document for another agent to continue",
+        "source": "mattpocock",
+        "repo": "https://github.com/mattpocock/skills",
+        "path": "skills/productivity/handoff",
+        "stars": 81800,
+        "tags": ["handoff", "productivity", "continuity"]
       }
     ],
     "python": [

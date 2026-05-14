@@ -286,7 +286,7 @@ agent_count=$(find "${ROOT}/agents" -maxdepth 1 -name '*.md' | wc -l | tr -d ' '
 skill_count=$(find "${ROOT}/skills" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
 if [ "$profile_count" = "9" ]; then pass "Profile count: 9"; else fail "Expected 9 profiles, found $profile_count"; fi
 if [ "$agent_count" = "11" ]; then pass "Agent count: 11"; else fail "Expected 11 agents, found $agent_count"; fi
-if [ "$skill_count" = "6" ]; then pass "Skill count: 6"; else fail "Expected 6 skills, found $skill_count"; fi
+if [ "$skill_count" = "9" ]; then pass "Skill count: 9"; else fail "Expected 9 skills, found $skill_count"; fi
 
 if grep -q -- '--remember \[-p proyecto\] \[-t tipo\]' "${ROOT}/oc" \
     && grep -q -- 'oc --remember -p project' "${ROOT}/README.md" \
