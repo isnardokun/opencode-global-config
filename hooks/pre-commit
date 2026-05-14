@@ -32,7 +32,10 @@ if command -v gitleaks >/dev/null 2>&1; then
 fi
 
 prompt="
-Usa @reviewer con precommit-review.
+Revisión pre-commit metadata-only.
+
+No uses agentes, herramientas, bash, grep, git ni lecturas de archivos.
+Usa únicamente la metadata incluida abajo. No intentes inspeccionar el repositorio.
 
 Revisa los archivos modificados en este commit usando solo metadata.
 

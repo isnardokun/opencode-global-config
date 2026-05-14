@@ -37,7 +37,10 @@ if command -v gitleaks >/dev/null 2>&1; then
 fi
 
 prompt="
-Usa @security-auditor.
+Revisión pre-push metadata-only.
+
+No uses agentes, herramientas, bash, grep, git ni lecturas de archivos.
+Usa únicamente la metadata incluida abajo. No intentes inspeccionar el repositorio.
 
 Antes de hacer push, verifica:
 1. Secretos en código
