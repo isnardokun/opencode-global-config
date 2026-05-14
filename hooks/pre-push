@@ -7,10 +7,21 @@ echo "============================"
 tmp_output=$(mktemp)
 trap 'rm -f "$tmp_output"' EXIT
 
-if upstream=$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null); then
-    diff_context=$(git diff --stat "$upstream"..HEAD && printf '\n' && git diff "$upstream"..HEAD)
+hook_timeout_seconds="${OC_HOOK_TIMEOUT_SECONDS:-60}"
+if command -v timeout >/dev/null 2>&1; then
+    timeout_cmd="timeout"
+elif command -v gtimeout >/dev/null 2>&1; then
+    timeout_cmd="gtimeout"
 else
-    diff_context=$(git log --oneline -10 2>/dev/null; printf '\n'; git diff --stat HEAD~1..HEAD 2>/dev/null; printf '\n'; git diff HEAD~1..HEAD 2>/dev/null)
+    echo ""
+    echo "❌ Pre-push rechazado. No se encontró timeout/gtimeout para limitar la revisión."
+    exit 1
+fi
+
+if upstream=$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null); then
+    diff_context=$(git diff --name-status "$upstream"..HEAD && printf '\n' && git diff --stat "$upstream"..HEAD)
+else
+    diff_context=$(git log --oneline -10 2>/dev/null; printf '\n'; git diff --name-status HEAD~1..HEAD 2>/dev/null; printf '\n'; git diff --stat HEAD~1..HEAD 2>/dev/null)
 fi
 
 if [ -z "$diff_context" ]; then
@@ -34,34 +45,38 @@ Antes de hacer push, verifica:
 3. Tokens API expuestos
 4. Configuración insegura
 
-Contexto de cambios para push:
+Contexto de cambios para push (metadata: name-status + stat; no patch body):
 $diff_context
 
 Si encuentra algo crítico, rechaza el push.
 
-Termina con una línea exacta:
-BLOCKING_FINDINGS=true
+La última línea no vacía de tu respuesta debe ser exactamente HOOK_REVIEW_RESULT=pass o HOOK_REVIEW_RESULT=fail.
+
+Termina con una línea final exacta, sin texto después:
+HOOK_REVIEW_RESULT=pass
 o
-BLOCKING_FINDINGS=false
+HOOK_REVIEW_RESULT=fail
 "
 
 if command -v oc >/dev/null 2>&1; then
-    oc "$prompt" | tee "$tmp_output"
+    "$timeout_cmd" "$hook_timeout_seconds" oc "$prompt" | tee "$tmp_output"
     status=${PIPESTATUS[0]}
 else
-    opencode run "$prompt" | tee "$tmp_output"
+    "$timeout_cmd" "$hook_timeout_seconds" opencode run "$prompt" | tee "$tmp_output"
     status=${PIPESTATUS[0]}
 fi
 
-if [ "$status" -ne 0 ] || grep -Eq '^BLOCKING_FINDINGS=true$|^RECOMMENDATION=CORRECT$' "$tmp_output"; then
+last_non_empty_line=$(awk 'NF { line=$0 } END { print line }' "$tmp_output")
+
+if [ "$status" -ne 0 ]; then
     echo ""
     echo "❌ Pre-push rechazado. Seguridad comprometida."
     exit 1
 fi
 
-if ! grep -Eq '^BLOCKING_FINDINGS=false$' "$tmp_output"; then
+if [ "$last_non_empty_line" != "HOOK_REVIEW_RESULT=pass" ]; then
     echo ""
-    echo "❌ Pre-push rechazado. Falta marcador BLOCKING_FINDINGS=false."
+    echo "❌ Pre-push rechazado. Falta marcador final HOOK_REVIEW_RESULT=pass."
     exit 1
 fi
 

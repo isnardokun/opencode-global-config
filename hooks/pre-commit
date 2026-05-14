@@ -7,7 +7,18 @@ echo "=============================="
 tmp_output=$(mktemp)
 trap 'rm -f "$tmp_output"' EXIT
 
-diff_context=$(git diff --cached --stat && printf '\n' && git diff --cached --)
+hook_timeout_seconds="${OC_HOOK_TIMEOUT_SECONDS:-60}"
+if command -v timeout >/dev/null 2>&1; then
+    timeout_cmd="timeout"
+elif command -v gtimeout >/dev/null 2>&1; then
+    timeout_cmd="gtimeout"
+else
+    echo ""
+    echo "❌ Pre-commit rechazado. No se encontró timeout/gtimeout para limitar la revisión."
+    exit 1
+fi
+
+diff_context=$(git diff --cached --name-status && printf '\n' && git diff --cached --stat)
 if [ -z "$diff_context" ]; then
     diff_context="No hay diff staged disponible. Revisa el estado Git si aplica."
 fi
@@ -23,15 +34,16 @@ fi
 prompt="
 Usa @reviewer con precommit-review.
 
-Revisa los archivos modificados en este commit.
+Revisa los archivos modificados en este commit usando solo metadata.
 
-Diff staged:
+Metadata staged (name-status + stat; no patch body):
 $diff_context
 
 Reglas:
 - No modifiques archivos.
 - Reporta solo hallazgos.
 - Si hay errores críticos, el commit será rechazado.
+- La última línea no vacía de tu respuesta debe ser exactamente HOOK_REVIEW_RESULT=pass o HOOK_REVIEW_RESULT=fail.
 
 Resumen esperado:
 1. Archivos modificados
@@ -40,29 +52,31 @@ Resumen esperado:
 4. Pruebas ejecutadas
 5. Recomendación: aprobar/corregir
 
-Termina con una línea exacta:
-BLOCKING_FINDINGS=true
+Termina con una línea final exacta, sin texto después:
+HOOK_REVIEW_RESULT=pass
 o
-BLOCKING_FINDINGS=false
+HOOK_REVIEW_RESULT=fail
 "
 
 if command -v oc >/dev/null 2>&1; then
-    oc "$prompt" | tee "$tmp_output"
+    "$timeout_cmd" "$hook_timeout_seconds" oc "$prompt" | tee "$tmp_output"
     status=${PIPESTATUS[0]}
 else
-    opencode run "$prompt" | tee "$tmp_output"
+    "$timeout_cmd" "$hook_timeout_seconds" opencode run "$prompt" | tee "$tmp_output"
     status=${PIPESTATUS[0]}
 fi
 
-if [ "$status" -ne 0 ] || grep -Eq '^BLOCKING_FINDINGS=true$|^RECOMMENDATION=CORRECT$' "$tmp_output"; then
+last_non_empty_line=$(awk 'NF { line=$0 } END { print line }' "$tmp_output")
+
+if [ "$status" -ne 0 ]; then
     echo ""
     echo "❌ Pre-commit rechazado. Corrige los errores antes de commitir."
     exit 1
 fi
 
-if ! grep -Eq '^BLOCKING_FINDINGS=false$' "$tmp_output"; then
+if [ "$last_non_empty_line" != "HOOK_REVIEW_RESULT=pass" ]; then
     echo ""
-    echo "❌ Pre-commit rechazado. Falta marcador BLOCKING_FINDINGS=false."
+    echo "❌ Pre-commit rechazado. Falta marcador final HOOK_REVIEW_RESULT=pass."
     exit 1
 fi
 
