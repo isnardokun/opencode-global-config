@@ -9,7 +9,7 @@ opencode-global-config es un **paquete de configuración** que se superpone a Op
 │  User                                                    │
 │    │                                                     │
 │    ▼                                                     │
-│  oc (wrapper script ~2226 líneas)                        │
+│  oc (wrapper script ~2490 líneas)                        │
 │    │                                                     │
 │    ├── Profile enforcement (prompt injection)            │
 │    ├── Memory operations (3-layer retrieval)              │
@@ -30,7 +30,7 @@ opencode-global-config es un **paquete de configuración** que se superpone a Op
 
 ### `oc` — Wrapper Script
 
-Script bash principal (~2226 líneas) que actúa como CLI unificada. Maneja:
+Script bash principal (~2490 líneas) que actúa como CLI unificada. Maneja:
 
 | Función | Descripción |
 |---------|-------------|
@@ -68,7 +68,7 @@ Cada perfil tiene:
 - `opencode.permission` — matriz declarativa (validada por el repo)
 - `policy` — reglas inyectadas como instrucciones LLM via `get_profile_rules()`
 
-### Skills (6)
+### Skills (10)
 
 | Skill | Propósito |
 |-------|-----------|
@@ -78,6 +78,10 @@ Cada perfil tiene:
 | `precommit-review` | Revisión de diff antes de commit |
 | `memory-retrieval` | 3-layer progressive disclosure |
 | `docs-writer` | Generación de documentación técnica |
+| `diagnose` | Loop disciplinado de debugging |
+| `grill-with-docs` | Alineación con docs antes de construir |
+| `caveman` | Modo de comunicación comprimida |
+| `ai-coding-rules` | Reglas de comportamiento para AI coding |
 
 ### Commands (8 slash commands)
 
@@ -120,10 +124,13 @@ oc --workflow bug-hunt ~/project
   → run_workflow("bug-hunt", "~/project")
   → _oc_run() con TODAS las fases en UN solo prompt
   → opencode ejecuta secuencialmente manteniendo contexto
+  → run_workflow_prompt() exige status 0 y línea exacta WORKFLOW_COMPLETE=true
   → auto_reflect() post-workflow
   → track_outcome() registra resultado
   → analyze_outcomes() detecta patterns
 ```
+
+Si falta el marcador exacto `WORKFLOW_COMPLETE=true` o `opencode` termina con status distinto de cero, el workflow falla y no registra outcome exitoso.
 
 ## Decisiones técnicas
 
@@ -156,7 +163,7 @@ Node.js emite `MODULE_TYPELESS_PACKAGE_JSON` cuando carga `.js` sin `package.jso
 | Función | Trigger | Comportamiento |
 |---------|---------|----------------|
 | `detect_project()` | Siempre | Auto-detecta proyecto desde PWD o git remote |
-| `auto_compact_if_needed()` | Cada `_oc_run()` si turns > 20 | Compacta sesión silenciosamente |
+| `auto_compact_if_needed()` | Cada `_oc_run()` si turns > 20 | Compacta sesión silenciosamente con guard `OC_AUTO_COMPACT_RUNNING` para evitar recursión |
 | `auto_reflect()` | Post-workflow | Crea observación en proyecto correcto |
 | `track_outcome()` | Post-workflow | Registra resultado en memory/outcomes/ |
 | `analyze_outcomes()` | Post-workflow | Detecta patterns de failures (3+ = warning) |

@@ -9,6 +9,7 @@ Inspired by [VILA-Lab/Dive-into-Claude-Code](https://github.com/VILA-Lab/Dive-in
 ## Table of Contents
 
 - [Features](#features)
+- [Stack Tecnológico](#stack-tecnológico)
 - [Quick Start](#quick-start)
 - [Natural Language Mode](#natural-language-mode)
 - [Optional `oc ask` Router](#optional-oc-ask-router)
@@ -37,7 +38,7 @@ Inspired by [VILA-Lab/Dive-into-Claude-Code](https://github.com/VILA-Lab/Dive-in
 - **11 specialized agents** — no hardcoded model; use whichever model you select in OpenCode's UI
 - **8 official slash commands** — `/analyze`, `/review`, `/secure`, `/feature`, `/bug-hunt`, `/docs`, `/devops`, `/oncall` — usable directly in OpenCode's TUI
 - **9 prompt-enforced profiles** — rules like `requireTests`, `checkpointBeforeChanges` injected as explicit LLM instructions; profile permissions validated against `ask|allow|deny`
-- **9 skills** for analysis, implementation, validation, memory, documentation, debugging, alignment, and communication
+- **10 skills** for analysis, implementation, validation, memory, documentation, debugging, alignment, and communication
 - **3 review rubrics** for code review, security review, and plan/design gates
 - **1 security plugin** with regex hardening, ESM metadata, redacted audit log, and restrictive log permissions
 - **Optional `oc ask` router** — natural-language intent routing with `--dry-run`, `--explain`, and `--clarify`
@@ -61,6 +62,23 @@ Inspired by [VILA-Lab/Dive-into-Claude-Code](https://github.com/VILA-Lab/Dive-in
 - **Reversibility-Weighted Risk Assessment** in `@oncall`
 - **Karpathy Principles** (Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven)
 - **GitHub Actions CI** — validates structure, JSON, shell syntax, Node plugin syntax, and functional smoke tests on every push
+
+---
+
+## Stack Tecnológico
+
+This repository is a shell-first configuration package for OpenCode, not a web service.
+
+| Area | Technology | Purpose |
+|------|------------|---------|
+| CLI wrapper | Bash | `oc`, `install.sh`, `uninstall.sh`, `validate.sh`, hooks, smoke tests |
+| OpenCode configuration | JSON + Markdown | Global config, agents, slash commands, profiles, skills, rubrics |
+| Security plugin | JavaScript ESM on Node.js | `plugins/safety-guard.js` command guard and audit logging |
+| Memory/index helpers | Python 3 | Safe JSONL/frontmatter writes from shell scripts |
+| Validation | `jq`, `node`, `shellcheck`, Bash | Local validation and GitHub Actions CI |
+| Optional UX/security tools | `fzf`, `gitleaks`, `shfmt` | Interactive menu, secret scanning, shell formatting |
+
+There is no database and no HTTP server. Persistent state is file-based under `~/.config/opencode/` after installation.
 
 ---
 
@@ -1030,13 +1048,14 @@ git diff --check
 - legacy OpenCode CLI calls (`opencode -p`, `opencode --profile`);
 - profile permission actions (`ask|allow|deny`);
 - model-free agents and language-artifact scan;
-- documentation consistency against `VERSION`, 9 profiles, 11 agents, 9 skills;
+- documentation consistency against `VERSION`, 9 profiles, 11 agents, 10 skills;
 
 Functional smoke tests are run separately with `make test` and in CI. They cover:
 
 - memory search, including project/type filters and multi-word queries;
 - `--remember`, timeline lookup, and valid JSONL memory index writes;
-- session tracking, including clean-home startup and corrupt `.session` recovery;
+- session tracking, including clean-home startup, corrupt `.session` recovery, and auto-compact reentrancy protection;
+- workflow completion marker validation with exact `WORKFLOW_COMPLETE=true` and no outcome tracking on missing/non-zero completion;
 - hooks fail-closed marker behavior;
 - profiles list/switch validation;
 - `oc ask` natural-language routing and prompt generation;
@@ -1082,7 +1101,11 @@ opencode-global-config/
 │   ├── test-first/          # Goal-Driven Execution
 │   ├── precommit-review/    # Diff review before commit
 │   ├── memory-retrieval/    # 3-layer progressive disclosure
-│   └── docs-writer/         # Technical documentation
+│   ├── docs-writer/         # Technical documentation
+│   ├── diagnose/            # Disciplined debugging loop
+│   ├── grill-with-docs/     # Alignment before building
+│   ├── caveman/             # Compressed communication mode
+│   └── ai-coding-rules/     # AI coding behavior guidelines
 ├── rubrics/
 │   ├── code-review.md       # Blocking criteria and evidence for reviews
 │   ├── security-review.md   # Security severities and remediation gate
@@ -1212,7 +1235,7 @@ opencode-global-config/
 
 - **`tests/run.sh`**: expanded functional smoke tests for memory project/type filters, `--remember`, timeline, profiles, fail-closed hooks, `oc --init`, `--compact`, `--doctor`, `validate.sh --installed`, installer dry-run, and safety guard.
 - **`VERSION`**: added a simple version source checked by `validate.sh`.
-- **`validate.sh`**: documentation consistency checks for version, 9 profiles, 11 agents, 9 skills, and memory project flag support.
+- **`validate.sh`**: documentation consistency checks for version, 9 profiles, 11 agents, 10 skills, and memory project flag support.
 - **`rubrics/`**: added code review, security review, and plan review gates; validator checks required rubric files.
 - **`plugins/package.json`**: declares plugin JavaScript as ESM and removes Node's typeless-module warning.
 - **Hooks**: pass explicit diffs, require `BLOCKING_FINDINGS=false`, and run optional `gitleaks` when available.

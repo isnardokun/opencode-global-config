@@ -347,11 +347,14 @@ detect_project() {
 
 # Auto-compact: compact session if turns exceed threshold
 auto_compact_if_needed() {
+    [ "${OC_AUTO_COMPACT_RUNNING:-0}" = "1" ] && return 0
+
     local turns=0
     [ -f "${OC_SESSION_FILE}" ] && turns=$(cat "${OC_SESSION_FILE}" 2>/dev/null || echo 0)
 
     if [ "${turns:-0}" -gt 20 ]; then
         info "Auto-compacting session (${turns} turns)..."
+        local OC_AUTO_COMPACT_RUNNING=1
         if _oc_run -p "Summarize this entire session in a structured markdown document with these sections:
 ## Goal
 What was the main task or objective?
@@ -894,6 +897,7 @@ _oc_run() {
     local profile rules_text
     profile=$(get_active_profile)
     rules_text=$(get_profile_rules)
+    local run_status=0
 
     # Internal wrapper calls use the historical "-p <prompt>" form. OpenCode
     # 1.14 uses `opencode run <message>` for non-interactive prompts.
@@ -902,13 +906,16 @@ _oc_run() {
         shift 2
         warn_if_looping "$(echo "$prompt" | cut -c1-80)"
         opencode run "${prompt}${rules_text}" "$@"
+        run_status=$?
     else
         warn_if_looping "$(echo "$*" | cut -c1-80)"
         opencode "$@"
+        run_status=$?
     fi
 
     # Auto-compact if turns are high (runs silently, doesn't block)
     auto_compact_if_needed
+    return "$run_status"
 }
 
 # Emit post-execution hint if session turns are high
@@ -1859,6 +1866,22 @@ PYEOF
     sync_to_project_docs "$project" "$outcome_file" "outcome"
 }
 
+run_workflow_prompt() {
+    local prompt="$1"
+    local output status
+
+    output=$(_oc_run -p "$prompt" 2>&1)
+    status=$?
+    printf '%s\n' "$output"
+
+    [ "$status" -eq 0 ] || return "$status"
+
+    if ! printf '%s\n' "$output" | grep -Fxq 'WORKFLOW_COMPLETE=true'; then
+        warn "Workflow did not report completion marker: WORKFLOW_COMPLETE=true"
+        return 1
+    fi
+}
+
 run_workflow() {
     local workflow="${1:-}"
     local target="${2:-.}"
@@ -1870,7 +1893,7 @@ run_workflow() {
         bug-hunt)
             echo -e "${BLUE}=== Bug Hunt Pipeline (single-pass) ===${NC}"
             if [ "$interactive" == "true" ]; then confirm "¿Iniciar?" || return 0; fi
-            if ! _oc_run -p "Ejecuta el siguiente workflow completo para: $target
+            if ! run_workflow_prompt "Ejecuta el siguiente workflow completo para: $target
 
 EXIT_CONDITIONS:
 - Maximum 8 agent turns total across all phases
@@ -1909,7 +1932,7 @@ Ejecuta todas las fases en secuencia. Reporta resultados de cada fase antes de c
         new-project)
             echo -e "${BLUE}=== New Project Setup Pipeline (single-pass) ===${NC}"
             if [ "$interactive" == "true" ]; then confirm "¿Iniciar?" || return 0; fi
-            if ! _oc_run -p "Ejecuta el siguiente workflow completo para nuevo proyecto: $target
+            if ! run_workflow_prompt "Ejecuta el siguiente workflow completo para nuevo proyecto: $target
 
 EXIT_CONDITIONS:
 - Maximum 6 agent turns total across all phases
@@ -1967,7 +1990,7 @@ Ejecuta todas las fases en secuencia."; then return 1; fi
         debug)
             echo -e "${BLUE}=== Production Debug Pipeline (single-pass) ===${NC}"
             if [ "$interactive" == "true" ]; then confirm "¿Iniciar?" || return 0; fi
-            if ! _oc_run -p "Ejecuta el siguiente workflow de debug para: $target
+            if ! run_workflow_prompt "Ejecuta el siguiente workflow de debug para: $target
 
 EXIT_CONDITIONS:
 - Maximum 5 agent turns total across all phases
@@ -1997,7 +2020,7 @@ Ejecuta todas las fases en secuencia."; then return 1; fi
         document)
             echo -e "${BLUE}=== Codebase Documentation Pipeline (single-pass) ===${NC}"
             if [ "$interactive" == "true" ]; then confirm "¿Iniciar?" || return 0; fi
-            if ! _oc_run -p "Ejecuta el siguiente workflow de documentación para: $target
+            if ! run_workflow_prompt "Ejecuta el siguiente workflow de documentación para: $target
 
 EXIT_CONDITIONS:
 - Maximum 6 agent turns total across all phases
@@ -2046,7 +2069,7 @@ Ejecuta todas las fases en secuencia."; then return 1; fi
             echo "Feature: $feature_desc"
             echo "Target: $target"
             if [ "$interactive" == "true" ]; then confirm "¿Iniciar?" || return 0; fi
-            if ! _oc_run -p "Ejecuta el siguiente workflow para implementar: $feature_desc en: $target
+            if ! run_workflow_prompt "Ejecuta el siguiente workflow para implementar: $feature_desc en: $target
 
 EXIT_CONDITIONS:
 - Maximum 8 agent turns total across all phases

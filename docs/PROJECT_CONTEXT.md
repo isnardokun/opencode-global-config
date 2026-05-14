@@ -16,7 +16,7 @@ OpenCode CLI viene sin configuración por defecto. Este proyecto resuelve:
 
 ## Stack tecnológico
 
-- **Shell:** Bash (~2226 líneas el script `oc`)
+- **Shell:** Bash (~2490 líneas el script `oc`)
 - **JavaScript/ESM:** Plugins (safety-guard.js)
 - **Python 3:** Generación de JSON, YAML quoting, validación de memoria
 - **JSON:** Perfiles, configuración OpenCode, index de memoria
@@ -36,14 +36,14 @@ Proyecto mantenido por @isnardokun. GitHub: https://github.com/isnardokun/openco
 
 ```
 opencode-global-config/
-├── oc                        # Wrapper script principal (~2226 líneas)
+├── oc                        # Wrapper script principal (~2490 líneas)
 ├── VERSION                   # "1.9.6"
 ├── opencode.json             # Config nativo OpenCode
 ├── opencode.strict.json      # Modo paranoid
 │
 ├── agents/                   # 11 agentes (markdown + YAML frontmatter)
 ├── commands/                 # 8 slash commands para TUI
-├── skills/                   # 6 skills (project-map, safe-implementation, etc.)
+├── skills/                   # 10 skills (project-map, safe-implementation, etc.)
 ├── profiles/                 # 9 perfiles deny-first
 ├── rubrics/                  # 3 gates reutilizables
 ├── plugins/                  # safety-guard.js (ESM)

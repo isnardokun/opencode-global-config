@@ -103,7 +103,7 @@ source ~/.bashrc
 | `@devops` | Infraestructura y CI/CD | edit + bash |
 | `@oncall` | Diagnóstico de producción | bash(ask) |
 
-### Skills (6)
+### Skills (10)
 
 | Skill | Función |
 |-------|---------|
@@ -113,6 +113,10 @@ source ~/.bashrc
 | `precommit-review` | Revisión de diff antes de commit |
 | `memory-retrieval` | 3-layer progressive disclosure |
 | `docs-writer` | Documentación técnica |
+| `diagnose` | Loop disciplinado de debugging |
+| `grill-with-docs` | Alineación con docs antes de construir |
+| `caveman` | Comunicación comprimida |
+| `ai-coding-rules` | Reglas de AI coding |
 
 ### Perfiles (9 perfiles deny-first)
 

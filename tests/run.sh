@@ -9,16 +9,24 @@ pass() { printf 'ok - %s\n' "$1"; }
 fail() { printf 'not ok - %s\n' "$1" >&2; exit 1; }
 
 run_oc() {
-    HOME="$TMPDIR/home" PATH="$TMPDIR/bin:$PATH" "$ROOT/oc" "$@"
+    (cd "$TMPDIR" && HOME="$TMPDIR/home" PATH="$TMPDIR/bin:$PATH" "$ROOT/oc" "$@")
 }
 
 mkdir -p "$TMPDIR/bin"
 cat > "$TMPDIR/bin/opencode" <<'EOF'
 #!/usr/bin/env bash
+if [ -n "${OC_CALL_COUNT_FILE:-}" ]; then
+  count=0
+  [ -f "$OC_CALL_COUNT_FILE" ] && count=$(cat "$OC_CALL_COUNT_FILE")
+  printf '%s\n' "$((count + 1))" > "$OC_CALL_COUNT_FILE"
+fi
 if [ -n "${OC_CAPTURE:-}" ]; then
   printf '%s\n' "$@" > "$OC_CAPTURE"
 fi
-exit 0
+if [ -n "${OC_FAKE_OUTPUT:-}" ]; then
+  printf '%b\n' "$OC_FAKE_OUTPUT"
+fi
+exit "${OC_FAKE_EXIT:-0}"
 EOF
 chmod +x "$TMPDIR/bin/opencode"
 
@@ -62,6 +70,32 @@ echo "9" > "$TMPDIR/home/.config/opencode/.session"
 run_oc --compact >/dev/null
 [[ "$(cat "$TMPDIR/home/.config/opencode/.session")" == "0" ]] || fail "compact should reset session counter after successful opencode run"
 pass "oc --compact resets counter on success"
+
+echo "21" > "$TMPDIR/home/.config/opencode/.session"
+compact_count_file="$TMPDIR/auto-compact-count"
+OC_CALL_COUNT_FILE="$compact_count_file" run_oc ask "trigger auto compact" >/dev/null
+[[ "$(cat "$compact_count_file")" == "2" ]] || fail "auto-compact should call opencode once for command and once for compact"
+[[ "$(cat "$TMPDIR/home/.config/opencode/.session")" == "0" ]] || fail "auto-compact should reset session counter"
+pass "auto-compact does not recurse through _oc_run"
+
+rm -rf "$TMPDIR/home/.config/opencode/memory/outcomes"
+mkdir -p "$TMPDIR/home/.config/opencode/memory/outcomes"
+if (cd "$TMPDIR" && OC_FAKE_OUTPUT="workflow finished without marker" run_oc --workflow bug-hunt "$TMPDIR" >/dev/null 2>&1); then
+  fail "workflow should fail when completion marker is missing"
+fi
+missing_marker_outcomes=$(find "$TMPDIR/home/.config/opencode/memory/outcomes" -name 'bug-hunt-*.json' 2>/dev/null | wc -l)
+[[ "$missing_marker_outcomes" -eq 0 ]] || fail "workflow should not track outcome without completion marker"
+
+if (cd "$TMPDIR" && OC_FAKE_OUTPUT=$'workflow failed\nWORKFLOW_COMPLETE=true' OC_FAKE_EXIT=7 run_oc --workflow bug-hunt "$TMPDIR" >/dev/null 2>&1); then
+  fail "workflow should fail when opencode exits non-zero even with completion marker"
+fi
+failed_marker_outcomes=$(find "$TMPDIR/home/.config/opencode/memory/outcomes" -name 'bug-hunt-*.json' 2>/dev/null | wc -l)
+[[ "$failed_marker_outcomes" -eq 0 ]] || fail "workflow should not track outcome after non-zero opencode exit"
+
+(cd "$TMPDIR" && OC_FAKE_OUTPUT=$'workflow finished\nWORKFLOW_COMPLETE=true' run_oc --workflow bug-hunt "$TMPDIR" >/dev/null)
+success_marker_outcomes=$(find "$TMPDIR/home/.config/opencode/memory/outcomes" -name 'bug-hunt-*.json' 2>/dev/null | wc -l)
+[[ "$success_marker_outcomes" -eq 1 ]] || fail "workflow should track outcome after exact completion marker"
+pass "workflow success requires exact completion marker"
 
 rm -rf "$TMPDIR/clean-home"
 HOME="$TMPDIR/clean-home" PATH="$TMPDIR/bin:$PATH" "$ROOT/oc" ask --dry-run "analiza el proyecto" >/dev/null

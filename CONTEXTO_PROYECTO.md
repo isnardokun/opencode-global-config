@@ -27,7 +27,7 @@ bash install.sh
 opencode-global-config/
 ├── opencode.json          # Config principal (permisos nativos OpenCode)
 ├── opencode.strict.json   # Modo paranoid: webfetch/websearch/external_dir: deny
-├── oc                     # Script wrapper (~1100 líneas) — comando global `oc`
+├── oc                     # Script wrapper (~2490 líneas) — comando global `oc`
 ├── install.sh             # Instalación + --dry-run
 ├── uninstall.sh           # Remoción segura con backup
 ├── validate.sh            # Validación completa + --installed
@@ -55,7 +55,7 @@ opencode-global-config/
 │   ├── analyze.md, review.md, secure.md, feature.md
 │   ├── bug-hunt.md, docs.md, devops.md, oncall.md
 │
-├── skills/ (6 skills)
+├── skills/ (10 skills)
 │   ├── project-map/
 │   ├── safe-implementation/
 │   ├── test-first/

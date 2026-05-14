@@ -33,7 +33,7 @@ User
 
 ### `oc` — Main Wrapper Script
 
-The core CLI entry point (~1100 lines of bash). Handles:
+The core CLI entry point (~2490 lines of bash). Handles:
 
 - **Profile enforcement** — `get_profile_rules()` reads `profiles/*.json`, generates English instructions, injects via `_oc_run()` on every `opencode run` call
 - **Memory** — `create_observation()`, `search_memory()`, `get_observations()`, `get_timeline()`
@@ -79,7 +79,7 @@ deny → plan → review → default → work → research → auto → trusted 
 **Most restrictive:** `deny` (read-only, no edits, no bash)
 **Most permissive:** `trusted` (direct edits, bash allowed)
 
-### Skills (6 total)
+### Skills (10 total)
 
 Located in `skills/` as directories with `SKILL.md`:
 
@@ -91,6 +91,10 @@ Located in `skills/` as directories with `SKILL.md`:
 | `precommit-review` | Diff review before commit |
 | `memory-retrieval` | 3-layer progressive disclosure (search/timeline/get) |
 | `docs-writer` | Technical documentation generation |
+| `diagnose` | Disciplined reproduce → minimize → hypothesize → instrument → fix loop |
+| `grill-with-docs` | Alignment session before building |
+| `caveman` | Compressed communication mode |
+| `ai-coding-rules` | AI coding behavior guidelines |
 
 ### Commands (8 slash commands)
 
@@ -138,7 +142,7 @@ The system includes automatic self-improvement capabilities that require zero us
 | Function | Trigger | Behavior |
 |----------|---------|----------|
 | `detect_project()` | Always | Auto-detects project from PWD or git remote; eliminates need for `-p` manually |
-| `auto_compact_if_needed()` | Every `_oc_run()` when turns > 20 | Compacts session silently, resets turn counter |
+| `auto_compact_if_needed()` | Every `_oc_run()` when turns > 20 | Compacts session silently, resets turn counter; guarded by `OC_AUTO_COMPACT_RUNNING` to avoid recursive compaction |
 | `auto_reflect()` | Post-workflow completion | Creates observation in correct project automatically |
 | `track_outcome()` | Post-workflow completion | Records workflow result in `memory/outcomes/` |
 | `analyze_outcomes()` | Post-workflow completion | Detects failure patterns (3+ = warning) |
@@ -150,13 +154,14 @@ User runs: oc --workflow bug-hunt ~/myproject
 
 1. run_workflow() executes with all phases in single-pass
 2. detect_project("~/myproject") → "myproject" (from git remote or dirname)
-3. Workflow completes → auto_reflect("bug-hunt", "~/myproject")
+3. `run_workflow_prompt()` requires successful `opencode run` exit status and exact output line `WORKFLOW_COMPLETE=true`
+4. Workflow completes → auto_reflect("bug-hunt", "~/myproject")
    → Creates observation in memory/projects/myproject/
-4. track_outcome("bug-hunt", "success", "myproject")
+5. track_outcome("bug-hunt", "success", "myproject")
    → Writes to memory/outcomes/bug-hunt-TIMESTAMP.json
-5. analyze_outcomes() checks recent failures
+6. analyze_outcomes() checks recent failures
    → If 3+ failures in 7 days, warns about pattern
-6. auto_compact_if_needed() runs after every _oc_run()
+7. auto_compact_if_needed() runs after every _oc_run()
    → If turns > 20, auto-generates structured summary + resets counter
 ```
 
@@ -264,7 +269,10 @@ oc --workflow bug-hunt ~/project
    - Phase 5: @reviewer + precommit-review
 2. Sends ONE opencode run call with full pipeline
 3. OpenCode executes sequentially, maintaining context between phases
+4. `run_workflow_prompt()` only treats the workflow as successful when the process exits with status `0` and output contains the exact line `WORKFLOW_COMPLETE=true`
 ```
+
+If the completion marker is missing or `opencode run` exits non-zero, `oc` returns non-zero and does not record a successful workflow outcome.
 
 ## Technical Decisions
 
@@ -295,7 +303,7 @@ Node.js emits `MODULE_TYPELESS_PACKAGE_JSON` warning when loading `.js` files wi
 
 ```
 opencode-global-config/
-├── oc                          # Main wrapper script (~1100 lines)
+├── oc                          # Main wrapper script (~2490 lines)
 ├── VERSION                     # "1.9.6"
 ├── opencode.json               # Native OpenCode config (permissions, plugins, instructions)
 ├── opencode.strict.json        # Paranoid mode: webfetch/websearch/external_dir: deny
@@ -323,13 +331,17 @@ opencode-global-config/
 │   ├── devops.md
 │   └── oncall.md
 │
-├── skills/                     # 6 skills
+├── skills/                     # 10 skills
 │   ├── project-map/
 │   ├── safe-implementation/
 │   ├── test-first/
 │   ├── precommit-review/
 │   ├── memory-retrieval/
-│   └── docs-writer/
+│   ├── docs-writer/
+│   ├── diagnose/
+│   ├── grill-with-docs/
+│   ├── caveman/
+│   └── ai-coding-rules/
 │
 ├── profiles/                   # 9 deny-first profiles
 │   ├── deny.json
