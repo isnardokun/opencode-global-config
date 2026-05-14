@@ -35,12 +35,21 @@ track_turn() {
         warn "Session turns: $turns (consider context compaction)"
     fi
 
-    # Self-Improvement: track outcomes and reflect periodically
+    # Self-Improvement: track outcomes and reflect periodically (inline to avoid forward-call issues)
     if [ "${turns}" -gt 0 ] && [ $((turns % 5)) -eq 0 ]; then
-        track_outcome "interaction" "active" "$(detect_project 2>/dev/null || echo 'unknown')" "Session turn ${turns}"
+        local _track_project="$(detect_project 2>/dev/null || echo 'unknown')"
+        local _track_outdir="${OC_MEMORY}/outcomes"
+        mkdir -p "$_track_outdir"
+        local _track_ts=$(date +%Y%m%d-%H%M%S)
+        python3 - "${_track_outdir}/interaction-${_track_ts}.json" "interaction" "active" "$_track_project" "Session turn ${turns}" << 'PYEOF'
+import json, sys
+path, workflow, status, project, details = sys.argv[1:]
+with open(path, "w") as f:
+    json.dump({"workflow": workflow, "status": status, "project": project, "details": details, "date": sys.argv[5] if len(sys.argv) > 5 else ""}, f, ensure_ascii=False)
+PYEOF
     fi
     if [ "${turns}" -gt 0 ] && [ $((turns % 15)) -eq 0 ]; then
-        auto_reflect "interaction" "$(pwd 2>/dev/null || echo '.')" 0
+        create_observation "note" "periodic self-check at turn ${turns}" "$_track_project"
     fi
 }
 
