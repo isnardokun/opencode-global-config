@@ -8,6 +8,7 @@ CURRENT_PROFILE="${OC_CONFIG}/.current_profile"
 
 OC_BUDGET_FILE="${OC_CONFIG}/.budget"
 OC_SESSION_FILE="${OC_CONFIG}/.session"
+OC_LAST_COMMANDS_FILE="${OC_CONFIG}/.last_commands"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -51,6 +52,14 @@ PYEOF
     if [ "${turns}" -gt 0 ] && [ $((turns % 15)) -eq 0 ]; then
         create_observation "note" "periodic self-check at turn ${turns}" "$_track_project"
     fi
+
+    # Octogent-inspired: mid-session reflection at turn 20
+    if [ "${turns}" -eq 20 ]; then
+        local _ref_prj="$(detect_project 2>/dev/null || echo 'global')"
+        create_observation "reflection" "mid-session check at turn 20 for ${_ref_prj}" "$_ref_prj"
+        echo ""
+        info "Mid-session reflection: consider 'oc --compact' if context feels heavy"
+    fi
 }
 
 check_budget() {
@@ -58,6 +67,43 @@ check_budget() {
     [ -f "${OC_SESSION_FILE}" ] && turns=$(cat "${OC_SESSION_FILE}")
     if [ "$turns" -gt 50 ]; then
         warn "High session turns ($turns). Context may need compaction."
+    fi
+}
+
+# Octogent-inspired: detect if agent is looping on same operation (SC1087 compliance)
+detect_loop() {
+    local current_cmd="${1:-}"
+    [ -z "$current_cmd" ] && return 0
+
+    mkdir -p "${OC_CONFIG}"
+    local loop_history="${OC_CONFIG}/.loop_history"
+
+    local count=0
+    if [ -f "$loop_history" ]; then
+        count=$(grep -c "^${current_cmd}$" "$loop_history" 2>/dev/null | tr -d '[:space:]' || echo "0")
+        count="${count:-0}"
+    fi
+
+    echo "$current_cmd" >> "$loop_history"
+
+    local window=6
+    if [ -f "$loop_history" ] && [ -s "$loop_history" ]; then
+        tail -n "$window" "$loop_history" > "${loop_history}.tmp" 2>/dev/null && mv "${loop_history}.tmp" "$loop_history"
+    fi
+
+    if [ "$count" -ge 3 ]; then
+        return 1
+    fi
+    return 0
+}
+
+warn_if_looping() {
+    local cmd_sig="${1:-}"
+    [ -z "$cmd_sig" ] && return 0
+
+    if ! detect_loop "$cmd_sig"; then
+        warn "Possible loop detected: '$cmd_sig' repeated 3+ times"
+        echo "  Hint: oc --compact to reset session, or oc --remember to save progress"
     fi
 }
 
@@ -876,8 +922,10 @@ _oc_run() {
     if [ "${1:-}" = "-p" ] && [ $# -gt 1 ]; then
         local prompt="$2"
         shift 2
+        warn_if_looping "$(echo "$prompt" | cut -c1-80)"
         opencode run "${prompt}${rules_text}" "$@"
     else
+        warn_if_looping "$(echo "$*" | cut -c1-80)"
         opencode "$@"
     fi
 
