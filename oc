@@ -1739,6 +1739,39 @@ quick_oncall() {
     _oc_run -p "Usa @oncall. Diagnostica: $context"
 }
 
+quick_design() {
+    local action="${1:-lint}"
+    local target="${2:-DESIGN.md}"
+    case "$action" in
+        lint)
+            if [ ! -f "$target" ]; then
+                echo "❌ No encontrado: $target"
+                echo "   ¿Corremos 'oc design suggest' para crearlo desde el proyecto?"
+                return 1
+            fi
+            _oc_run -p "Usa la skill design-md. Ejecuta: npx @google/design.md lint $target"
+            ;;
+        diff)
+            local before="$2"; local after="$3"
+            _oc_run -p "Usa la skill design-md. Ejecuta: npx @google/design.md diff $before $after"
+            ;;
+        suggest)
+            _oc_run -p "Usa la skill design-md. Analiza los archivos de estilos del proyecto actual (tailwind.config.*, *.css, componentes UI) y genera un draft DESIGN.md con los tokens detectados."
+            ;;
+        export)
+            local file="${2:-DESIGN.md}"; local format="${3:-json-tailwind}"
+            _oc_run -p "Usa la skill design-md. Ejecuta: npx @google/design.md export --format $format $file"
+            ;;
+        *)
+            echo "Uso: oc design <lint|diff|suggest|export> [args]"
+            echo "  lint     <archivo>   Validar DESIGN.md"
+            echo "  diff     <a> <b>      Comparar dos archivos"
+            echo "  suggest                 Generar draft desde proyecto"
+            echo "  export   <archivo> <formato>  Exportar (json-tailwind|css-tailwind|dtcg)"
+            ;;
+    esac
+}
+
 ask_usage() {
     cat << 'EOF'
 Usage: oc ask [--dry-run] [--explain] [--clarify] <pedido en lenguaje natural>
@@ -2548,11 +2581,12 @@ Output as plain markdown. This will be saved to resume the session later."; then
         shift
         quick_devops "$*"
         ;;
-    oncall)
+oncall)
         shift
         quick_oncall "$*"
         ;;
-    *)
-        _oc_run -p "$*"
+    design)
+        shift
+        quick_design "$@"
         ;;
 esac

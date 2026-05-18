@@ -79,7 +79,7 @@ done
 echo ""
 
 echo "Required skills:"
-for skill in project-map safe-implementation test-first precommit-review memory-retrieval docs-writer; do
+for skill in project-map safe-implementation test-first precommit-review memory-retrieval docs-writer ai-coding-rules caveman diagnose grill-with-docs design-md; do
     if [ -d "${ROOT}/skills/${skill}" ]; then
         pass "skills/${skill}/"
     else
@@ -286,7 +286,7 @@ agent_count=$(find "${ROOT}/agents" -maxdepth 1 -name '*.md' | wc -l | tr -d ' '
 skill_count=$(find "${ROOT}/skills" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
 if [ "$profile_count" = "9" ]; then pass "Profile count: 9"; else fail "Expected 9 profiles, found $profile_count"; fi
 if [ "$agent_count" = "11" ]; then pass "Agent count: 11"; else fail "Expected 11 agents, found $agent_count"; fi
-if [ "$skill_count" = "10" ]; then pass "Skill count: 10"; else fail "Expected 10 skills, found $skill_count"; fi
+if [ "$skill_count" = "11" ]; then pass "Skill count: 11"; else fail "Expected 11 skills, found $skill_count"; fi
 
 if grep -q -- '--remember \[-p proyecto\] \[-t tipo\]' "${ROOT}/oc" \
     && grep -q -- 'oc --remember -p project' "${ROOT}/README.md" \
