@@ -1699,6 +1699,72 @@ quick_analyze() {
     _oc_run -p "Usa @architect con project-map. Analiza: $1"
 }
 
+quick_dashboard() {
+    local action="${1:-wizard}"
+    local target="${2:-.}"
+    local skill_slug="${3:-}"
+    local repo_url="https://github.com/isnardokun/opencode-dashboard-skills"
+
+    case "$action" in
+        --list)
+            echo -e "${BLUE}=== Dashboard Skills Disponibles ===${NC}"
+            echo ""
+            echo "  admin-panel        — Sidebar, data tables, forms, CRUD"
+            echo "  analytics-dashboard — Charts, KPIs, date filters, metrics"
+            echo "  kpi-overview       — Executive KPIs, large numbers, sparklines"
+            echo "  monitoring         — Real-time status, alerts, health bars"
+            echo "  crm-sales          — Pipeline funnel, deal cards, activity timeline"
+            echo ""
+            echo "Para aplicar: occo dashboard --apply <slug> [proyecto]"
+            return 0
+            ;;
+        --apply)
+            [ -z "$skill_slug" ] && { echo "❌ Usage: occo dashboard --apply <slug> [proyecto]"; return 1; }
+            target="${4:-.}"
+            local dest_dir="${target}/.opencode/skills/dashboard"
+            echo -e "${BLUE}=== Aplicando dashboard skill: ${skill_slug} ===${NC}"
+            mkdir -p "${dest_dir}"
+            if command -v curl >/dev/null 2>&1; then
+                curl -fsSL "${repo_url}/raw/main/skills/${skill_slug}/SKILL.md" -o "${dest_dir}/SKILL.md" 2>/dev/null \
+                    && echo "  ✅ SKILL.md descargado" \
+                    || warn "No se pudo descargar SKILL.md"
+                curl -fsSL "${repo_url}/raw/main/skills/${skill_slug}/DESIGN.md" -o "${dest_dir}/DESIGN.md" 2>/dev/null \
+                    && echo "  ✅ DESIGN.md descargado" \
+                    || warn "No se pudo descargar DESIGN.md"
+            else
+                warn "curl no disponible. Copiá manualmente desde:"
+                echo "  ${repo_url}/tree/main/skills/${skill_slug}"
+            fi
+            echo ""
+            info "Skill aplicado en ${dest_dir}/"
+            return 0
+            ;;
+        wizard|*)
+            echo -e "${BLUE}=== Occo Dashboard Wizard ===${NC}"
+            echo ""
+            echo "¿Qué tipo de dashboard necesitás?"
+            echo ""
+            echo "  1) Admin Panel      — CRUD, data tables, sidebar nav"
+            echo "  2) Analytics       — Charts, KPIs, comparaciones"
+            echo "  3) KPI Overview    — Executive view, métricas grandes"
+            echo "  4) Monitoring      — Status real-time, alertas"
+            echo "  5) CRM Sales       — Pipeline, deals, funnel"
+            echo "  6) Listar todos    — Ver todos los skills disponibles"
+            read -rp "Opción [1-6]: " dash_option
+            echo ""
+            case "$dash_option" in
+                1) quick_dashboard --apply admin-panel "$target" ;;
+                2) quick_dashboard --apply analytics-dashboard "$target" ;;
+                3) quick_dashboard --apply kpi-overview "$target" ;;
+                4) quick_dashboard --apply monitoring "$target" ;;
+                5) quick_dashboard --apply crm-sales "$target" ;;
+                6) quick_dashboard --list ;;
+                *) echo "❌ Opción inválida" ;;
+            esac
+            ;;
+    esac
+}
+
 quick_plan() {
     _oc_run -p "Usa @planner. Divide en fases: $1"
 }
@@ -1843,6 +1909,70 @@ quick_import() {
             ;;
         *)
             echo "❌ Opción inválida"
+            ;;
+    esac
+}
+
+quick_dashboard() {
+    local action="${1:-wizard}"
+    local target="${2:-.}"
+    local skill_slug="${3:-}"
+    local repo_url="https://github.com/isnardokun/opencode-dashboard-skills"
+
+    case "$action" in
+        --list)
+            echo -e "${BLUE}=== Dashboard Skills Disponibles ===${NC}"
+            echo ""
+            echo "  admin-panel        — Sidebar, data tables, forms, CRUD"
+            echo "  analytics-dashboard — Charts, KPIs, date filters, metrics"
+            echo "  kpi-overview       — Executive KPIs, large numbers, sparklines"
+            echo "  monitoring         — Real-time status, alerts, health bars"
+            echo "  crm-sales          — Pipeline funnel, deal cards, activity timeline"
+            echo ""
+            echo "Para aplicar uno: occo dashboard --apply <slug> [proyecto]"
+            return 0
+            ;;
+        --apply)
+            [ -z "$skill_slug" ] && { echo "❌ Usage: occo dashboard --apply <slug> [proyecto]"; return 1; }
+            target="${4:-.}"
+            local skill_path="${repo_url}/tree/main/skills/${skill_slug}"
+            local dest_dir="${target}/.opencode/skills/dashboard"
+            echo -e "${BLUE}=== Aplicando dashboard skill: ${skill_slug} ===${NC}"
+            mkdir -p "${target}/.opencode/skills"
+            if command -v curl >/dev/null 2>&1; then
+                curl -fsSL "${repo_url}/raw/main/skills/${skill_slug}/SKILL.md" -o "${dest_dir}/SKILL.md" 2>/dev/null && echo "  ✅ SKILL.md descargado" || warn "No se pudo descargar SKILL.md"
+                curl -fsSL "${repo_url}/raw/main/skills/${skill_slug}/DESIGN.md" -o "${dest_dir}/DESIGN.md" 2>/dev/null && echo "  ✅ DESIGN.md descargado" || warn "No se pudo descargar DESIGN.md"
+            else
+                warn "curl no disponible. Copiá los archivos manualmente desde:"
+                echo "  ${skill_path}"
+            fi
+            echo ""
+            info "Skill aplicado en ${dest_dir}/"
+            echo "Para ver el contexto: occo analyze $target"
+            return 0
+            ;;
+        wizard|*)
+            echo -e "${BLUE}=== Occo Dashboard Wizard ===${NC}"
+            echo ""
+            echo "¿Qué tipo de dashboard necesitás?"
+            echo ""
+            echo "  1) Admin Panel      — CRUD, data tables, sidebar nav"
+            echo "  2) Analytics         — Charts, KPIs, comparaciones"
+            echo "  3) KPI Overview      — Executive view, métricas grandes"
+            echo "  4) Monitoring        — Status real-time, alertas"
+            echo "  5) CRM Sales         — Pipeline, deals, funnel"
+            echo "  6) Listar todos      — Ver todos los skills disponibles"
+            read -rp "Opción [1-6]: " dash_option
+            echo ""
+            case "$dash_option" in
+                1) quick_dashboard --apply admin-panel "$target" ;;
+                2) quick_dashboard --apply analytics-dashboard "$target" ;;
+                3) quick_dashboard --apply kpi-overview "$target" ;;
+                4) quick_dashboard --apply monitoring "$target" ;;
+                5) quick_dashboard --apply crm-sales "$target" ;;
+                6) quick_dashboard --list ;;
+                *) echo "❌ Opción inválida" ;;
+            esac
             ;;
     esac
 }
@@ -2829,5 +2959,9 @@ oncall)
     resume)
         shift
         quick_resume "${1:-.}"
+        ;;
+    dashboard)
+        shift
+        quick_dashboard "$@"
         ;;
 esac
