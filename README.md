@@ -19,7 +19,7 @@ Inspired by [VILA-Lab/Dive-into-Claude-Code](https://github.com/VILA-Lab/Dive-in
 - [How Profile Enforcement Works](#how-profile-enforcement-works)
 - [Memory Bank](#memory-bank)
 - [Workflows](#workflows)
-- [Doccos-First Project Context](#doccos-first-project-context)
+- [Docs-First Project Context](#docs-first-project-context)
 - [Context Compaction](#context-compaction)
 - [Security Plugin](#security-plugin)
 - [Git Hooks](#git-hooks)
@@ -36,29 +36,29 @@ Inspired by [VILA-Lab/Dive-into-Claude-Code](https://github.com/VILA-Lab/Dive-in
 **v1.9.7 + Self-Improvement Agent, Harness Engineering exit conditions, automatic context management, and pattern detection**
 
 - **11 specialized agents** — no hardcoded model; use whichever model you select in OpenCode's UI
-- **8 official slash commands** — `/analyze`, `/review`, `/secure`, `/feature`, `/bug-hunt`, `/doccos`, `/devops`, `/oncall` — usable directly in OpenCode's TUI
+- **8 official slash commands** — `/analyze`, `/review`, `/secure`, `/feature`, `/bug-hunt`, `/docs`, `/devops`, `/oncall` — usable directly in OpenCode's TUI
 - **9 prompt-enforced profiles** — rules like `requireTests`, `checkpointBeforeChanges` injected as explicit LLM instructions; profile permissions validated against `ask|allow|deny`
-- **10 skills** for analysis, implementation, validation, memory, doccoumentation, debugging, alignment, and communication
+- **10 skills** for analysis, implementation, validation, memory, documentation, debugging, alignment, and communication
 - **3 review rubrics** for code review, security review, and plan/design gates
 - **1 security plugin** with regex hardening, ESM metadata, redacted audit log, and restrictive log permissions
 - **Optional `occo ask` router** — natural-language intent routing with `--dry-run`, `--explain`, and `--clarify`
 - **Self-Improvement Agent** — automatic project detection, session auto-compact at 20+ turns, post-workflow auto-reflections, and failure pattern detection (3+ = warning)
 - **3-layer Memory Bank** (search / timeline / full detail) + JSONL index + project/type filters with automatic project detection from PWD
-- **5 single-pass workflows** (bug-hunt, new-project, debug, doccoument, feature) with exit conditions and automatic reflections
-- **Doccos-First Project Context** — agents inspect or create `doccos/` before implementation/debug/refactor work, using it as living project context
+- **5 single-pass workflows** (bug-hunt, new-project, debug, document, feature) with exit conditions and automatic reflections
+- **Docs-First Project Context** — agents inspect or create `docs/` before implementation/debug/refactor work, using it as living project context
 - **Souls / Personas** for different work contexts
 - **Git hooks** for automatic review; fail-closed markers + optional `gitleaks` if installed
 - **Quick commands** with optional context argument
 - **Interactive menu** via fzf
 - **Wizard mode** step-by-step guidance
 - **Real `--compact`** — structured LLM summarization, not just a counter reset
-- **`occo --doccotor`** — diagnoses installation health
-- **`validate.sh`** — validates repo integrity, doccos consistency, counts, plugin syntax, and installed config via `--installed`
-- **`tests/run.sh`** — functional smoke tests for memory, hooks, profiles, init, compact, doccotor, install dry-run, and safety guard
-- **`VERSION`** — simple version source validated against doccos/scripts
+- **`occo --doctor`** — diagnoses installation health
+- **`validate.sh`** — validates repo integrity, documentation consistency, counts, plugin syntax, and installed config via `--installed`
+- **`tests/run.sh`** — functional smoke tests for memory, hooks, profiles, init, compact, doctor, install dry-run, and safety guard
+- **`VERSION`** — simple version source validated against documentation/scripts
 - **`uninstall.sh`** — safe removal with automatic backup
 - **`install.sh --dry-run`** — simulate installation
-- **Stack detection** in `occo --init` — auto-detects Node.js/Python/Rust/Go/Java/Doccoker/Terraform
+- **Stack detection** in `occo --init` — auto-detects Node.js/Python/Rust/Go/Java/Docker/Terraform
 - **Reversibility-Weighted Risk Assessment** in `@oncall`
 - **Karpathy Principles** (Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven)
 - **GitHub Actions CI** — validates structure, JSON, shell syntax, Node plugin syntax, and functional smoke tests on every push
@@ -71,7 +71,7 @@ This repository is a shell-first configuration package for OpenCode, not a web s
 
 | Area | Technology | Purpose |
 |------|------------|---------|
-| CLI wrapper | Bash | `occoco`, `install.sh`, `uninstall.sh`, `validate.sh`, hooks, smoke tests |
+| CLI wrapper | Bash | `occo`, `install.sh`, `uninstall.sh`, `validate.sh`, hooks, smoke tests |
 | OpenCode configuration | JSON + Markdown | Global config, agents, slash commands, profiles, skills, rubrics |
 | Security plugin | JavaScript ESM on Node.js | `plugins/safety-guard.js` command guard and audit logging |
 | Memory/index helpers | Python 3 | Safe JSONL/frontmatter writes from shell scripts |
@@ -95,7 +95,7 @@ Installer requirement checks:
 | Level | Tools | Used for |
 |-------|-------|----------|
 | Required | `git`, `opencode` | clone/install config and run OpenCode agents |
-| Recommended | `python3`, `jq`, `node` | robust memory writes, JSON/doccotor validation, plugin syntax/runtime checks |
+| Recommended | `python3`, `jq`, `node` | robust memory writes, JSON/doctor validation, plugin syntax/runtime checks |
 | Optional | `fzf`, `gitleaks`, `shellcheck`, `shfmt` | interactive menu, secret scanning in hooks, shell linting, formatting |
 
 If a required tool is missing, installation stops with install hints. Recommended/optional tools are reported but do not bloccok installation; affected features gracefully degrade.
@@ -108,7 +108,7 @@ cd /tmp/opencode-global-config
 bash install.sh --dry-run
 bash install.sh
 ./validate.sh --installed
-occoco --doccotor
+occo --doctor
 ```
 
 See [INSTALL.md](INSTALL.md) for manual installation and troubleshooting.
@@ -144,8 +144,8 @@ check the changes
 look for security issues
 audit the project
 
-# Doccoumentation → activates @doccos-writer
-generate doccoumentation
+# Documentation → activates @docs-writer
+generate docs
 create README for the project
 
 # Production → activates @oncall
@@ -175,7 +175,7 @@ Use `occo ask` when you want one command that interprets what you mean and selec
 occo ask "analyze this repo and list release risks"
 occo ask "fix the login bug"
 occo ask "review security before publishing"
-occo ask "doccoument this project"
+occo ask "document this project"
 ```
 
 Routing preview without calling OpenCode:
@@ -218,7 +218,7 @@ Current routing examples:
 | `bug`, `fix`, `error`, `broken` | `bugfix` | `@architect -> @planner -> @builder -> @reviewer` |
 | `review`, `diff`, `pre-commit` | `code-review` | `@reviewer + precommit-review + code-review rubric` |
 | `security`, `audit`, `token`, `xss`, `sql` | `security-review` | `@security-auditor + security-review rubric` |
-| `doccoker`, `CI`, `deploy`, `terraform` | `devops` | `@devops` |
+| `docker`, `CI`, `deploy`, `terraform` | `devops` | `@devops` |
 | `prod`, `crash`, `logs`, `incident` | `production-debug` | `@oncall -> @builder -> @security-auditor` |
 
 Safety behavior:
@@ -332,21 +332,21 @@ occo build "fix: sanitize inputs, move JWT secret to env var, add rate limiting"
 
 ---
 
-### 5. Generate doccoumentation for an existing project
+### 5. Generate documentation for an existing project
 
 ```bash
-occo --workflow doccoument ~/my-project
+occo --workflow document ~/my-project
 
 # Generates automatically:
 # - README.md (description, install, usage, examples)
 # - ARCHITECTURE.md (component diagram, data flow)
 # - API.md (endpoints, formats, request/response examples)
-# - DEPLOY.md (deployment instructions if Doccoker/CI detected)
+# - DEPLOY.md (deployment instructions if Docker/CI detected)
 ```
 
 For a specific subdirectory:
 ```bash
-cd src/api && occo doccos
+cd src/api && occo docs
 ```
 
 ---
@@ -360,7 +360,7 @@ occo --workflow new-project "REST API for inventory management with Node.js and 
 # Phase 1: @architect decides structure, stack, dependencies
 # Phase 2: @planner creates phased plan with dirs, config files, initial tests
 # Phase 3: @builder generates the scaffold
-# Phase 4: @doccos-writer creates README, ARCHITECTURE, CONTRIBUTING
+# Phase 4: @docs-writer creates README, ARCHITECTURE, CONTRIBUTING
 
 # After the workflow, init loccoal OpenCode config
 occo --init .
@@ -442,7 +442,7 @@ occo review
 # Activate devops profile (requireSecurityReview + requireCheckpoint enforced)
 occo --profile devops
 
-occo devops "create multi-stage Doccokerfile for the API, optimized for production"
+occo devops "create multi-stage Dockerfile for the API, optimized for production"
 occo devops "configure GitHub Actions CI/CD with tests, build, and staging deploy"
 occo devops "add health check endpoint and configure liveness/readiness probes for Kubernetes"
 
@@ -555,7 +555,7 @@ occo --wizard
 | `@builder-safe` | edit(ask) + bash(ask) | Implement with confirmation before every edit — first-time projects or critical paths |
 | `@reviewer` | read-only | Review diff before commit |
 | `@security-auditor` | read-only | Find vulnerabilities |
-| `@doccos-writer` | edit | Generate / update doccoumentation |
+| `@docs-writer` | edit | Generate / update documentation |
 | `@devops` | edit + bash | Infrastructure, CI/CD, scripts |
 | `@oncall` | bash(ask) | Diagnose and mitigate production issues |
 | `@migration-planner` | read-only | Design incremental reversible migrations (schema, service, data) |
@@ -565,115 +565,114 @@ occo --wizard
 
 ## Quick Commands Reference
 
-### Natural Language Router (optional `occoco ask`)
+### Natural Language Router (optional `occo ask`)
 
 ```bash
-occoco ask "fix the login bug"              # Routes to bugfix workflow
-occoco ask --dry-run "audit release"        # Preview route without running
-occoco ask --clarify "add auth"             # Ask loccoal questions first
-occoco ask --explain "implement OAuth2"     # Print routing + run
+occo ask "fix the login bug"              # Routes to bugfix workflow
+occo ask --dry-run "audit release"        # Preview route without running
+occo ask --clarify "add auth"             # Ask loccoal questions first
+occo ask --explain "implement OAuth2"     # Print routing + run
 ```
 
 ### Analysis Commands
 
 ```bash
-occoco analyze ~/project                    # @architect + project-map
-occoco analyze .                             # Analyze current directory
-occoco plan "migrate to PostgreSQL"         # @planner with task
-occoco build "add pagination"               # @builder + test-first + safe-implementation
-occoco review                               # @reviewer + precommit-review (uses git diff)
-occoco review src/api/                      # Review specific path
+occo analyze ~/project                    # @architect + project-map
+occo analyze .                             # Analyze current directory
+occo plan "migrate to PostgreSQL"         # @planner with task
+occo build "add pagination"               # @builder + test-first + safe-implementation
+occo review                               # @reviewer + precommit-review (uses git diff)
+occo review src/api/                      # Review specific path
 ```
 
 ### Specialized Commands (all accept optional context path)
 
 ```bash
-occoco secure                               # @security-auditor (current dir)
-occoco secure src/auth/                     # Audit specific path
-occoco doccos                                 # @doccos-writer (Doccos-First + project-map)
-occoco doccos ~/my-project                    # Doccoument specific project
-occoco devops "create Doccokerfile"           # @devops with task description
-occoco oncall                               # @oncall (interactive diagnosis)
-occoco oncall "JWT token expiring"          # @oncall with context
+occo secure                               # @security-auditor (current dir)
+occo secure src/auth/                     # Audit specific path
+occo docs ~/my-project                    # Document specific project
+occo devops "create Dockerfile"           # @devops with task description
+occo oncall                               # @oncall (interactive diagnosis)
+occo oncall "JWT token expiring"          # @oncall with context
 ```
 
 ### Profile Management (persists for session)
 
 ```bash
-occoco --profile deny                       # Maximum restrictive (read-only)
-occoco --profile plan                       # Planning only (no modifications)
-occoco --profile review                     # Read and report (bash: ask)
-occoco --profile default                    # General dev (confirm each change)
-occoco --profile work                       # Professional work (conservative)
-occoco --profile research                   # Research (more permissions)
-occoco --profile auto                       # Assisted mode with tracking
-occoco --profile trusted                    # Direct edits allowed
-occoco --profile devops                     # Infrastructure + checkpoint
-occoco -l, --list-profiles                  # List all available profiles
+occo --profile deny                       # Maximum restrictive (read-only)
+occo --profile plan                       # Planning only (no modifications)
+occo --profile review                     # Read and report (bash: ask)
+occo --profile default                    # General dev (confirm each change)
+occo --profile work                       # Professional work (conservative)
+occo --profile research                   # Research (more permissions)
+occo --profile auto                       # Assisted mode with tracking
+occo --profile trusted                    # Direct edits allowed
+occo --profile devops                     # Infrastructure + checkpoint
+occo -l, --list-profiles                  # List all available profiles
 ```
 
 ### Memory Bank Commands
 
 ```bash
 # Layer 1: Search (~50-100 tokens/result)
-occoco --memory "doccoker"                                   # Search all projects
-occoco --memory "auth" -t decision                         # Filter by type
-occoco --memory "redis" -p my-api -t config                 # Filter by project + type
-occoco -t bugfix "query"                                    # Short form: -t = --type
+occo --memory "docker"                                   # Search all projects
+occo --memory "auth" -t decision                         # Filter by type
+occo --memory "redis" -p my-api -t config                 # Filter by project + type
+occo -t bugfix "query"                                    # Short form: -t = --type
 
 # Layer 2: Timeline (~200 tokens)
-occoco --memory --timeline 20260501-143022-a1b2c3d4        # Chronological context
+occo --memory --timeline 20260501-143022-a1b2c3d4        # Chronological context
 
 # Layer 3: Full detail (~500-1000 tokens)
-occoco --memory --get 20260501-143022-a1b2c3d4             # Full observation
-occoco --get obs_20260501-143022-a1b2c3d4                  # Alternative syntax
+occo --memory --get 20260501-143022-a1b2c3d4             # Full observation
+occo --get obs_20260501-143022-a1b2c3d4                  # Alternative syntax
 
 # Create observations
-occoco --remember "General note"                            # Create note in global
-occoco --remember -t bugfix "Fixed JWT bug"                 # With type
-occoco --remember -p project "Context about this project"    # Literal 'project' example
-occoco --remember -p my-api "Redis config decision"         # With project
-occoco --remember -p my-api -t decision "Chose Redis"      # Project + type
-occoco --remember --template -t feature                     # Preview template
-occoco --list-templates                                     # Show available templates
+occo --remember "General note"                            # Create note in global
+occo --remember -t bugfix "Fixed JWT bug"                 # With type
+occo --remember -p project "Context about this project"    # Literal 'project' example
+occo --remember -p my-api "Redis config decision"         # With project
+occo --remember -p my-api -t decision "Chose Redis"      # Project + type
+occo --remember --template -t feature                     # Preview template
+occo --list-templates                                     # Show available templates
 
 # Session
-occoco --budget                                             # Show session turns
-occoco --compact                                            # Summarize + reset counter
-occoco --status                                             # Full status report
-occoco --save-all                                           # Save project + outcomes + reflection
-occoco --capture                                            # Capture session state
+occo --budget                                             # Show session turns
+occo --compact                                            # Summarize + reset counter
+occo --status                                             # Full status report
+occo --save-all                                           # Save project + outcomes + reflection
+occo --capture                                            # Capture session state
 ```
 
 ### Workflows (single-pass, all phases in one session)
 
 ```bash
-occoco --workflow bug-hunt ~/project              # 5 phases: architect → security → planner → builder → reviewer
-occoco --workflow new-project "my-api"            # 4 phases: doccos-first → architect → planner → builder → doccos-writer
-occoco --workflow debug "JWT failing"             # 3 phases: oncall → builder → security
-occoco --workflow doccoument ~/project              # 3 phases: doccos-first → architect → doccos-writer → reviewer
-occoco --workflow feature "add auth" ~/api       # 4 phases: doccos-first → architect → planner → builder → reviewer
+occo --workflow bug-hunt ~/project              # 5 phases: architect → security → planner → builder → reviewer
+occo --workflow new-project "my-api"            # 4 phases: docs-first → architect → planner → builder → docs-writer
+occo --workflow debug "JWT failing"             # 3 phases: oncall → builder → security
+occo --workflow document ~/project              # 3 phases: docs-first → architect → docs-writer → reviewer
+occo --workflow feature "add auth" ~/api       # 4 phases: docs-first → architect → planner → builder → reviewer
 
 # With interactive confirmation between phases
-occoco --workflow bug-hunt ~/project --interactive
+occo --workflow bug-hunt ~/project --interactive
 
 # List available workflows
-occoco --list-workflows
+occo --list-workflows
 ```
 
 ### Initialization and Setup
 
 ```bash
-occoco --init ~/my-project                       # Initialize project with .opencode/
-occoco --init                                    # Initialize current directory
+occo --init ~/my-project                       # Initialize project with .opencode/
+occo --init                                    # Initialize current directory
 # Creates: .opencode/opencode.json, .opencode/CLAUDE.md, .git/hooks/pre-commit, .git/hooks/pre-push
 ```
 
 ### Diagnostic Commands
 
 ```bash
-occoco --doccotor                                  # Installation health check
-# Checks: opencode, occoco, config files, directories, JSON validity, fzf, profile, audit log
+occo --doctor                                  # Installation health check
+# Checks: opencode, occo, config files, directories, JSON validity, fzf, profile, audit log
 
 make check                                   # Syntax + JSON validation
 make test                                    # Functional smoke tests
@@ -686,15 +685,23 @@ git diff --check                             # Check for whitespace errors
 ### Direct OpenCode Access
 
 ```bash
-occoco "any task"                                # Send directly to OpenCode
+occo "any task"                                # Send directly to OpenCode
 opencode                                     # Start interactive OpenCode session
 ```
 
 ### Interactive Modes
 
 ```bash
-occoco --interactive, occoco -i                       # fzf menu (requires fzf)
-occoco --wizard, occoco -w                            # Step-by-step guided mode
+occo --interactive, occo -i                       # fzf menu (requires fzf)
+occo --wizard, occo -w                            # Step-by-step guided mode
+```
+
+### Project Lifecycle Commands
+
+```bash
+occo new [ruta]           # Wizard: proyecto nuevo (contexto + docs/ + .opencode/)
+occo import [ruta]        # Absorber repo clonado (detecta contexto previo, genera docs/, inits .opencode/)
+occo resume [ruta]        # Retomar proyecto propio (estado + git log + memoria + siguiente paso)
 ```
 
 ---
@@ -746,8 +753,8 @@ What the LLM actually receives:
 | `requireCheckpoint: true` | Create a state checkpoint before any change. |
 | `requireRollback: true` | Always provide a rollback plan before any change. |
 | `requireSecurityReview: true` | Include security review for every change. |
-| `trackDecisions: true` | Doccoument every technical decision with reasoning. |
-| `doccoumentAllChanges: true` | Doccoument every change made and why. |
+| `trackDecisions: true` | Document every technical decision with reasoning. |
+| `documentAllChanges: true` | Document every change made and why. |
 | `allowEnvEdit: false` | Never modify .env files or environment config. |
 | `maxFilesPerIteration: N` | Limit changes to N files per iteration. |
 
@@ -761,7 +768,7 @@ Persistent, file-based memory system using progressive disclosure to minimize to
 
 ```bash
 # Layer 1: Search (~50-100 tokens/result)
-occo --memory "doccoker"
+occo --memory "docker"
 occo --memory "auth" -t decision
 occo --memory "auth" -p my-project -t decision
 
@@ -806,7 +813,7 @@ Native OpenCode commands usable inside the interactive session (`opencode`). No 
 /secure           → @security-auditor
 /feature <desc>   → full workflow: architect → planner → builder → reviewer
 /bug-hunt         → 5-phase bug hunt
-/doccos             → @doccos-writer
+/docs             → @docs-writer
 /devops <desc>    → @devops
 /oncall <desc>    → @oncall incident response
 ```
@@ -839,17 +846,17 @@ Multi-agent pipelines that execute **all phases in a single OpenCode session**. 
 occo --workflow bug-hunt ~/project              # 5 phases
 occo --workflow new-project "my-api"            # 4 phases
 occo --workflow debug "error description"       # 3 phases
-occo --workflow doccoument ~/project              # 3 phases
+occo --workflow document ~/project              # 3 phases
 occo --workflow feature "add OAuth2" ~/api      # 4 phases (description + path)
 ```
 
 | Workflow | Phases | Agent chain |
 |----------|--------|-------------|
 | `bug-hunt` | 5 | architect → security-auditor → planner → builder → reviewer |
-| `new-project` | Doccos-First + 4 | doccos context/questions → architect → planner → builder → doccos-writer |
+| `new-project` | Docs-First + 4 | documentation context/questions → architect → planner → builder → docs-writer |
 | `debug` | 3 | oncall → builder → security-auditor |
-| `doccoument` | Doccos-First + 3 | doccos scan/drift check → architect → doccos-writer → reviewer |
-| `feature` | Doccos-First + 4 | doccos context check → architect → planner → builder → reviewer |
+| `document` | Docs-First + 3 | documentation scan/drift check → architect → docs-writer → reviewer |
+| `feature` | Docs-First + 4 | documentation context check → architect → planner → builder → reviewer |
 
 **`feature` workflow takes two arguments:**
 ```bash
@@ -859,23 +866,23 @@ occo --workflow feature "add OAuth2 login" ~/myapi
 
 ---
 
-## Doccos-First Project Context
+## Docs-First Project Context
 
-Doccos-First makes project doccoumentation a required context layer before substantial work. When OpenCode is launched with this configuration, agents are instructed to check `doccos/` before implementing, debugging, refactoring, or generating doccoumentation.
+Documentation-First makes project documentation a required context layer before substantial work. When OpenCode is launched with this configuration, agents are instructed to check `docs/` before implementing, debugging, refactoring, or generating documentation.
 
 For existing projects, the agent should:
 
-- read relevant files under `doccos/` first, if present;
-- compare doccos against the real code/configuration;
-- report or fix doccoumentation drift before relying on stale context;
-- update doccos when business logic, data structures, architecture, decisions, tasks, risks, or conversational context change.
+- read relevant files under `docs/` first, if present;
+- compare documentation against the real code/configuration;
+- report or fix documentation drift before relying on stale context;
+- update documentation when business logic, data structures, architecture, decisions, tasks, risks, or conversational context change.
 
-For new projects, the agent should ask targeted questions before scaffolding if critical information is missing, then create `doccos/` as the project guide.
+For new projects, the agent should ask targeted questions before scaffolding if critical information is missing, then create `docs/` as the project guide.
 
-Recommended `doccos/` structure:
+Recommended `docs/` structure:
 
 ```text
-doccos/
+documentation/
 ├── PROJECT_CONTEXT.md    # purpose, users, scope, current state
 ├── BUSINESS_LOGIC.md     # domain rules, workflows, constraints
 ├── DATA_STRUCTURE.md     # entities, models, persistence, relationships
@@ -888,13 +895,13 @@ doccos/
 └── ONBOARDING.md         # what to read first and how to work safely
 ```
 
-Entrypoints that now include Doccos-First behavior:
+Entrypoints that now include Documentation-First behavior:
 
-- `occo doccos` / `occo ask "doccoument this project"`
+- `occo docs` / `occo ask "document this project"`
 - `occo ask "implement ..."`
 - `occo ask "fix ..."`
 - `occo --workflow new-project ...`
-- `occo --workflow doccoument ...`
+- `occo --workflow document ...`
 - `occo --workflow feature ...`
 
 The rule is also installed globally through `AGENTS.md` and `CLAUDE.md`, so it complements agents and slash commands even outside the wrapper workflows.
@@ -937,7 +944,7 @@ occo --remember "session summary: <paste summary>"
 
 ### Auto-Reflect Post-Workflow
 
-After every workflow (`bug-hunt`, `new-project`, `debug`, `doccoument`, `feature`):
+After every workflow (`bug-hunt`, `new-project`, `debug`, `document`, `feature`):
 
 1. `auto_reflect()` creates an observation automatically using `detect_project()`
 2. `track_outcome()` records success/failure in `memory/outcomes/`
@@ -960,7 +967,7 @@ $ occo --workflow bug-hunt ~/broken-project
 === Bug Hunt Completado ===
 [INFO] Workflow complete. Analyzing outcomes...
 [WARN] Detected 3 workflow failures in recent history
-[INFO] Pattern detected. Consider doccoumenting in memory:
+[INFO] Pattern detected. Consider documenting in memory:
   occo --remember -t decision 'workflow failure pattern: ...'
 ```
 
@@ -1048,7 +1055,7 @@ git diff --check
 - legacy OpenCode CLI calls (`opencode -p`, `opencode --profile`);
 - profile permission actions (`ask|allow|deny`);
 - model-free agents and language-artifact scan;
-- doccoumentation consistency against `VERSION`, 9 profiles, 11 agents, 10 skills;
+- documentation consistency against `VERSION`, 9 profiles, 11 agents, 10 skills;
 
 Functional smoke tests are run separately with `make test` and in CI. They cover:
 
@@ -1059,7 +1066,7 @@ Functional smoke tests are run separately with `make test` and in CI. They cover
 - hooks fail-closed marker behavior;
 - profiles list/switch validation;
 - `occo ask` natural-language routing and prompt generation;
-- `occo --init`, `--compact`, `--doccotor`, and installed fixture validation;
+- `occo --init`, `--compact`, `--doctor`, and installed fixture validation;
 - installer dry-run and uninstaller missing-backup behavior;
 - safety guard destructive-command bloccoking, secret redaction, and log permissions.
 
@@ -1090,7 +1097,7 @@ opencode-global-config/
 │   ├── builder-safe.md      # Conservative builder with confirmation
 │   ├── reviewer.md
 │   ├── security-auditor.md
-│   ├── doccos-writer.md
+│   ├── docs-writer.md
 │   ├── devops.md
 │   ├── oncall.md            # Reversibility-weighted risk, P1/P2/P3 classification
 │   ├── migration-planner.md # Incremental reversible migration plans
@@ -1101,9 +1108,9 @@ opencode-global-config/
 │   ├── test-first/          # Goal-Driven Execution
 │   ├── precommit-review/    # Diff review before commit
 │   ├── memory-retrieval/    # 3-layer progressive disclosure
-│   ├── doccos-writer/         # Technical doccoumentation
+│   ├── docs-writer/         # Technical documentation
 │   ├── diagnose/            # Disciplined debugging loop
-│   ├── grill-with-doccos/     # Alignment before building
+│   ├── grill-with-documentation/     # Alignment before building
 │   ├── caveman/             # Compressed communication mode
 │   └── ai-coding-rules/     # AI coding behavior guidelines
 ├── rubrics/
@@ -1138,8 +1145,8 @@ opencode-global-config/
 │   └── run.sh               # Functional smoke tests
 ├── CLAUDE.md                # Compact system context (40 lines)
 ├── AGENTS.md                # Intent mapping + 4 Karpathy principles
-├── README.md                # English doccoumentation (this file)
-├── README.es.md             # Spanish doccoumentation
+├── README.md                # English documentation (this file)
+├── README.es.md             # Spanish documentation
 ├── INSTALL.md
 ├── CHANGELOG.md
 ├── CONTEXTO_PROYECTO.md     # Living project context / change log
@@ -1172,9 +1179,9 @@ opencode-global-config/
 
 #### Harness Engineering — Exit Conditions y Observabilidad
 
-- **`occo`** — agrega `EXIT_CONDITIONS` a los 5 workflows (bug-hunt, new-project, debug, doccoument, feature) con límites de agent turns y marcador `WORKFLOW_COMPLETE=true`
+- **`occo`** — agrega `EXIT_CONDITIONS` a los 5 workflows (bug-hunt, new-project, debug, document, feature) con límites de agent turns y marcador `WORKFLOW_COMPLETE=true`
 - **`occo`** — nuevo comando `occo --status` que muestra: session turns, active profile, estado de hooks, última observación y últimas 5 entradas de memoria
-- **`occo --help`** — doccoumenta `--status` junto a `--budget`, `--compact` y `--doccotor`
+- **`occo --help`** — documenta `--status` junto a `--budget`, `--compact` y `--doctor`
 - **`agents/manifest.json`** — nuevo archivo de agent cards para descubrimiento y orquestación futura; incluye id, description, mode, permission, skills, tags, entrypoints y special por agente; también skills registry y workflows con exit conditions. Validado por `validate.sh`.
 - **`validate.sh`** — agrega 4 custom linters: (1) TODO sin referencia a issue/JIRA, (2) asignaciones de credentials hardcodeadas en agents/skills, (3) skills que exceden 1000 líneas (oversized), (4) skills sin SKILL.md.
 
@@ -1187,7 +1194,7 @@ opencode-global-config/
 - **`occo`** — `detect_project()` auto-detecta el proyecto desde PWD o git remote, eliminando necesidad de `-p` manual en todos los comandos de memoria
 - **`occo`** — `auto_compact_if_needed()` se ejecuta automáticamente en `_occo_run()` cuando turns > 20, compactando sesión sin intervención humana
 - **`occo`** — `auto_reflect()` crea observation automáticamente post-workflow (no interactivo), usando `detect_project()` para guardar en el proyecto correcto
-- **`occo`** — `analyze_outcomes()` analiza outcomes de workflows y detecta patterns de failures; sugiere doccoumentar en memory si hay 3+ fallas recientes
+- **`occo`** — `analyze_outcomes()` analiza outcomes de workflows y detecta patterns de failures; sugiere documentar en memory si hay 3+ fallas recientes
 - **`occo`** — `track_outcome()` ahora usa `detect_project()` en lugar de `basename`
 - **`occo --status`** — ahora muestra "Current project" además de session turns, profile y hooks
 - **`occo --budget`** — ahora indica threshold de auto-compact (20 turns) en lugar de solo "consider running occo --compact"
@@ -1198,7 +1205,7 @@ opencode-global-config/
 - **`occo`** — nuevos templates de observación para `occo --remember`: `bugfix`, `decision`, `feature`, `config`
 - **`occo`** — nuevo comando `occo --list-templates` para listar templates disponibles
 
-#### Doccoumentación
+#### Documentación
 
 - **`ARCHITECTURE.md`** — nueva sección Self-Improvement Agent con diagrama de automation flow y tabla de funciones
 - **`README.md`** — actualizado features y Context Compaction para reflejar auto-compact silencioso
@@ -1233,9 +1240,9 @@ opencode-global-config/
 
 #### Release Readiness
 
-- **`tests/run.sh`**: expanded functional smoke tests for memory project/type filters, `--remember`, timeline, profiles, fail-closed hooks, `occo --init`, `--compact`, `--doccotor`, `validate.sh --installed`, installer dry-run, and safety guard.
+- **`tests/run.sh`**: expanded functional smoke tests for memory project/type filters, `--remember`, timeline, profiles, fail-closed hooks, `occo --init`, `--compact`, `--doctor`, `validate.sh --installed`, installer dry-run, and safety guard.
 - **`VERSION`**: added a simple version source checked by `validate.sh`.
-- **`validate.sh`**: doccoumentation consistency checks for version, 9 profiles, 11 agents, 10 skills, and memory project flag support.
+- **`validate.sh`**: documentation consistency checks for version, 9 profiles, 11 agents, 10 skills, and memory project flag support.
 - **`rubrics/`**: added code review, security review, and plan review gates; validator checks required rubric files.
 - **`plugins/package.json`**: declares plugin JavaScript as ESM and removes Node's typeless-module warning.
 - **Hooks**: pass explicit diffs, require `BLOCKING_FINDINGS=false`, and run optional `gitleaks` when available.
@@ -1244,7 +1251,7 @@ opencode-global-config/
 #### Release Notes
 
 - Adds reusable code/security/plan review rubrics inspired by `dsifry/metaswarm` without adding multi-CLI orchestration complexity.
-- Strengthens installed-config validation so missing rubrics fail `validate.sh --installed` and `occo --doccotor`.
+- Strengthens installed-config validation so missing rubrics fail `validate.sh --installed` and `occo --doctor`.
 - Keeps release gates green through expanded smoke tests, shell validation, plugin syntax checks, and CI.
 
 ---
@@ -1291,7 +1298,7 @@ opencode-global-config/
 ### v1.9.1 (2026-05-01)
 
 - **`.editorconfig`** — UTF-8, LF, 2-space indent, final newline, no trailing whitespace
-- **`Makefile`** — targets: `validate`, `check`, `install`, `dry-run`, `uninstall`, `doccotor`
+- **`Makefile`** — targets: `validate`, `check`, `install`, `dry-run`, `uninstall`, `doctor`
 - **`opencode.strict.json`** — paranoid profile: `webfetch: deny`, `websearch: deny`, `external_directory: deny`
 - **`@builder-safe`** — new conservative agent with `edit: ask, bash: ask`; same logic as `@builder` but confirms before every edit
 
@@ -1307,7 +1314,7 @@ opencode-global-config/
 
 #### Official Slash Commands (`commands/`)
 
-8 slash commands usable directly in OpenCode's TUI (`/analyze`, `/review`, `/secure`, `/feature`, `/bug-hunt`, `/doccos`, `/devops`, `/oncall`). These are native OpenCode commands — work without `occo`, inside the interactive session.
+8 slash commands usable directly in OpenCode's TUI (`/analyze`, `/review`, `/secure`, `/feature`, `/bug-hunt`, `/docs`, `/devops`, `/oncall`). These are native OpenCode commands — work without `occo`, inside the interactive session.
 
 #### New Agents
 
@@ -1320,12 +1327,12 @@ opencode-global-config/
 - **`uninstall.sh`** — safe uninstaller that backs up config before removal. Run: `bash uninstall.sh`
 - **`install.sh --dry-run`** — simulate installation without touching files: `bash install.sh --dry-run`
 - **`safety-guard.js` audit log** — bash commands logged to `~/.config/opencode/logs/safety-guard.jsonl` with redaction and restrictive file permissions
-- **`occo --doccotor`** — diagnoses installation health: checks opencode, occo, config files, dirs, JSON validity, fzf, active profile, audit log
+- **`occo --doctor`** — diagnoses installation health: checks opencode, occo, config files, dirs, JSON validity, fzf, active profile, audit log
 - **GitHub Actions CI** — `.github/workflows/validate.yml`: runs `validate.sh`, shellcheck, agent model check, language artifact check on every push/PR
 
 #### Developer Experience
 
-- **`occo --init` stack detection** — `detect_stack()` identifies Node.js, Python, Rust, Go, Java, Doccoker, Terraform from project files; `detect_test_commands()` infers test commands; generated `CLAUDE.md` includes detected context
+- **`occo --init` stack detection** — `detect_stack()` identifies Node.js, Python, Rust, Go, Java, Docker, Terraform from project files; `detect_test_commands()` infers test commands; generated `CLAUDE.md` includes detected context
 - **Memory JSONL index** — `create_observation()` now also writes to `memory/index.jsonl` for fast querying with `jq`, `fzf`, or `ripgrep`
 
 ---
@@ -1338,7 +1345,7 @@ Profiles previously stored rules like `requireTests: true` that OpenCode never r
 
 - **`get_profile_rules()`** — reads active profile JSON, generates English instructions for the model
 - **`_occo_run()` injects rules** — every prompt passing through `_occo_run()` automatically receives active profile constraints
-- **Rules enforced**: `requireTests`, `requireExplanation`, `requireDiffReview`, `checkpointBeforeChanges`, `requireRollback`, `requireSecurityReview`, `trackDecisions`, `doccoumentAllChanges`, `allowEnvEdit`, `maxFilesPerIteration`, `reportOnly`
+- **Rules enforced**: `requireTests`, `requireExplanation`, `requireDiffReview`, `checkpointBeforeChanges`, `requireRollback`, `requireSecurityReview`, `trackDecisions`, `documentAllChanges`, `allowEnvEdit`, `maxFilesPerIteration`, `reportOnly`
 - **Profiles cleaned** — removed `model`, `temperature`, `agents.default` (none read by OpenCode); removed reference to non-existent `@explore`/`@general` agents from `research.json`
 
 #### Agents — Free Model Selection
@@ -1351,11 +1358,11 @@ Profiles previously stored rules like `requireTests: true` that OpenCode never r
 
 #### Quality of Life
 
-- **`quick_secure/review/doccos/oncall` accept context argument** — e.g. `occo secure src/api/` audits a specific path
+- **`quick_secure/review/docs/oncall` accept context argument** — e.g. `occo secure src/api/` audits a specific path
 - **`--compact` is real** — invokes OpenCode with structured summarization prompt; counter resets after
-- **`memory/ARCHITECTURE.md` is honest** — removed fictional "5-layer compaction pipeline" table; replaced with actual system doccoumentation
+- **`memory/ARCHITECTURE.md` is honest** — removed fictional "5-layer compaction pipeline" table; replaced with actual system documentation
 
-#### Bilingual Doccoumentation
+#### Bilingual Documentation
 
 - **`README.md`** — English version (international standard)
 - **`README.es.md`** — Spanish version
@@ -1364,7 +1371,7 @@ Profiles previously stored rules like `requireTests: true` that OpenCode never r
 
 ### v1.7.1 (2026-05-01)
 
-Cross-platform hardening: `install.sh` cleanup on failure via `trap EXIT`, `opencode.json` with real `$HOME` (not `~`), macOS full PATH support (`.bash_profile`, `.zshrc`, fish), POSIX `od` instead of `xxd` for ID generation, cleaned LLM artifacts from `CLAUDE.md`, fixed nested code fences in `doccos-writer/SKILL.md`.
+Cross-platform hardening: `install.sh` cleanup on failure via `trap EXIT`, `opencode.json` with real `$HOME` (not `~`), macOS full PATH support (`.bash_profile`, `.zshrc`, fish), POSIX `od` instead of `xxd` for ID generation, cleaned LLM artifacts from `CLAUDE.md`, fixed nested code fences in `docs-writer/SKILL.md`.
 
 ---
 
