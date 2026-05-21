@@ -25,6 +25,7 @@ Inspired by [VILA-Lab/Dive-into-Claude-Code](https://github.com/VILA-Lab/Dive-in
 - [Git Hooks](#git-hooks)
 - [Validation and Tests](#validation-and-tests)
 - [Souls / Personas](#souls--personas)
+- [Dashboard Skills](#dashboard-skills)
 - [Project Structure](#project-structure)
 - [Inspiration](#inspiration)
 - [Changelog](#changelog)
@@ -38,7 +39,7 @@ Inspired by [VILA-Lab/Dive-into-Claude-Code](https://github.com/VILA-Lab/Dive-in
 - **11 specialized agents** — no hardcoded model; use whichever model you select in OpenCode's UI
 - **8 official slash commands** — `/analyze`, `/review`, `/secure`, `/feature`, `/bug-hunt`, `/docs`, `/devops`, `/oncall` — usable directly in OpenCode's TUI
 - **9 prompt-enforced profiles** — rules like `requireTests`, `checkpointBeforeChanges` injected as explicit LLM instructions; profile permissions validated against `ask|allow|deny`
-- **10 skills** for analysis, implementation, validation, memory, documentation, debugging, alignment, and communication
+- **11 skills** for analysis, implementation, validation, memory, documentation, debugging, alignment, communication, and dashboard design
 - **3 review rubrics** for code review, security review, and plan/design gates
 - **1 security plugin** with regex hardening, ESM metadata, redacted audit log, and restrictive log permissions
 - **Optional `occo ask` router** — natural-language intent routing with `--dry-run`, `--explain`, and `--clarify`
@@ -75,7 +76,7 @@ This repository is a shell-first configuration package for OpenCode, not a web s
 | OpenCode configuration | JSON + Markdown | Global config, agents, slash commands, profiles, skills, rubrics |
 | Security plugin | JavaScript ESM on Node.js | `plugins/safety-guard.js` command guard and audit logging |
 | Memory/index helpers | Python 3 | Safe JSONL/frontmatter writes from shell scripts |
-| Validation | `jq`, `node`, `shellcheck`, Bash | Loccoal validation and GitHub Actions CI |
+| Validation | `jq`, `node`, `shellcheck`, Bash | Local validation and GitHub Actions CI |
 | Optional UX/security tools | `fzf`, `gitleaks`, `shfmt` | Interactive menu, secret scanning, shell formatting |
 
 There is no database and no HTTP server. Persistent state is file-based under `~/.config/opencode/` after installation.
@@ -702,7 +703,35 @@ occo --wizard, occo -w                            # Step-by-step guided mode
 occo new [ruta]           # Wizard: proyecto nuevo (contexto + docs/ + .opencode/)
 occo import [ruta]        # Absorber repo clonado (detecta contexto previo, genera docs/, inits .opencode/)
 occo resume [ruta]        # Retomar proyecto propio (estado + git log + memoria + siguiente paso)
+occo dashboard            # Wizard: dashboard profesional (admin, analytics, KPI, monitoring, CRM)
+occo dashboard --list     # Listar skills de dashboard disponibles
+occo dashboard --apply <slug>  # Aplicar skill de dashboard al proyecto
 ```
+
+---
+
+## Dashboard Skills
+
+Professional dashboard design skills from [opencode-dashboard-skills](https://github.com/isnardokun/opencode-dashboard-skills).
+
+Each skill provides `SKILL.md` (AI-agent instructions) + `DESIGN.md` (tokens + rationale) for a specific dashboard type.
+
+| Skill | Use Case |
+|-------|----------|
+| `admin-panel` | Sidebar nav, data tables, forms, CRUD interfaces |
+| `analytics-dashboard` | Charts, KPIs, date filters, comparative metrics |
+| `kpi-overview` | Executive view, large metric cards, sparklines, trends |
+| `monitoring` | Real-time status, health bars, alerts, service table |
+| `crm-sales` | Pipeline funnel, deal cards, activity timeline |
+
+**Usage:**
+```bash
+occo dashboard                    # Interactive wizard — choose dashboard type
+occo dashboard --list             # Show all available skills
+occo dashboard --apply admin-panel  # Download SKILL.md + DESIGN.md to project
+```
+
+The agent reads the downloaded `SKILL.md` and generates UI consistent with the selected dashboard style.
 
 ---
 
