@@ -28,7 +28,9 @@ if [ -n "${OC_FAKE_OUTPUT:-}" ]; then
 fi
 exit "${OC_FAKE_EXIT:-0}"
 EOF
-chmod +x "$TMPDIR/bin/opencode"
+cp "$TMPDIR/bin/opencode" "$TMPDIR/bin/occo"
+chmod +x "$TMPDIR/bin/opencode" "$TMPDIR/bin/occo"
+ln -sf opencode "$TMPDIR/bin/occo"
 
 mkdir -p "$TMPDIR/home/.config/opencode/memory"
 cp -r "$ROOT/profiles" "$TMPDIR/home/.config/opencode/profiles"
