@@ -1746,7 +1746,7 @@ quick_design() {
         lint)
             if [ ! -f "$target" ]; then
                 echo "❌ No encontrado: $target"
-                echo "   ¿Corremos 'oc design suggest' para crearlo desde el proyecto?"
+                echo "   ¿Corremos 'occo design suggest' para crearlo desde el proyecto?"
                 return 1
             fi
             _oc_run -p "Usa la skill design-md. Ejecuta: npx @google/design.md lint $target"
@@ -1763,13 +1763,242 @@ quick_design() {
             _oc_run -p "Usa la skill design-md. Ejecuta: npx @google/design.md export --format $format $file"
             ;;
         *)
-            echo "Uso: oc design <lint|diff|suggest|export> [args]"
+            echo "Uso: occo design <lint|diff|suggest|export> [args]"
             echo "  lint     <archivo>   Validar DESIGN.md"
             echo "  diff     <a> <b>      Comparar dos archivos"
             echo "  suggest                 Generar draft desde proyecto"
             echo "  export   <archivo> <formato>  Exportar (json-tailwind|css-tailwind|dtcg)"
             ;;
     esac
+}
+
+quick_import() {
+    local target="${1:-.}"
+    echo -e "${BLUE}=== Occo Import — Absorbing external project ===${NC}"
+    echo ""
+
+    if [ ! -d "$target" ]; then
+        echo "❌ No existe: $target"
+        return 1
+    fi
+
+    local project_name
+    project_name=$(detect_project "$target")
+    local detected_stack
+    detected_stack=$(detect_stack "$target")
+
+    echo "📁 Proyecto: $project_name"
+    echo "🛠️  Stack: ${detected_stack:-no detectado}"
+    echo ""
+
+    # Check for existing context from other agents
+    local has_claude=0 has_cursor=0 has_codex=0 has_docs=0 has_opencode=0
+    [ -d "$target/.claude/projects" ] && has_claude=1
+    [ -d "$target/.cursor/rules" ] && has_cursor=1
+    [ -d "$target/.codex" ] && has_codex=1
+    [ -d "$target/docs" ] && has_docs=1
+    [ -d "$target/.opencode" ] && has_opencode=1
+
+    echo "=== Detección de contexto previo ==="
+    [ $has_claude -eq 1 ] && echo "  ✅ Claude Code (.claude/)"
+    [ $has_cursor -eq 1 ] && echo "  ✅ Cursor (.cursor/)"
+    [ $has_codex -eq 1 ] && echo "  ✅ Codex (.codex/)"
+    [ $has_docs -eq 1 ] && echo "  ✅ docs/ existente"
+    [ $has_opencode -eq 1 ] && echo "  ✅ .opencode/ (ya inicializado)"
+    echo ""
+
+    if [ $has_opencode -eq 1 ]; then
+        warn "Este proyecto ya tiene .opencode/. ¿Querés re-inicializarlo? [y/N]"
+        read -rp " > " confirm
+        [[ "$confirm" != "y" ]] && { info "Ok, no se modificó .opencode/"; return 0; }
+    fi
+
+    echo "=== Generando docs/ ==="
+    echo "1) Analizar código existente y generar docs/ nuevo"
+    echo "2) Preguntar antes de cada archivo (más interactivo)"
+    echo "3) Solo detectar stack, no generar docs"
+    read -rp "Opción [1-3]: " doc_option
+    echo ""
+
+    case "$doc_option" in
+        1)
+            _oc_run -p "Usa @architect con project-map y @docs-writer. Analiza $target y genera docs/ completo (PROJECT_CONTEXT, BUSINESS_LOGIC, DATA_STRUCTURE, ARCHITECTURE, DECISIONS, CHANGELOG, CONVERSATION, TASKS, RISKS, ONBOARDING). El proyecto fue clonado de un repo externo."
+            echo ""
+            info "Inicializando .opencode/..."
+            run_init "$target"
+            info "Proyecto absorbed. Ejecutá 'occo analyze $target' para ver el contexto."
+            ;;
+        2)
+            _oc_run -p "Usa @docs-writer con Docs-First. Pregunta al usuario antes de crear cada archivo docs/. Analiza $target."
+            echo ""
+            info "Inicializando .opencode/..."
+            run_init "$target"
+            ;;
+        3)
+            info "Solo detectando stack..."
+            _oc_run -p "Usa @architect con project-map. Solo detecta el stack y estructura de $target. No generes archivos."
+            echo ""
+            info "Inicializando .opencode/..."
+            run_init "$target"
+            ;;
+        *)
+            echo "❌ Opción inválida"
+            ;;
+    esac
+}
+
+quick_resume() {
+    local target="${1:-.}"
+    echo -e "${BLUE}=== Occo Resume — Retomando proyecto ===${NC}"
+    echo ""
+
+    if [ ! -d "$target" ]; then
+        echo "❌ No existe: $target"
+        return 1
+    fi
+
+    local project_name
+    project_name=$(detect_project "$target")
+    local detected_stack
+    detected_stack=$(detect_stack "$target")
+
+    echo "📁 Proyecto: $project_name"
+    echo "🛠️  Stack: ${detected_stack:-no detectado}"
+    echo ""
+
+    # Check existing state
+    local has_opencode=0 has_docs=0 has_memory=0
+    [ -d "$target/.opencode" ] && has_opencode=1
+    [ -d "$target/docs" ] && has_docs=1
+    [ -f "${OC_MEMORY}/projects/${project_name}/observations.md" ] && has_memory=1
+
+    echo "=== Estado del proyecto ==="
+    [ $has_opencode -eq 1 ] && echo "  ✅ .opencode/ configurado" || echo "  ⚠️  sin .opencode/"
+    [ $has_docs -eq 1 ] && echo "  ✅ docs/ existe" || echo "  ⚠️  sin docs/"
+    [ $has_memory -eq 1 ] && echo "  ✅ memoria previous" || echo "  ℹ️  sin observaciones previas"
+    echo ""
+
+    # Check git state
+    local last_commit last_author last_date
+    if [ -d "$target/.git" ]; then
+        last_commit=$(git -C "$target" log -1 --format='%h' 2>/dev/null || echo "ninguno")
+        last_author=$(git -C "$target" log -1 --format='%an' 2>/dev/null || echo "desconocido")
+        last_date=$(git -C "$target" log -1 --format='%ar' 2>/dev/null || echo "desconocido")
+        echo "📜 Último commit: $last_commit por $last_author ($last_date)"
+    fi
+    echo ""
+
+    # Offer memory context if available
+    if [ $has_memory -eq 1 ]; then
+        echo "=== Resumen de memoria ==="
+        local obs_file="${OC_MEMORY}/projects/${project_name}/observations.md"
+        head -20 "$obs_file" 2>/dev/null
+        echo ""
+    fi
+
+    echo "Qué querés hacer?"
+    echo "1) Analizar estado actual y proponer próximo paso"
+    echo "2) Actualizar docs/ con estado actual"
+    echo "3) Leer docs/ y resumir contexto"
+    echo "4) Iniciar un workflow (bug-hunt, feature, etc.)"
+    echo "5) Solo mostrar contexto, no hacer nada"
+    read -rp "Opción [1-5]: " resume_option
+    echo ""
+
+    case "$resume_option" in
+        1)
+            _oc_run -p "Usa @architect con project-map. Analiza $target y respondé: ¿en qué se estaba trabajando? ¿qué falta? ¿cuál es el próximo paso recomendado?"
+            ;;
+        2)
+            _oc_run -p "Usa @docs-writer con Docs-First. Lee los docs/ existentes de $target, actualizalos con el estado actual del proyecto."
+            ;;
+        3)
+            _oc_run -p "Lee todos los archivos en docs/ de $target y dame un resumen ejecutivo del proyecto: qué hace, en qué estado está, qué falta."
+            ;;
+        4)
+            echo "Workflows disponibles:"
+            echo "  1) bug-hunt    — encontrar y fixing bugs"
+            echo "  2) feature     — implementar feature nuevo"
+            echo "  3) debug       — debuggear problema específico"
+            echo "  4) document    — documentar proyecto"
+            read -rp "Workflow [1-4]: " wf_choice
+            case "$wf_choice" in
+                1) run_workflow "bug-hunt" "$target" "false" ;;
+                2) run_workflow "feature" "nueva funcionalidad" "$target" "false" ;;
+                3) run_workflow "debug" "debug" "$target" "false" ;;
+                4) run_workflow "document" "$target" "false" ;;
+                *) echo "❌ Opción inválida" ;;
+            esac
+            ;;
+        5)
+            info "Ok. Ejecutá 'occo analyze $target' cuando estés listo."
+            ;;
+        *)
+            echo "❌ Opción inválida"
+            ;;
+    esac
+}
+
+quick_new() {
+    local target="${1:-.}"
+    echo -e "${BLUE}=== Occo New — Nuevo Proyecto ===${NC}"
+    echo ""
+    echo "Te voy a hacer preguntas para entender el proyecto que querés construir."
+    echo "Con esa info genero docs/ completo y .opencode/ configurado."
+    echo ""
+
+    read -rp "Nombre del proyecto: " proj_name
+    [ -z "$proj_name" ] && proj_name="mi-proyecto"
+    read -rp "Qué vas a construir? (web, CLI, API, librería, automatización...): " proj_type
+    read -rp "Qué problema resuelve?: " proj_problem
+    read -rp "Quién lo va a usar?: " proj_users
+    read -rp "Stack preferido? (Enter = lo decidimos juntos): " proj_stack
+    read -rp "Restricciones conocidas? (deadline, presupuesto, regs...): " proj_constraints
+    read -rp "Integraciones externas? (APIs, DBs, servicios...): " proj_integrations
+    read -rp "Funcionalidades mínimas (MVP)?: " proj_mvp
+    echo ""
+
+    local project_name
+    project_name=$(detect_project "$target")
+    local detected_stack
+    detected_stack=$(detect_stack "$target")
+
+    echo "=== Stack detectado: ${detected_stack:-ninguno} ==="
+    [ -z "$proj_stack" ] && proj_stack="$detected_stack"
+    echo "Usando: ${proj_stack:-a definir}"
+    echo ""
+
+    info "Generando docs/ con el contexto recolectado..."
+    _oc_run -p "Usa @docs-writer con Docs-First. Crea docs/ completo para un proyecto NUEVO con las siguientes características:
+
+- Nombre: $proj_name
+- Tipo: $proj_type
+- Problema que resuelve: $proj_problem
+- Usuario objetivo: $proj_users
+- Stack preferido: ${proj_stack:-a definir}
+- Restricciones: ${proj_constraints:-ninguna}
+- Integraciones: ${proj_integrations:-ninguna}
+- MVP/Minimum: ${proj_mvp:-a definir}
+
+Genera: PROJECT_CONTEXT.md, BUSINESS_LOGIC.md, DATA_STRUCTURE.md, ARCHITECTURE.md, DECISIONS.md, CHANGELOG.md, CONVERSATION.md, TASKS.md, RISKS.md, ONBOARDING.md."
+    echo ""
+
+    info "Inicializando .opencode/..."
+    run_init "$target"
+    echo ""
+
+    echo "=== Proyecto creado! ==="
+    echo "Próximos pasos:"
+    echo "  1) Revisá docs/ —批复 el contexto generado"
+    echo "  2) Ejecutá 'occo plan <tarea>' para planificar lo que sigue"
+    echo "  3) Ejecutá 'occo build <feature>' cuando estés listo para implementar"
+    echo ""
+    echo "También podés:"
+    echo "  - Agregar integraciones detected: $detected_stack"
+    echo "  - Completar ONBOARDING.md con guías de setup local"
+    echo "  - Definir tasks iniciales en TASKS.md"
+    echo ""
+    track_outcome "new" "success" "$project_name" "Nuevo proyecto: $proj_name"
 }
 
 ask_usage() {
@@ -2588,5 +2817,17 @@ oncall)
     design)
         shift
         quick_design "$@"
+        ;;
+    new)
+        shift
+        quick_new "${1:-.}"
+        ;;
+    import)
+        shift
+        quick_import "${1:-.}"
+        ;;
+    resume)
+        shift
+        quick_resume "${1:-.}"
         ;;
 esac
