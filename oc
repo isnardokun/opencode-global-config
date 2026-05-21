@@ -1623,10 +1623,10 @@ run_interactive() {
 
 show_help() {
     cat << 'EOF'
-OpenCode Global Config - Comando oc
+OpenCode Global Config - Comando occo
 
 USO:
-    oc [opción] [comando] [argumentos]
+    occo [opción] [comando] [argumentos]
 
 OPCIONES:
     -w, --wizard         Modo guiado paso a paso
