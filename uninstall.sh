@@ -5,7 +5,7 @@
 set -u
 
 CONFIG_DIR="${HOME}/.config/opencode"
-BIN="${HOME}/.local/bin/oc"
+BIN="${HOME}/.local/bin/occo"
 FORCE=0
 
 for _arg in "$@"; do
@@ -32,7 +32,7 @@ echo -e "${NC}"
 
 echo "This will remove:"
 echo "  - ${CONFIG_DIR}  (config, agents, skills, rubrics, plugins, memory)"
-echo "  - ${BIN}  (oc command)"
+echo "  - ${BIN}  (occo command)"
 echo ""
 warn "A backup will be created before deletion."
 echo ""
@@ -60,7 +60,7 @@ if [ -f "$BIN" ]; then
     rm -f "$BIN"
     success "Removed: $BIN"
 else
-    info "oc not found at: $BIN"
+    info "occo not found at: $BIN"
 fi
 
 echo ""

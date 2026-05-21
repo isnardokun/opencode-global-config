@@ -315,10 +315,10 @@ if [ "$INSTALLED" -eq 1 ]; then
     echo ""
     echo "oc command:"
     if command -v oc >/dev/null 2>&1; then
-        pass "oc found: $(command -v oc)"
-    else
-        fail "oc not in PATH"
-    fi
+        pass "occo found: $(command -v occo)"
+else
+    fail "occo not in PATH"
+fi
     echo ""
 fi
 

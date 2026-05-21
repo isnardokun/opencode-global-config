@@ -15,6 +15,7 @@ REPO_URL="https://github.com/isnardokun/opencode-global-config.git"
 INSTALL_DIR="$(mktemp -d "${TMPDIR:-/tmp}/opencode-config-install.XXXXXX")"
 CONFIG_DIR="${HOME}/.config/opencode"
 BIN_DIR="${HOME}/.local/bin"
+BIN_NAME="occo"
 BACKUP_DIR="${HOME}/.config/opencode.backup.$(date +%Y%m%d-%H%M%S)"
 
 RED='\033[0;31m'
@@ -139,7 +140,7 @@ if [ "$DRY_RUN" -eq 1 ]; then
     echo "  - Clonar $REPO_URL en $INSTALL_DIR"
     echo "  - Crear backup si existe $CONFIG_DIR"
     echo "  - Instalar config en $CONFIG_DIR"
-    echo "  - Instalar comando oc en $BIN_DIR/oc"
+    echo "  - Instalar comando ${BIN_NAME} en ${BIN_DIR}/${BIN_NAME}"
     echo "  - Agregar $BIN_DIR al PATH si falta"
     echo ""
     success "Dry-run completado: ningún archivo fue modificado"
@@ -242,11 +243,11 @@ success "Instalado: opencode.json"
 # 5. Install oc command
 info "Instalando comando oc..."
 mkdir -p "$BIN_DIR"
-if ! cp "$INSTALL_DIR/oc" "$BIN_DIR/oc"; then
+if ! cp "$INSTALL_DIR/oc" "$BIN_DIR/${BIN_NAME}"; then
     error "No se pudo instalar el comando oc en $BIN_DIR"
 fi
-chmod +x "$BIN_DIR/oc"
-success "Comando oc instalado en $BIN_DIR/oc"
+chmod +x "$BIN_DIR/${BIN_NAME}"
+    success "Comando ${BIN_NAME} instalado en ${BIN_DIR}/${BIN_NAME}"
 
 # 6. Add BIN_DIR to PATH in shell config files
 _path_line='export PATH="$HOME/.local/bin:$PATH"'
@@ -304,7 +305,7 @@ _ok=1
 [ -f "$CONFIG_DIR/AGENTS.md" ]     || { warn "Falta: AGENTS.md";    _ok=0; }
 [ -f "$CONFIG_DIR/CLAUDE.md" ]     || { warn "Falta: CLAUDE.md";    _ok=0; }
 [ -f "$CONFIG_DIR/opencode.json" ]  || { warn "Falta: opencode.json"; _ok=0; }
-[ -f "$BIN_DIR/oc" ]               || { warn "Falta: oc en $BIN_DIR"; _ok=0; }
+[ -f "$BIN_DIR/${BIN_NAME}" ]    || { warn "Falta: ${BIN_NAME} en $BIN_DIR"; _ok=0; }
 [ -d "$CONFIG_DIR/agents" ]        || { warn "Falta: agents/"; _ok=0; }
 [ -d "$CONFIG_DIR/skills" ]        || { warn "Falta: skills/"; _ok=0; }
 [ -d "$CONFIG_DIR/commands" ]      || { warn "Falta: commands/"; _ok=0; }
@@ -328,8 +329,11 @@ echo "╚═══════════════════════�
 echo ""
 echo "Próximos pasos:"
 echo "  1. Recarga tu terminal:  source ~/.bashrc  (o ~/.zshrc en zsh)"
-echo "  2. Ejecuta: opencode"
+echo "  2. Ejecutá: 'occo' (o 'oc' si agregaste el alias)"
 echo "  3. Escribe: 'analiza el proyecto actual'"
+echo ""
+echo "  Opcional — alias para seguir usando 'oc':"
+echo "    echo \"alias oc='occo'\" >> ~/.bashrc && source ~/.bashrc"
 echo ""
 if [ -d "$BACKUP_DIR" ]; then
     echo "Backup guardado en: $BACKUP_DIR"
