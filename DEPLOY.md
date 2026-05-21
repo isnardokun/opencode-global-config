@@ -1,6 +1,6 @@
 # Deployment and Release Operations
 
-This repository does not deploy a server, container, or long-running service. "Deployment" means publishing and installing a global OpenCode configuration into `~/.config/opencode/` and `~/.local/bin/oc`.
+This repository does not deploy a server, container, or long-running service. "Deployment" means publishing and installing a global OpenCode configuration into `~/.config/opencode/` and `~/.local/bin/occo`.
 
 Docker is not present. CI/CD is present through GitHub Actions at `.github/workflows/validate.yml`.
 
@@ -12,7 +12,7 @@ Docker is not present. CI/CD is present through GitHub Actions at `.github/workf
 | `~/.config/opencode/opencode.json` | Generated config with absolute paths |
 | `~/.config/opencode/memory/` | File-based memory bank and outcomes |
 | `~/.config/opencode/logs/safety-guard.jsonl` | Security plugin audit log (`0600`) |
-| `~/.local/bin/oc` | Installed wrapper command |
+| `~/.local/bin/occo` | Installed wrapper command |
 
 ## Environment variables
 
@@ -21,9 +21,9 @@ The scripts primarily use standard shell environment variables.
 | Variable | Used by | Notes |
 |----------|---------|-------|
 | `HOME` | All scripts | Determines install location and memory/log paths |
-| `PATH` | All scripts | Must include `~/.local/bin` after install for `oc` |
-| `OPENCODE_PROFILE` | `oc` | Active profile override/session state |
-| `OC_AUTO_COMPACT_RUNNING` | `oc` | Internal reentrancy guard for auto-compact |
+| `PATH` | All scripts | Must include `~/.local/bin` after install for `occo` |
+| `OPENCODE_PROFILE` | `occo` | Active profile override/session state |
+| `OC_AUTO_COMPACT_RUNNING` | `occo` | Internal reentrancy guard for auto-compact |
 
 Test-only variables used by `tests/run.sh` fixtures include `OC_FAKE_OUTPUT`, `OC_FAKE_EXIT`, `OC_CAPTURE`, `OC_CALL_COUNT_FILE`, and `OC_TEST_MARKER`.
 

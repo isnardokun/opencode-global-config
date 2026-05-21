@@ -1,8 +1,8 @@
 # CLI Reference
 
-This project does **not** expose an HTTP API, routes, or a network service. Its public surface is the `oc` command installed at `~/.local/bin/oc` plus native OpenCode slash commands under `commands/`.
+This project does **not** expose an HTTP API, routes, or a network service. Its public surface is the `occo` command installed at `~/.local/bin/occo` plus native OpenCode slash commands under `commands/`.
 
-## `oc` command surface
+## `occo` command surface
 
 ```bash
 oc [option] [command] [arguments]

@@ -289,8 +289,8 @@ if [ "$agent_count" = "11" ]; then pass "Agent count: 11"; else fail "Expected 1
 if [ "$skill_count" = "11" ]; then pass "Skill count: 11"; else fail "Expected 11 skills, found $skill_count"; fi
 
 if grep -q -- '--remember \[-p proyecto\] \[-t tipo\]' "${ROOT}/oc" \
-    && grep -q -- 'oc --remember -p project' "${ROOT}/README.md" \
-    && grep -q -- 'oc --remember -p' "${ROOT}/CONTEXTO_PROYECTO.md"; then
+    && grep -q -- 'occo --remember -p' "${ROOT}/README.md" \
+    && grep -q -- 'occo --remember -p' "${ROOT}/CONTEXTO_PROYECTO.md"; then
     pass "Documented memory project flag is present"
 else
     fail "Missing documented --remember -p support"
@@ -313,12 +313,12 @@ if [ "$INSTALLED" -eq 1 ]; then
     check_file "rubrics/plan-review.md" "$IDIR"
 
     echo ""
-    echo "oc command:"
-    if command -v oc >/dev/null 2>&1; then
+    echo "occo command:"
+    if command -v occo >/dev/null 2>&1; then
         pass "occo found: $(command -v occo)"
-else
-    fail "occo not in PATH"
-fi
+    else
+        fail "occo not in PATH"
+    fi
     echo ""
 fi
 

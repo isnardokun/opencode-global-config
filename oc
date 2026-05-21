@@ -606,7 +606,7 @@ list_observation_templates() {
     echo "  config   — Configuration note: qué, por qué, valor, impacto"
     echo "  note     — Free-form note (default, no template)"
     echo ""
-    echo "Use: oc --remember -t bugfix 'my project' or oc --remember --template bugfix -p my-project"
+    echo "Use: occo --remember -t bugfix 'my project' or occo --remember --template bugfix -p my-project"
 }
 
 # Real entropy: od is POSIX — works on Linux and macOS without xxd
@@ -926,7 +926,7 @@ auto_summary_hint() {
     if [ "${turns:-0}" -gt 15 ]; then
         echo ""
         warn "Session turns: ${turns}. Consider saving a summary:"
-        echo "  oc --remember -p <project> -t note 'session summary: ...'"
+        echo "  occo --remember -p <project> -t note 'session summary: ...'"
         echo "  oc --compact   # structured summary + reset counter"
     fi
 }

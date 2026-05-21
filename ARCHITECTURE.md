@@ -41,7 +41,7 @@ The core CLI entry point (~2490 lines of bash). Handles:
 - **Router** — `oc ask` maps natural language to agents/workflows using pattern matching
 - **Session** — `track_turn()`, `check_budget()`, `compact_session()`
 
-**Entry point:** `~/.local/bin/oc` (installed by `install.sh`)
+**Entry point:** `~/.local/bin/occo` (installed by `install.sh`)
 
 ### Agents (11 total)
 

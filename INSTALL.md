@@ -21,7 +21,7 @@ El script:
 3. Hace backup de `~/.config/opencode` si existe
 4. Copia agentes, skills, perfiles, plugins, hooks, comandos, memoria, souls y rubrics
 5. Genera `opencode.json` con rutas absolutas (sin `~`)
-6. Instala el comando `oc` en `~/.local/bin`
+6. Instala el comando `occo` en `~/.local/bin`
 7. Añade `~/.local/bin` al PATH en `.bashrc`, `.bash_profile` (macOS), `.zshrc`, y fish según lo que tengas
 8. Limpia archivos temporales al salir (incluso en caso de error)
 
@@ -70,10 +70,10 @@ cat > ~/.config/opencode/opencode.json << EOF
 }
 EOF
 
-# 6. Instalar comando oc
+# 6. Instalar comando occo
 mkdir -p ~/.local/bin
-cp /tmp/opencode-config/oc ~/.local/bin/oc
-chmod +x ~/.local/bin/oc
+cp /tmp/opencode-config/oc ~/.local/bin/occo
+chmod +x ~/.local/bin/occo
 
 # 7. Agregar al PATH
 echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc   # Linux bash
@@ -210,7 +210,7 @@ for d in agents skills profiles plugins hooks memory souls; do
     cp -r "/tmp/oc-update/$d" ~/.config/opencode/
 done
 cp /tmp/oc-update/AGENTS.md /tmp/oc-update/CLAUDE.md ~/.config/opencode/
-cp /tmp/oc-update/oc ~/.local/bin/oc
+cp /tmp/oc-update/oc ~/.local/bin/occo
 rm -rf /tmp/oc-update
 ```
 
@@ -229,7 +229,7 @@ fi
 
 # O eliminar completamente
 rm -rf ~/.config/opencode
-rm -f ~/.local/bin/oc
+rm -f ~/.local/bin/occo
 
 # Limpiar PATH (editar manualmente ~/.bashrc, ~/.zshrc, o ~/.bash_profile)
 ```
@@ -292,7 +292,7 @@ rm -rf ~/.config/opencode
 curl -fsSL https://raw.githubusercontent.com/isnardokun/opencode-global-config/main/install.sh | bash
 ```
 
-### macOS: `oc` no encontrado después de instalar
+### macOS: `occo` no encontrado después de instalar
 
 En macOS con zsh (default desde Catalina):
 

@@ -27,11 +27,11 @@ bash install.sh
 opencode-global-config/
 ├── opencode.json          # Config principal (permisos nativos OpenCode)
 ├── opencode.strict.json   # Modo paranoid: webfetch/websearch/external_dir: deny
-├── oc                     # Script wrapper (~2490 líneas) — comando global `oc`
+├── occo                     # Script wrapper (~2490 líneas) — comando global `occo`
 ├── install.sh             # Instalación + --dry-run
-├── uninstall.sh           # Remoción segura con backup
+├── uninstall.sh           # Remoccoión segura con backup
 ├── validate.sh            # Validación completa + --installed
-├── Makefile               # validate, check, install, dry-run, uninstall, doctor
+├── Makefile               # validate, check, install, dry-run, uninstall, doccotor
 ├── VERSION                # Fuente simple de versión actual para validaciones
 ├── CHANGELOG.md           # Historial formal de releases
 ├── CONTEXTO_PROYECTO.md   # Bitácora viva: decisiones, sesiones, riesgos, pendientes
@@ -45,7 +45,7 @@ opencode-global-config/
 │   ├── planner.md         # Planificación en fases
 │   ├── reviewer.md        # Revisión, nunca modifica
 │   ├── security-auditor.md
-│   ├── docs-writer.md
+│   ├── doccos-writer.md
 │   ├── devops.md
 │   ├── oncall.md
 │   ├── migration-planner.md  # Migraciones reversibles, solo lectura
@@ -53,7 +53,7 @@ opencode-global-config/
 │
 ├── commands/ (8 slash commands nativos en OpenCode TUI)
 │   ├── analyze.md, review.md, secure.md, feature.md
-│   ├── bug-hunt.md, docs.md, devops.md, oncall.md
+│   ├── bug-hunt.md, doccos.md, devops.md, oncall.md
 │
 ├── skills/ (10 skills)
 │   ├── project-map/
@@ -61,7 +61,7 @@ opencode-global-config/
 │   ├── test-first/
 │   ├── precommit-review/
 │   ├── memory-retrieval/
-│   └── docs-writer/
+│   └── doccos-writer/
 │
 ├── rubrics/ (3 gates reutilizables)
 │   ├── code-review.md       # Criterios bloqueantes y evidencia para review
@@ -97,9 +97,9 @@ opencode-global-config/
 
 ### Profile enforcement (cómo funciona)
 OpenCode no tiene sistema de perfiles nativo. Lo implementamos mediante **inyección de reglas en el prompt**:
-1. `switch_profile()` en `oc` exporta `OPENCODE_PROFILE`
+1. `switch_profile()` en `occo` exporta `OPENCODE_PROFILE`
 2. `get_profile_rules()` lee el JSON del perfil activo y genera instrucciones en inglés
-3. `_oc_run()` inyecta esas reglas en cada llamada no interactiva a `opencode run "..."`
+3. `_occo_run()` inyecta esas reglas en cada llamada no interactiva a `opencode run "..."`
 
 Esto significa que los perfiles aplican restricciones vía LLM instructions, no vía permisos de sistema.
 
@@ -109,16 +109,16 @@ Esto significa que los perfiles aplican restricciones vía LLM instructions, no 
 
 ### Slash commands
 Los archivos `commands/*.md` se cargan automáticamente en el TUI de OpenCode.
-No requieren el wrapper `oc`. Se usan directamente como `/analyze`, `/review`, etc.
+No requieren el wrapper `occo`. Se usan directamente como `/analyze`, `/review`, etc.
 
 ### Memory system
 - `~/.config/opencode/memory/` — observaciones en markdown con frontmatter
 - `memory/index.jsonl` — índice para búsqueda rápida con `jq`/`fzf`/`ripgrep`
-- Funciones en `oc`: `search_memory()`, `create_observation()`, `get_observations()`, `get_timeline()`
+- Funciones en `occo`: `search_memory()`, `create_observation()`, `get_observations()`, `get_timeline()`
 
 ### Safety guard
 `plugins/safety-guard.js` bloquea via regex: `rm -rf /`, `> /dev/sda`, `chmod -R 777` en paths de sistema, etc.
-Además audita comandos bash permitidos/bloqueados en `~/.config/opencode/logs/safety-guard.jsonl`, con redacción parcial de secretos conocidos.
+Además audita comandos bash permitidos/bloqueados en `~/.config/opencode/logs/safety-guard.jsonl`, con redacción parcial de secretos conoccoidos.
 
 **Importante:** es un guardrail best-effort, no un sandbox. Reduce accidentes comunes, pero no reemplaza permisos nativos, revisión humana ni scanners determinísticos.
 
@@ -140,20 +140,20 @@ Este archivo es la **bitácora viva del proyecto**. Debe registrar:
 | Versión | Qué cambió |
 |---------|-----------|
 | **1.9.6** | Self-Improvement Agent: detect_project, auto_compact, auto_reflect, track_outcome, analyze_outcomes; memory templates; Harness Engineering exit conditions; agents/manifest.json |
-| **1.9.4** | Rubrics/gates reutilizables para code review, security review y plan review; validación instalada estricta; `oc --doctor` falla con exit code si faltan artefactos críticos; release-readiness y smoke tests ampliados |
+| **1.9.4** | Rubrics/gates reutilizables para code review, security review y plan review; validación instalada estricta; `occo --doccotor` falla con exit code si faltan artefactos críticos; release-readiness y smoke tests ampliados |
 | **1.9.3** | Fix compat OpenCode 1.14: `opencode run` en lugar de `opencode -p`; validator de permisos en validate.sh; `--dry-run` corregido; `auto.json` permisos inválidos fijados |
 | **1.9.2** | `validate.sh`: line count sanity check + frontmatter validation; `Makefile`: target `format` + `jq` strict |
 | **1.9.1** | `.editorconfig`, `Makefile`, `opencode.strict.json`, `agent/builder-safe.md` |
-| **1.9.0** | Matriz declarativa de permisos OpenCode, 3 agentes nuevos, 8 slash commands, `validate.sh`, `uninstall.sh`, `--dry-run`, audit log, `--doctor`, CI GitHub Actions, bilingüe README |
+| **1.9.0** | Matriz declarativa de permisos OpenCode, 3 agentes nuevos, 8 slash commands, `validate.sh`, `uninstall.sh`, `--dry-run`, audit log, `--doccotor`, CI GitHub Actions, bilingüe README |
 | **1.8.0** | Cross-platform install.sh, rutas absolutas en JSON, fix macOS, memory JSONL index, cleanup CLAUDE.md |
-| **1.7.0** | Profile enforcement por prompt injection, single-pass workflows, fix args bug en `_oc_run()`, safety-guard mejorado |
-| **1.6.0** | Docs, changelog honesto |
-| **1.5.0** | Sistema de workflows (bug-hunt, new-project, debug, document, feature) |
+| **1.7.0** | Profile enforcement por prompt injection, single-pass workflows, fix args bug en `_occo_run()`, safety-guard mejorado |
+| **1.6.0** | Doccos, changelog honesto |
+| **1.5.0** | Sistema de workflows (bug-hunt, new-project, debug, doccoument, feature) |
 | **1.4.0** | Memory retrieval 3-layer system, observation format, JSONL index |
 | **1.3.0** | 7 perfiles deny-first gradient, context budget tracking, `--compact` |
 | **1.2.0** | 4 principios de Karpathy integrados |
-| **1.1.0** | Menú interactivo fzf, memory bank, souls, git hooks, `oc init` |
-| **1.0.0** | 8 agentes, 4 skills, safety-guard plugin, comando `oc` |
+| **1.1.0** | Menú interactivo fzf, memory bank, souls, git hooks, `occo init` |
+| **1.0.0** | 8 agentes, 4 skills, safety-guard plugin, comando `occo` |
 
 ---
 
@@ -170,7 +170,7 @@ El usuario definió explícitamente que `CONTEXTO_PROYECTO.md` debe usarse como 
 5. `@reviewer` + `precommit-review` — revisión final del diff y validaciones.
 
 Archivos modificados por las correcciones recientes:
-- `oc`
+- `occo`
 - `validate.sh`
 - `Makefile`
 - `VERSION`
@@ -185,40 +185,40 @@ Archivos modificados por las correcciones recientes:
 - `CONTEXTO_PROYECTO.md`
 
 Estado Git observado tras las correcciones:
-- Archivos modificados tracked: `oc`, `validate.sh`, `Makefile`, `.github/workflows/validate.yml`, `hooks/pre-commit`, `hooks/pre-push`, `plugins/safety-guard.js`, `install.sh`, `README.md`, `README.es.md`, `INSTALL.md`.
+- Archivos modificados tracked: `occo`, `validate.sh`, `Makefile`, `.github/workflows/validate.yml`, `hooks/pre-commit`, `hooks/pre-push`, `plugins/safety-guard.js`, `install.sh`, `README.md`, `README.es.md`, `INSTALL.md`.
 - `CONTEXTO_PROYECTO.md` aparece como untracked y debe versionarse si será la fuente oficial de continuidad.
 - `tests/run.sh` fue creado como nueva suite funcional mínima y también debe versionarse.
 
 #### Correcciones funcionales aplicadas
 
-- `oc`: corregida precedencia Bash en detección Python para `pyproject.toml`, `requirements.txt` y comandos de test.
-- `oc`: `oc --init` ya no crea `.git/hooks` si el target no es repo Git.
-- `oc`: `oc --init` genera ruta de agentes project-local en lugar de `~/.opencode/agents`.
-- `oc`: el hook generado por `oc --init` usa `oc` si existe y fallback a `opencode run`.
-- `oc`: el hook generado por `oc --init` ahora es fail-closed y exige `BLOCKING_FINDINGS=false`.
-- `oc`: `oc plan` preserva argumentos multi-palabra.
-- `oc`: `review`, `secure`, `docs` y `oncall` pasan argumentos opcionales a sus funciones rápidas.
-- `oc`: `--list-profiles` muestra nombres usables sin `.json`.
-- `oc`: `switch_profile()` rechaza perfiles vacíos o inexistentes.
-- `oc`: `--get` y `--timeline` aceptan IDs con o sin prefijo `obs_`.
-- `oc`: JSONL de memoria se genera con `python3` y `json.dumps`, evitando corrupción por comillas, backslashes o saltos de línea.
-- `oc`: `search_memory()` aplica filtros `project` y `type`.
-- `oc`: búsqueda de memoria usa coincidencia literal con `grep -F`, no regex.
-- `oc`: `oc --memory "query" -t type` interpreta `-t` como filtro de tipo.
-- `oc`: `oc --remember -p project -t type <texto>` crea observaciones asociadas a proyecto y tipo.
-- `oc`: `oc --memory <query> -p project -t type` filtra por proyecto y tipo mediante flags explícitas.
-- `oc`: `create_observation()` valida `python3` antes de escribir archivos para evitar estado parcial.
-- `oc`: frontmatter de memoria quotea `project`, `type` y `summary` usando JSON-compatible YAML scalars.
-- `oc`: workflows `bug-hunt`, `new-project`, `debug`, `document`, `feature` y `--compact` no reportan éxito ni escriben memoria/reset si `_oc_run` falla.
-- `oc`: ayuda actualizada para 9 perfiles y sintaxis `--remember [-p proyecto] [-t tipo]`.
-- `oc --init`: ahora genera `pre-commit` y `pre-push` fail-closed.
+- `occo`: corregida precedencia Bash en detección Python para `pyproject.toml`, `requirements.txt` y comandos de test.
+- `occo`: `occo --init` ya no crea `.git/hooks` si el target no es repo Git.
+- `occo`: `occo --init` genera ruta de agentes project-loccoal en lugar de `~/.opencode/agents`.
+- `occo`: el hook generado por `occo --init` usa `occo` si existe y fallback a `opencode run`.
+- `occo`: el hook generado por `occo --init` ahora es fail-closed y exige `BLOCKING_FINDINGS=false`.
+- `occo`: `occo plan` preserva argumentos multi-palabra.
+- `occo`: `review`, `secure`, `doccos` y `oncall` pasan argumentos opcionales a sus funciones rápidas.
+- `occo`: `--list-profiles` muestra nombres usables sin `.json`.
+- `occo`: `switch_profile()` rechaza perfiles vacíos o inexistentes.
+- `occo`: `--get` y `--timeline` aceptan IDs con o sin prefijo `obs_`.
+- `occo`: JSONL de memoria se genera con `python3` y `json.dumps`, evitando corrupción por comillas, backslashes o saltos de línea.
+- `occo`: `search_memory()` aplica filtros `project` y `type`.
+- `occo`: búsqueda de memoria usa coincidencia literal con `grep -F`, no regex.
+- `occo`: `occo --memory "query" -t type` interpreta `-t` como filtro de tipo.
+- `occo`: `occo --remember -p project -t type <texto>` crea observaciones asoccoiadas a proyecto y tipo.
+- `occo`: `occo --memory <query> -p project -t type` filtra por proyecto y tipo mediante flags explícitas.
+- `occo`: `create_observation()` valida `python3` antes de escribir archivos para evitar estado parcial.
+- `occo`: frontmatter de memoria quotea `project`, `type` y `summary` usando JSON-compatible YAML scalars.
+- `occo`: workflows `bug-hunt`, `new-project`, `debug`, `doccoument`, `feature` y `--compact` no reportan éxito ni escriben memoria/reset si `_occo_run` falla.
+- `occo`: ayuda actualizada para 9 perfiles y sintaxis `--remember [-p proyecto] [-t tipo]`.
+- `occo --init`: ahora genera `pre-commit` y `pre-push` fail-closed.
 - `hooks/pre-commit`: añade `git diff --cached` explícito al prompt.
 - `hooks/pre-push`: añade diff contra upstream o fallback de últimos cambios al prompt.
 - `install.sh`: banner alineado a v1.9.3.
 - `README.md`, `README.es.md`, `INSTALL.md`: versión/conteos de perfiles alineados a v1.9.3 / 9 perfiles.
 - `validate.sh`: incluye `uninstall.sh` en la validación de sintaxis Bash.
 - `validate.sh`: valida sintaxis JS de `plugins/safety-guard.js` con `node --check` si `node` existe.
-- `validate.sh`: valida consistencia documental de versión, conteos de perfiles/agentes/skills y soporte documentado de `--remember -p`.
+- `validate.sh`: valida consistencia doccoumental de versión, conteos de perfiles/agentes/skills y soporte doccoumentado de `--remember -p`.
 - `Makefile`: añade target `test` para ejecutar `tests/run.sh`.
 - `Makefile`: `check` incluye `hooks/pre-commit` y `hooks/pre-push`.
 - `Makefile`: `check` valida `plugins/package.json`.
@@ -227,7 +227,7 @@ Estado Git observado tras las correcciones:
 
 #### Correcciones de seguridad aplicadas
 
-- `hooks/pre-commit` y `hooks/pre-push`: usan `oc` si está disponible y fallback a `opencode run`.
+- `hooks/pre-commit` y `hooks/pre-push`: usan `occo` si está disponible y fallback a `opencode run`.
 - `hooks/pre-commit` y `hooks/pre-push`: capturan output y fallan si el comando retorna non-zero.
 - `hooks/pre-commit` y `hooks/pre-push`: fallan con línea exacta `BLOCKING_FINDINGS=true`.
 - `hooks/pre-commit` y `hooks/pre-push`: fallan si falta línea exacta `BLOCKING_FINDINGS=false`.
@@ -245,9 +245,9 @@ Estado Git observado tras las correcciones:
 #### Validaciones ejecutadas durante la sesión
 
 Reportadas como OK por los agentes builder/reviewer:
-- `bash -n oc`
-- `bash -n oc validate.sh uninstall.sh`
-- `bash -n oc hooks/pre-commit validate.sh`
+- `bash -n occo`
+- `bash -n occo validate.sh uninstall.sh`
+- `bash -n occo hooks/pre-commit validate.sh`
 - `bash -n hooks/pre-commit hooks/pre-push`
 - `node --check plugins/safety-guard.js`
 - `bash tests/run.sh`
@@ -259,12 +259,12 @@ Reportadas como OK por los agentes builder/reviewer:
 - muestras dirigidas de redacción de secretos
 - checks dirigidos para bloqueo de comandos destructivos en `safety-guard.js`
 - simulación de lógica de hooks con `BLOCKING_FINDINGS=true`, `BLOCKING_FINDINGS=false`, marcador ausente y `RECOMMENDATION=CORRECT`
-- mocks de fallo de workflows y `--compact`
-- mock de parser `oc --memory "query" -t type`
-- mock sin `python3` para evitar archivos parciales
-- `oc --init` en repo temporal para verificar hook generado fail-closed
-- `oc --compact` con `opencode` mockeado
-- `oc --doctor` contra instalación fixture
+- moccoks de fallo de workflows y `--compact`
+- moccok de parser `occo --memory "query" -t type`
+- moccok sin `python3` para evitar archivos parciales
+- `occo --init` en repo temporal para verificar hook generado fail-closed
+- `occo --compact` con `opencode` moccokeado
+- `occo --doccotor` contra instalación fixture
 - `validate.sh --installed` contra instalación fixture
 - `install.sh --dry-run`
 
@@ -278,21 +278,21 @@ Reportadas como OK por los agentes builder/reviewer:
 
 | Riesgo | Severidad | Estado | Próximo paso recomendado |
 |--------|-----------|--------|--------------------------|
-| `safety-guard.js` es regex-based, no sandbox | Media | Aceptado/documentar | Mantener como guardrail; añadir tests de falsos positivos/negativos si crece |
+| `safety-guard.js` es regex-based, no sandbox | Media | Aceptado/doccoumentar | Mantener como guardrail; añadir tests de falsos positivos/negativos si crece |
 | Audit log puede no redactar todos los formatos de secreto | Media | Mitigado parcialmente | Mantener pruebas y ampliar si aparecen nuevos formatos |
 | Logs/config dependen de `umask` | Baja/Media | Mitigado para audit log | Evaluar permisos explícitos en instalación/config global |
 | Hooks dependen de marcador LLM | Media | Fail-closed + `gitleaks` opcional | Considerar scanner obligatorio/configurado para releases críticas |
-| `oc --init` instala hooks Git | Baja | Mitigado | Ya genera `pre-commit` y `pre-push`; seguir validando en tests |
-| Perfiles son prompt-enforced, no sandbox | Baja/Media | Documentado | No vender como seguridad fuerte; explorar config efectiva por perfil si OpenCode lo soporta |
+| `occo --init` instala hooks Git | Baja | Mitigado | Ya genera `pre-commit` y `pre-push`; seguir validando en tests |
+| Perfiles son prompt-enforced, no sandbox | Baja/Media | Doccoumentado | No vender como seguridad fuerte; explorar config efectiva por perfil si OpenCode lo soporta |
 | Test suite funcional inicial aún es smoke-level | Baja/Media | Mitigado parcialmente | Ampliar cobertura con workflows completos si crece el wrapper |
 
 ### Pendientes nuevos detectados en revisión integral 2026-05-02
 
-1. **`oc --remember -p` documentado y ahora soportado**
-   - Se implementó `oc --remember -p <project> [-t type] <texto>`.
+1. **`occo --remember -p` doccoumentado y ahora soportado**
+   - Se implementó `occo --remember -p <project> [-t type] <texto>`.
    - Cubierto por `tests/run.sh` con `HOME` temporal.
 
-2. **`oc --memory -p proyecto "query"` ahora soportado**
+2. **`occo --memory -p proyecto "query"` ahora soportado**
    - Se normalizó parser con `-p|--project` y `-t|--type` cuando hay flags explícitas.
    - Se preservan formas posicionales legacy sin flags.
 
@@ -300,16 +300,16 @@ Reportadas como OK por los agentes builder/reviewer:
    - `install.sh`, `README.md`, `README.es.md` e `INSTALL.md` fueron alineados a v1.9.3 donde correspondía.
    - Pendiente menor: definir fuente única automatizable de versión.
 
-4. **Conteos documentales corregidos y validados**
-   - `oc --help`, `INSTALL.md` y `README.es.md` actualizados a 9 perfiles.
+4. **Conteos doccoumentales corregidos y validados**
+   - `occo --help`, `INSTALL.md` y `README.es.md` actualizados a 9 perfiles.
    - `validate.sh` ahora valida conteos reales de perfiles/agentes/skills.
 
 5. **Hooks ahora pasan diff explícito**
    - `pre-commit`: `git diff --cached`.
    - `pre-push`: diff contra upstream o fallback de últimos cambios.
 
-6. **Validación documental inicial implementada**
-   - `validate.sh` valida versión, conteos y presencia de soporte documentado para memory project flags.
+6. **Validación doccoumental inicial implementada**
+   - `validate.sh` valida versión, conteos y presencia de soporte doccoumentado para memory project flags.
    - Pendiente: ampliar a más ejemplos públicos si crece la CLI.
 
 7. **Memory frontmatter puede romper YAML con contenido complejo**
@@ -317,7 +317,7 @@ Reportadas como OK por los agentes builder/reviewer:
    - Recomendación: quotear/escapar frontmatter o mover contenido sensible fuera del YAML.
 
 8. **Test suite funcional inicial creada y ampliada**
-   - `tests/run.sh` cubre parser de memoria, `--remember`, timeline, perfiles, hooks fail-closed, `oc --init`, `--compact`, `--doctor`, instalación fixture y safety guard.
+   - `tests/run.sh` cubre parser de memoria, `--remember`, timeline, perfiles, hooks fail-closed, `occo --init`, `--compact`, `--doccotor`, instalación fixture y safety guard.
    - Pendiente: ampliar a workflows completos si el wrapper crece.
 
 9. **Rubrics/gates reutilizables añadidos**
@@ -325,24 +325,24 @@ Reportadas como OK por los agentes builder/reviewer:
    - Decisión: adoptar criterios formales y evidencia antes de copiar orquestación multi-CLI compleja.
    - Agentes impactados: `@reviewer`, `@security-auditor`, `@planner`.
 
-10. **Router natural opcional `oc ask`**
+10. **Router natural opcional `occo ask`**
    - Agrega un único comando para interpretar solicitudes en lenguaje natural y asignar agente/workflow probable.
-   - Soporta `--dry-run` para previsualizar routing, `--explain` para mostrar routing antes de ejecutar y `--clarify` para pedir contexto puntual local.
-   - Decisión: mantener todos los comandos explícitos existentes; `oc ask` es solo una capa opcional de UX.
+   - Soporta `--dry-run` para previsualizar routing, `--explain` para mostrar routing antes de ejecutar y `--clarify` para pedir contexto puntual loccoal.
+   - Decisión: mantener todos los comandos explícitos existentes; `occo ask` es solo una capa opcional de UX.
 
 11. **Bug-hunt hardening posterior a v1.9.4**
    - Se corrigieron bypasses de `safety-guard.js` para `rm -rf` con `$HOME`, `${HOME}`, HOME entrecomillado, subpaths críticos absolutos y separadores shell.
-   - `oc --memory` ahora soporta queries multi-palabra sin flags.
+   - `occo --memory` ahora soporta queries multi-palabra sin flags.
    - `track_turn` crea la config si falta y se recupera de `.session` corrupto.
    - `install.sh` usa `mktemp -d` y matching PATH delimitado; `uninstall.sh` no imprime restore si no hubo backup.
    - `install.sh` ahora diagnostica requisitos requeridos/recomendados/opcionales y muestra hints sin instalar paquetes del sistema automáticamente.
    - Tests ampliados en `tests/run.sh`; validaciones reportadas OK: `make check`, `make test`, `./validate.sh`, `bash install.sh --dry-run`, `git diff --check`.
 
 ### Correcciones aplicadas en sesión 2026-05-01
-Se hizo análisis profundo del estado del proyecto y se aplicaron correcciones funcionales y documentales:
-- `oc`: migrado de `opencode -p` a `opencode run` para compatibilidad con OpenCode 1.14.31.
-- `oc`: eliminado el intento de usar `opencode --profile`; los perfiles quedan explícitamente como enforcement por prompt injection.
-- `hooks/pre-commit`, `hooks/pre-push` y hook generado por `oc --init`: migrados a `opencode run`.
+Se hizo análisis profundo del estado del proyecto y se aplicaron correcciones funcionales y doccoumentales:
+- `occo`: migrado de `opencode -p` a `opencode run` para compatibilidad con OpenCode 1.14.31.
+- `occo`: eliminado el intento de usar `opencode --profile`; los perfiles quedan explícitamente como enforcement por prompt injection.
+- `hooks/pre-commit`, `hooks/pre-push` y hook generado por `occo --init`: migrados a `opencode run`.
 - `install.sh --dry-run`: corregido para no clonar, copiar, escribir config ni modificar PATH; ahora solo muestra plan y sale.
 - `install.sh`: banner fue actualizado a v1.9.1 en esa sesión; luego se alineó a v1.9.3 el 2026-05-02.
 - `profiles/auto.json`: permisos inválidos `auto` cambiados a `ask`.
@@ -357,10 +357,10 @@ Validaciones ejecutadas y resultado:
 - `git diff --check` → OK.
 
 Estado observado:
-- `CONTEXTO_PROYECTO.md` sigue como archivo untracked en git; fue actualizado porque es el documento de continuidad del proyecto.
-- `./validate.sh --installed` falló antes de estas correcciones porque la configuración no está instalada en `~/.config/opencode` y `oc` no está en PATH en esta máquina.
+- `CONTEXTO_PROYECTO.md` sigue como archivo untracked en git; fue actualizado porque es el doccoumento de continuidad del proyecto.
+- `./validate.sh --installed` falló antes de estas correcciones porque la configuración no está instalada en `~/.config/opencode` y `occo` no está en PATH en esta máquina.
 
-### `args` bug en `_oc_run()` (resuelto v1.7)
+### `args` bug en `_occo_run()` (resuelto v1.7)
 `args=("$@")` después del while loop dejaba args vacío porque `$@` ya fue consumido.
 Fix: el while loop ya llena `args`, se eliminó la línea problemática.
 
@@ -372,9 +372,9 @@ El último fue `发现问题` en `skills/memory-retrieval/SKILL.md` — corregid
 `memory_search()` y `memory_save()` eran duplicados obsoletos de `search_memory()` y `create_observation()`. Eliminados.
 
 ### Hooks y perfil activo (actualizado 2026-05-02)
-Los hooks versionados usan `oc` si está disponible y fallback a `opencode run` si no lo está. Esto mejora propagación de reglas cuando `oc` existe, pero el fallback no aplica perfil activo ni `_oc_run()`.
+Los hooks versionados usan `occo` si está disponible y fallback a `opencode run` si no lo está. Esto mejora propagación de reglas cuando `occo` existe, pero el fallback no aplica perfil activo ni `_occo_run()`.
 
-**Decisión actual:** mantener fallback por compatibilidad, pero documentar que el perfil activo sólo aplica cuando el hook puede invocar `oc`.
+**Decisión actual:** mantener fallback por compatibilidad, pero doccoumentar que el perfil activo sólo aplica cuando el hook puede invoccoar `occo`.
 
 ---
 
@@ -395,12 +395,12 @@ git log --oneline -10
 
 ---
 
-## Pendientes conocidos (baja prioridad)
+## Pendientes conoccoidos (baja prioridad)
 
-1. **Hooks + profile propagation completa** — fallback `opencode run` no aplica perfil activo; refactor sourceable o instalación garantizada de `oc`.
+1. **Hooks + profile propagation completa** — fallback `opencode run` no aplica perfil activo; refactor sourceable o instalación garantizada de `occo`.
 2. **Ampliar test suite funcional** — cubrir workflows completos y más combinaciones del parser CLI si el wrapper crece.
-3. **Validación documental automática extendida** — detectar más ejemplos obsoletos y comandos públicos críticos.
-4. **Fuente única de versión más automatizada** — `VERSION` existe, pero scripts/docs aún contienen referencias literales verificadas por `validate.sh`.
+3. **Validación doccoumental automática extendida** — detectar más ejemplos obsoletos y comandos públicos críticos.
+4. **Fuente única de versión más automatizada** — `VERSION` existe, pero scripts/doccos aún contienen referencias literales verificadas por `validate.sh`.
 5. **Hardening adicional de audit log** — ampliar redacción si aparecen nuevos formatos de secretos.
 6. **`opencode.strict.json` `~` paths** — OpenCode probablemente los expande, pero no verificado en runtime real.
-7. **Documentar límites de seguridad** — perfiles prompt-enforced, hooks LLM-assisted y safety guard regex-based.
+7. **Doccoumentar límites de seguridad** — perfiles prompt-enforced, hooks LLM-assisted y safety guard regex-based.
