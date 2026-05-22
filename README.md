@@ -85,11 +85,30 @@ There is no database and no HTTP server. Persistent state is file-based under `~
 
 ## Quick Start
 
+### Linux / macOS
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/isnardokun/opencode-global-config/main/install.sh | bash
 ```
 
 The installer: backs up existing config, detects required/recommended/optional tools, sets up PATH in bash/zsh/fish, works on Linux and macOS.
+
+### Windows (PowerShell)
+
+```powershell
+# Option 1: One-liner (recommended)
+irm https://raw.githubusercontent.com/isnardokun/opencode-global-config/main/install.ps1 | iex
+
+# Option 2: Download and run manually
+# Download: https://raw.githubusercontent.com/isnardokun/opencode-global-config/main/install.ps1
+# Run in PowerShell: .\install.ps1
+```
+
+**Requirements for Windows:**
+- `git` — [download from git-scm.com](https://git-scm.com/download/win)
+- `opencode` — [install from opencode.ai](https://opencode.ai)
+
+The installer creates `%USERPROFILE%\.config\opencode\` and `%USERPROFILE%\.local\bin\`, adds the latter to your User PATH, and creates a backup if existing config is found.
 
 Installer requirement checks:
 
@@ -98,6 +117,8 @@ Installer requirement checks:
 | Required | `git`, `opencode` | clone/install config and run OpenCode agents |
 | Recommended | `python3`, `jq`, `node` | robust memory writes, JSON/doctor validation, plugin syntax/runtime checks |
 | Optional | `fzf`, `gitleaks`, `shellcheck`, `shfmt` | interactive menu, secret scanning in hooks, shell linting, formatting |
+
+> **Windows users:** install `git` and `opencode` first, then use the PowerShell installer above.
 
 If a required tool is missing, installation stops with install hints. Recommended/optional tools are reported but do not bloccok installation; affected features gracefully degrade.
 

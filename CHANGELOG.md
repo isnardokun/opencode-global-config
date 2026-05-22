@@ -2,6 +2,24 @@
 
 Todos los cambios notables de este proyecto se documentarán en este archivo.
 
+## [1.9.7] - 2026-05-21
+
+### Windows Support
+
+- **`install.ps1`** — PowerShell installer for Windows: `irm .../install.ps1 | iex`
+- **`README.md`** — Quick Start section now covers both Linux/macOS (bash) and Windows (PowerShell)
+
+### Dashboard Skills
+
+- **`occo dashboard`** — nuevo comando wizard con `--list` y `--apply` para 5 skills de dashboard profesional (admin-panel, analytics-dashboard, kpi-overview, monitoring, crm-sales)
+- **[opencode-dashboard-skills](https://github.com/isnardokun/opencode-dashboard-skills)** — nuevo repo con skills descargables, cada uno con SKILL.md + DESIGN.md
+
+### Bug Fixes
+
+- **`occo dashboard --apply`** — parameter order era `action, target, slug` → `action, slug, target`; ahora funciona correctamente
+
+---
+
 ## [1.9.6] - 2026-05-10
 
 ### Self-Improvement Agent — Automatización Total
