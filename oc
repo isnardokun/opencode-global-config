@@ -1915,8 +1915,8 @@ quick_import() {
 
 quick_dashboard() {
     local action="${1:-wizard}"
-    local target="${2:-.}"
-    local skill_slug="${3:-}"
+    local skill_slug="${2:-}"
+    local target="${3:-.}"
     local repo_url="https://github.com/isnardokun/opencode-dashboard-skills"
 
     case "$action" in
@@ -1934,17 +1934,15 @@ quick_dashboard() {
             ;;
         --apply)
             [ -z "$skill_slug" ] && { echo "❌ Usage: occo dashboard --apply <slug> [proyecto]"; return 1; }
-            target="${4:-.}"
-            local skill_path="${repo_url}/tree/main/skills/${skill_slug}"
             local dest_dir="${target}/.opencode/skills/dashboard"
             echo -e "${BLUE}=== Aplicando dashboard skill: ${skill_slug} ===${NC}"
-            mkdir -p "${target}/.opencode/skills"
+            mkdir -p "${dest_dir}"
             if command -v curl >/dev/null 2>&1; then
-                curl -fsSL "${repo_url}/raw/main/skills/${skill_slug}/SKILL.md" -o "${dest_dir}/SKILL.md" 2>/dev/null && echo "  ✅ SKILL.md descargado" || warn "No se pudo descargar SKILL.md"
-                curl -fsSL "${repo_url}/raw/main/skills/${skill_slug}/DESIGN.md" -o "${dest_dir}/DESIGN.md" 2>/dev/null && echo "  ✅ DESIGN.md descargado" || warn "No se pudo descargar DESIGN.md"
+                curl -fsSL "${repo_url}/raw/main/skills/${skill_slug}/SKILL.md" -o "${dest_dir}/SKILL.md" 2>/dev/null && echo "  ✅ SKILL.md descargado" || echo "  ⚠️ No se pudo descargar SKILL.md"
+                curl -fsSL "${repo_url}/raw/main/skills/${skill_slug}/DESIGN.md" -o "${dest_dir}/DESIGN.md" 2>/dev/null && echo "  ✅ DESIGN.md descargado" || echo "  ⚠️ No se pudo descargar DESIGN.md"
             else
-                warn "curl no disponible. Copiá los archivos manualmente desde:"
-                echo "  ${skill_path}"
+                echo "  ⚠️ curl no disponible. Copiá los archivos manualmente desde:"
+                echo "  ${repo_url}/tree/main/skills/${skill_slug}"
             fi
             echo ""
             info "Skill aplicado en ${dest_dir}/"
@@ -1957,11 +1955,11 @@ quick_dashboard() {
             echo "¿Qué tipo de dashboard necesitás?"
             echo ""
             echo "  1) Admin Panel      — CRUD, data tables, sidebar nav"
-            echo "  2) Analytics         — Charts, KPIs, comparaciones"
-            echo "  3) KPI Overview      — Executive view, métricas grandes"
-            echo "  4) Monitoring        — Status real-time, alertas"
-            echo "  5) CRM Sales         — Pipeline, deals, funnel"
-            echo "  6) Listar todos      — Ver todos los skills disponibles"
+            echo "  2) Analytics       — Charts, KPIs, comparaciones"
+            echo "  3) KPI Overview    — Executive view, métricas grandes"
+            echo "  4) Monitoring      — Status real-time, alertas"
+            echo "  5) CRM Sales       — Pipeline, deals, funnel"
+            echo "  6) Listar todos    — Ver todos los skills disponibles"
             read -rp "Opción [1-6]: " dash_option
             echo ""
             case "$dash_option" in
