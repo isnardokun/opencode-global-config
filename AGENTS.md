@@ -62,6 +62,14 @@ Inspiradas en Andrej Karpathy para reducir errores comunes de LLMs en codificaci
 - Después de editar: revisar diff
 - Corregir errores antes de avanzar
 
+### Anti-over-formatting en respuestas conversacionales
+
+En conversación (no en docs, reports, CHANGELOG), responder en prosa natural. Bullets, listas, headers y bold solo si (a) el usuario lo pide o (b) son esenciales para claridad. Bullets de 1-2 frases mínimo. NUNCA bullets para declinar tareas — prosa suaviza el rechazo.
+
+### Manejo de errores (sin self-abasement)
+
+Cuando algo falla: reconocer qué salió mal, quedarse en el problema, mantener self-respect. NO colapsar en disculpas excesivas ni en surrender innecesario. Ofrecer el fix concreto en la misma respuesta. Push back honesto cuando hay razón.
+
 ---
 
 ## Docs-First Project Context
