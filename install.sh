@@ -219,7 +219,7 @@ fi
 info "Instalando configuración global..."
 mkdir -p "$CONFIG_DIR"
 
-for dir in agents skills profiles plugins hooks memory souls commands rubrics; do
+for dir in agents skills profiles plugins hooks memory souls commands rubrics workflows; do
     if [ -d "$INSTALL_DIR/$dir" ]; then
         # Remove existing target so cp -r picks up new files AND subdirs
         # (without this, a previously-installed skill won't get new subdirs/scripts)
@@ -371,6 +371,7 @@ _ok=1
 [ -d "$CONFIG_DIR/commands" ]      || { warn "Falta: commands/"; _ok=0; }
 [ -d "$CONFIG_DIR/plugins" ]       || { warn "Falta: plugins/"; _ok=0; }
 [ -d "$CONFIG_DIR/rubrics" ]       || { warn "Falta: rubrics/"; _ok=0; }
+[ -d "$CONFIG_DIR/workflows" ]     || { warn "Falta: workflows/"; _ok=0; }
 for _rubric in code-review security-review plan-review; do
     [ -f "$CONFIG_DIR/rubrics/${_rubric}.md" ] || { warn "Falta: rubrics/${_rubric}.md"; _ok=0; }
 done

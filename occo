@@ -2,6 +2,11 @@
 
 OC_CONFIG="${HOME}/.config/opencode"
 OC_BIN="${HOME}/.local/bin"
+# OCC_SELF_DIR: directory where this occ binary's source files live.
+# Defaults to the directory of $0 (resolved), but can be overridden via
+# env var or the source-detection elsewhere in the script.
+OCC_SELF_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]:-$0}" 2>/dev/null || echo "${0}")")" 2>/dev/null && pwd || echo "")"
+[ -z "$OCC_SELF_DIR" ] && OCC_SELF_DIR="${OCC_SELF_DIR_OVERRIDE:-}"
 OC_MEMORY="${OC_CONFIG}/memory"
 OC_PROFILES="${OC_CONFIG}/profiles"
 CURRENT_PROFILE="${OC_CONFIG}/.current_profile"
@@ -2340,6 +2345,49 @@ PYEOF
     sync_to_project_docs "$project" "$outcome_file" "outcome"
 }
 
+# v1.22.0: workflow prompts live in workflows/<name>.md. Templates use
+# {{target}} and {{feature_desc}} as placeholders. The old in-bash string
+# literals were extracted verbatim, with one substitution: $target (in
+# bash heredoc) becomes {{target}}, $feature_desc becomes {{feature_desc}}.
+# The expansion in run_workflow_prompt is the only place that consumes
+# the placeholders.
+#
+# We look in two places, in order:
+#   1. $OC_CONFIG/workflows/<name>.md  (user-customized; install.sh copies
+#                                       workflows/ here as part of 'install')
+#   2. ${OCC_SELF_DIR}/workflows/<name>.md (the source tree this occ
+#                                       binary was installed from)
+# The OCC_SELF_DIR fallback lets the agent run workflows even if the user
+# has not yet run install.sh (e.g., source checkout, containerized envs
+# that mount only the agent binary).
+load_workflow_prompt() {
+    local wf_name="$1"
+    local target="$2"
+    local feature_desc="${3:-}"
+    local body
+    local f
+    if [ -n "${OCC_SELF_DIR:-}" ]; then
+        f="${OCC_SELF_DIR}/workflows/${wf_name}.md"
+        if [ -f "$f" ]; then
+            body=$(cat "$f")
+            body=${body//\{\{target\}\}/$target}
+            body=${body//\{\{feature_desc\}\}/$feature_desc}
+            printf '%s' "$body"
+            return 0
+        fi
+    fi
+    f="${OC_CONFIG}/workflows/${wf_name}.md"
+    if [ -f "$f" ]; then
+        body=$(cat "$f")
+        body=${body//\{\{target\}\}/$target}
+        body=${body//\{\{feature_desc\}\}/$feature_desc}
+        printf '%s' "$body"
+        return 0
+    fi
+    echo "error: workflow prompt not found: tried ${OCC_SELF_DIR:-(unset)}/workflows/${wf_name}.md and ${OC_CONFIG}/workflows/${wf_name}.md" >&2
+    return 1
+}
+
 run_workflow_prompt() {
     local prompt="$1"
     local output status
@@ -2367,36 +2415,7 @@ run_workflow() {
         bug-hunt)
             echo -e "${BLUE}=== Bug Hunt Pipeline (single-pass) ===${NC}"
             if [ "$interactive" == "true" ]; then confirm "¿Iniciar?" || return 0; fi
-            if ! run_workflow_prompt "Ejecuta el siguiente workflow completo para: $target
-
-EXIT_CONDITIONS:
-- Maximum 8 agent turns total across all phases
-- If no bugs found after Phase 2, stop and report
-- After Phase 5, respond with exactly: WORKFLOW_COMPLETE=true
-
-FASE 1 - @architect con project-map:
-Analiza el proyecto en: $target
-Identifica archivos críticos y posibles áreas con bugs.
-Reporta: stack detectado, estructura, riesgos.
-
-FASE 2 - @security-auditor:
-Revisa el código buscando: errores lógicos, variables indefinidas, imports rotos, memory leaks, edge cases no manejados.
-No modifiques nada. Lista todos los problemas encontrados con severidad.
-
-FASE 3 - @planner:
-Basado en los problemas encontrados, crea plan de corrección con fases verificables.
-Ordena por prioridad: crítico → alto → bajo.
-
-FASE 4 - @builder con safe-implementation y test-first:
-Implementa las correcciones planificadas en: $target
-Máximo 3 archivos por iteración. Agrega tests para cada fix.
-
-FASE 5 - @reviewer con precommit-review:
-Verifica que los fixes funcionan correctamente.
-Confirma que no se introdujeron nuevos errores.
-Reporta resultado final.
-
-Ejecuta todas las fases en secuencia. Reporta resultados de cada fase antes de continuar a la siguiente."; then return 1; fi
+            if ! run_workflow_prompt "$(load_workflow_prompt bug-hunt "$target")"; then return 1; fi
             echo -e "${GREEN}=== Bug Hunt Completado ===${NC}"
             auto_reflect "bug-hunt" "$target"
             track_outcome "bug-hunt" "success" "$(detect_project "$target")"
@@ -2406,55 +2425,7 @@ Ejecuta todas las fases en secuencia. Reporta resultados de cada fase antes de c
         new-project)
             echo -e "${BLUE}=== New Project Setup Pipeline (single-pass) ===${NC}"
             if [ "$interactive" == "true" ]; then confirm "¿Iniciar?" || return 0; fi
-            if ! run_workflow_prompt "Ejecuta el siguiente workflow completo para nuevo proyecto: $target
-
-EXIT_CONDITIONS:
-- Maximum 6 agent turns total across all phases
-- If critical information is missing after Phase 0, stop and ask questions before proceeding
-- After Phase 4, respond with exactly: WORKFLOW_COMPLETE=true
-
-FASE 0 - Docs-First:
-Antes de crear código, determina si hay información suficiente. Si faltan datos críticos, haz preguntas puntuales al usuario y espera respuesta.
-Crea o propone una carpeta docs/ como guía viva del proyecto con, según aplique:
-- PROJECT_CONTEXT.md
-- BUSINESS_LOGIC.md
-- DATA_STRUCTURE.md
-- ARCHITECTURE.md
-- DECISIONS.md
-- CHANGELOG.md
-- CONVERSATION.md
-- TASKS.md
-- RISKS.md
-- ONBOARDING.md
-No inventes reglas de negocio, datos ni integraciones. Marca supuestos y preguntas abiertas.
-
-FASE 1 - @architect:
-Analiza el contexto: $target
-Identifica stack recomendado, dependencias y arquitectura inicial.
-
-FASE 2 - @planner:
-Planifica la estructura del proyecto. Incluye:
-- Estructura de directorios
-- Archivos de configuración necesarios
-- Dependencias
-- Tests iniciales a escribir
-
-FASE 3 - @builder con safe-implementation:
-Crea la estructura básica del proyecto: $target
-Genera los archivos base según el plan.
-
-FASE 4 - @docs-writer:
-Completa y alinea la documentación inicial en docs/ y README.md:
-- contexto del proyecto
-- lógica de negocio
-- estructura de datos
-- arquitectura
-- decisiones
-- changelog inicial
-- conversación/contexto curado
-- tareas, riesgos y onboarding
-
-Ejecuta todas las fases en secuencia."; then return 1; fi
+            if ! run_workflow_prompt "$(load_workflow_prompt new-project "$target")"; then return 1; fi
             echo -e "${GREEN}=== New Project Completado ===${NC}"
             auto_reflect "new-project" "$target"
             track_outcome "new-project" "success" "$(detect_project "$target")"
@@ -2464,27 +2435,7 @@ Ejecuta todas las fases en secuencia."; then return 1; fi
         debug)
             echo -e "${BLUE}=== Production Debug Pipeline (single-pass) ===${NC}"
             if [ "$interactive" == "true" ]; then confirm "¿Iniciar?" || return 0; fi
-            if ! run_workflow_prompt "Ejecuta el siguiente workflow de debug para: $target
-
-EXIT_CONDITIONS:
-- Maximum 5 agent turns total across all phases
-- If P1 critical issue found in Phase 1, prioritize immediate mitigation before continuing
-- After Phase 3, respond with exactly: WORKFLOW_COMPLETE=true
-
-FASE 1 - @oncall:
-Diagnostica el problema en: $target
-Clasifica por urgencia (P1/P2/P3) e identifica causa raíz.
-Lista mitigaciones inmediatas disponibles.
-
-FASE 2 - @builder con safe-implementation y test-first:
-Implementa la corrección para: $target
-Escribe test que reproduce el bug primero, luego hazlo pasar.
-
-FASE 3 - @security-auditor:
-Verifica que la corrección no introduce vulnerabilidades.
-Confirma que el fix es correcto y completo.
-
-Ejecuta todas las fases en secuencia."; then return 1; fi
+            if ! run_workflow_prompt "$(load_workflow_prompt debug "$target")"; then return 1; fi
             echo -e "${GREEN}=== Debug Completado ===${NC}"
             auto_reflect "debug" "$target"
             track_outcome "debug" "success" "$(detect_project "$target")"
@@ -2494,44 +2445,7 @@ Ejecuta todas las fases en secuencia."; then return 1; fi
         document)
             echo -e "${BLUE}=== Codebase Documentation Pipeline (single-pass) ===${NC}"
             if [ "$interactive" == "true" ]; then confirm "¿Iniciar?" || return 0; fi
-            if ! run_workflow_prompt "Ejecuta el siguiente workflow de documentación para: $target
-
-EXIT_CONDITIONS:
-- Maximum 6 agent turns total across all phases
-- If docs/ already complete and no drift detected, skip to Phase 3
-- After Phase 3, respond with exactly: WORKFLOW_COMPLETE=true
-
-FASE 0 - Docs-First:
-Revisa si existe docs/. Si existe, léelo primero y detecta drift con el código real. Si no existe, crea o propone la carpeta docs/ como fuente de contexto viva.
-
-FASE 1 - @architect con project-map:
-Análisis completo de: $target
-Documenta: stack tecnológico, estructura de archivos, entry points, APIs, dependencias, configuraciones.
-
-FASE 2 - @docs-writer:
-Genera documentación completa para: $target
-Crea o actualiza docs/ con:
-- PROJECT_CONTEXT.md
-- BUSINESS_LOGIC.md
-- DATA_STRUCTURE.md
-- ARCHITECTURE.md
-- DECISIONS.md
-- CHANGELOG.md
-- CONVERSATION.md
-- TASKS.md
-- RISKS.md
-- ONBOARDING.md
-También actualiza README.md, API.md o DEPLOY.md si aplican al proyecto real.
-No inventes features. Si falta información de negocio o datos, deja preguntas abiertas.
-
-FASE 3 - @reviewer:
-Verifica que la documentación:
-- Refleja el código real (accurate)
-- Cubre casos importantes (completa)
-- No tiene información obsoleta (actualizada)
-Reporta solo problemas encontrados.
-
-Ejecuta todas las fases en secuencia."; then return 1; fi
+            if ! run_workflow_prompt "$(load_workflow_prompt document "$target")"; then return 1; fi
             echo -e "${GREEN}=== Documentation Completada ===${NC}"
             auto_reflect "document" "$target"
             track_outcome "document" "success" "$(detect_project "$target")"
@@ -2543,38 +2457,7 @@ Ejecuta todas las fases en secuencia."; then return 1; fi
             echo "Feature: $feature_desc"
             echo "Target: $target"
             if [ "$interactive" == "true" ]; then confirm "¿Iniciar?" || return 0; fi
-            if ! run_workflow_prompt "Ejecuta el siguiente workflow para implementar: $feature_desc en: $target
-
-EXIT_CONDITIONS:
-- Maximum 8 agent turns total across all phases
-- If critical info missing after Phase 0, stop and ask before proceeding
-- After Phase 4, respond with exactly: WORKFLOW_COMPLETE=true
-
-FASE 0 - Docs-First:
-Antes de diseñar o editar, revisa docs/ si existe. Si falta docs/ o no contiene contexto suficiente para la feature, crea/actualiza documentación mínima o haz preguntas puntuales.
-
-FASE 1 - @architect:
-Analiza: $target para implementar: $feature_desc
-Identifica:
-- Archivos a modificar
-- Puntos de extensión existentes
-- Posibles conflictos con código existente
-- Tradeoffs del approach
-
-FASE 2 - @planner:
-Planifica la implementación de: $feature_desc en: $target
-Divide en pasos verificables con criterios de éxito claros.
-
-FASE 3 - @builder con safe-implementation y test-first:
-Implementa: $feature_desc
-Escribe tests primero, luego implementación.
-Máximo 3 archivos por iteración.
-
-FASE 4 - @reviewer con precommit-review:
-Revisa la implementación de $feature_desc
-Verifica: correctitud, tests, no regresiones, código limpio.
-
-Ejecuta todas las fases en secuencia."; then return 1; fi
+            if ! run_workflow_prompt "$(load_workflow_prompt feature "$target" "$feature_desc")"; then return 1; fi
             echo -e "${GREEN}=== Feature Completada ===${NC}"
             auto_reflect "feature" "$target"
             track_outcome "feature" "success" "$(detect_project "$target")"
