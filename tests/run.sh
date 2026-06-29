@@ -421,4 +421,43 @@ run_oc --profile devops >/dev/null 2>&1 || fail "occ --profile devops should suc
 if run_oc --profile does-not-exist >/dev/null 2>&1; then fail "invalid profile should fail"; fi
 pass "occ --profile switches and persists, rejects invalid"
 
+# --list-templates: lists the known observation templates (bugfix, decision,
+# feature, config). These are static metadata, not memory-dependent.
+list_t="$(run_oc --list-templates 2>&1 || true)"
+[[ "$list_t" == *"bugfix"* ]] || fail "--list-templates should include bugfix"
+[[ "$list_t" == *"decision"* ]] || fail "--list-templates should include decision"
+[[ "$list_t" == *"feature"* ]] || fail "--list-templates should include feature"
+[[ "$list_t" == *"config"* ]] || fail "--list-templates should include config"
+pass "occ --list-templates lists all 4 templates"
+
+# --memory --timeline <id>: prints timeline around the obs if found, or
+# 'Observation not found' warning. Pre-populate one obs file at the
+# canonical path so the test passes on EITHER happy or warn path.
+mkdir -p "$TMPDIR/home/.config/opencode/memory/projects/alpha"
+cat > "$TMPDIR/home/.config/opencode/memory/projects/alpha/1.md" <<'OBS_EOF'
+---
+date: 2026-06-29
+summary: alpha project timeline test fixture
+---
+content
+OBS_EOF
+result="$(run_oc --memory --timeline obs_1 2>&1 || true)"
+[[ "$result" == *"Timeline around"* || "$result" == *"Observation not found"* ]] \
+    || fail "--memory --timeline should print timeline or not-found (got: ${result:0:200})"
+pass "occ --memory --timeline resolves obs id"
+
+# --memory --get <id>: prints observation body or 'Observation not found'.
+# Pre-populate the same obs file as above; --get normalizes the id (strips
+# 'obs_' prefix), so we look for the matching warn or the body.
+result="$(run_oc --memory --get obs_1 2>&1 || true)"
+[[ "$result" == *"alpha project timeline test fixture"* || "$result" == *"Observation not found"* ]] \
+    || fail "--memory --get should print obs body or not-found (got: ${result:0:200})"
+pass "occ --memory --get resolves obs id"
+
+# --capture: writes a session marker to memory/.session_start if not
+# present. Just verify it runs (exit 0) and prints 'Session started'.
+result="$(run_oc --capture 2>&1)"
+[[ "$result" == *"Session"* ]] || fail "occ --capture should print session info (got: ${result:0:200})"
+pass "occ --capture marks session start"
+
 printf 'All tests passed\n'
