@@ -215,6 +215,21 @@ for md in "${ROOT}/agents/"*.md "${ROOT}/commands/"*.md; do
         fail "Invalid frontmatter: $fname"
     fi
 done
+# Skills SKILL.md files must also have valid YAML frontmatter so opencode
+# discovers them. Without this check, design-md-style drift goes uncaught
+# (caught in v1.20.0 when design-md/SKILL.md lost its frontmatter during
+# frontend-design integration in v1.16.0).
+for md in "${ROOT}/skills/"*/SKILL.md; do
+    [ -f "$md" ] || continue
+    fname="${md#${ROOT}/}"
+    first_line=$(head -n 1 "$md")
+    fence_count=$(grep -c '^---$' "$md" 2>/dev/null || echo 0)
+    if [ "$first_line" = "---" ] && [ "$fence_count" -ge 2 ]; then
+        pass "$fname frontmatter"
+    else
+        fail "Invalid frontmatter: $fname"
+    fi
+done
 echo ""
 
 echo "Custom linters:"

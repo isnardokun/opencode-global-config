@@ -97,15 +97,19 @@ Entry points:
 | `/web-verify` | web-verify | runtime-agnostic |
 | `/setup-deploy` | setup-deploy | detect-only |
 
-### Skills (22)
+### Skills (25)
 
 **Originales (11):** ai-coding-rules, caveman, design-md, diagnose, docs-writer, grill-with-docs, memory-retrieval, precommit-review, project-map, safe-implementation, test-first.
 
 **Cherry-pick de garrytan/gstack (6):** plan-eng-review, office-hours, investigate, qa-web, web-verify, setup-deploy. (v1.11.0)
 
-**Cherry-pick de anthropics/skills (4):** pdf, skill-creator, docx, xlsx. (v1.12.0 – v1.14.0)
+**Cherry-pick de anthropics/skills (5 completas + 1 integrada):** pdf, skill-creator, docx, xlsx, pptx + frontend-design → design-md. (v1.12.0 – v1.16.0)
 
 **Cherry-pick de safishamsi/graphify (1):** graphify. (v1.15.0)
+
+**Cherry-pick de DeusData/codebase-memory-mcp (1):** codebase-memory-mcp. (v1.18.0)
+
+**Autoría interna (1):** cbm-graph-export (offline viewer del SQLite de CBM). (v1.19.0)
 
 ### Perfiles (9 — deny-first gradient)
 

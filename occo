@@ -32,8 +32,12 @@ track_turn() {
         fi
     fi
     echo "$turns" > "${OC_SESSION_FILE}"
-    if [ "$turns" -gt 20 ]; then
-        warn "Session turns: $turns (consider context compaction)"
+    # Threshold was 20; raised to 40 in v1.20.0 because the per-invocation warn
+    # became noise during normal coding sessions (typical user hits 25-35 turns
+    # before compacting). Above 40 it's worth surfacing; above 50 it's a definite
+    # signal that compaction is overdue (handled in check_budget below).
+    if [ "$turns" -gt 40 ]; then
+        info "Session turns: $turns (consider context compaction)"
     fi
 
     # Self-Improvement: track outcomes and reflect periodically (inline to avoid forward-call issues)

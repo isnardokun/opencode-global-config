@@ -1,3 +1,10 @@
+---
+name: design-md
+description: Lint, diff, and suggest DESIGN.md files for visual consistency in coding agent projects. Includes a "Design Philosophy" section (anti-AI-slop principles) adapted from anthropics/skills/frontend-design: ground in subject, typography carries personality, structure is information, avoid the 3 AI-defaults. Use when the user mentions design tokens, colors, spacing, typography, or wants to review generated UI for AI slop patterns.
+license: MIT
+compatibility: opencode
+---
+
 # Skill: design-md
 
 Lint, diff, and suggest DESIGN.md files for visual consistency in coding agent projects.
