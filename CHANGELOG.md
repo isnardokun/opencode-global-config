@@ -19,6 +19,8 @@ Nuevo flag que combina instalación + registro + auto-graphify en una sola opera
 3. **Registro del skill** — `graphify opencode install` (escribe sección en `~/.config/opencode/AGENTS.md` con query-first behavior).
 4. **Auto-graphify de la config instalada** — `cd ~/.config/opencode && graphify . --no-viz` produce `graphify-out/{GRAPH_REPORT.md,graph.json,graph.html}` (HTML excluido en auto-build para evitar 50MB; user lo genera con `graphify .` después si quiere).
 
+**Nota técnica sobre v8 de graphify:** el flujo de extracción ahora se dispara via el skill instalado, no via CLI directa (`graphify <path>` ya no existe en v8; el `path` se da al instalar el skill con `--dir`). El bloque auto-graphify sigue siendo `graphify . --no-viz` por compatibilidad con versiones anteriores. En v8+ puro, el build inicial lo dispara el plugin `tool.execute.before` de opencode al primer query.
+
 - **`install.sh` también actualizado** — lista de opcionales extendida con `uv` y `graphify`. `--help` documenta los 3 flags disponibles.
 - **`validate.sh`** — `Required skills` extendida a 22; `Skill count` esperado 21 → 22.
 - **`agents/manifest.json`** — `graphify` añadido con `source.upstream: safishamsi/graphify`.
