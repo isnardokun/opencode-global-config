@@ -2,6 +2,45 @@
 
 Todos los cambios notables de este proyecto se documentarán en este archivo.
 
+## [1.14.0] - 2026-06-28
+
+### anthropics/skills cherry-pick Fase 3: docx + xlsx (adapted, runtime-detection)
+
+Cherry-pick de las skills de documentos office desde `anthropics/skills`. **Estrategia diferente a las fases 1-2:** en lugar de portar el árbol completo de scripts de Anthropic (que requiere `defusedxml`, `lxml`, dependencias masivas, y workflow unpack/repack vía `docx-js`/npm), creo SKILL.md ligeros que usan las librerías ya instaladas (`python-docx` y `openpyxl`) con runtime-detection y degradación graceful.
+
+- **`skills/docx/SKILL.md`** — adaptación completa desde `anthropics/skills/skills/docx/`. Tool detection (python-docx / lxml / pandoc / libreoffice) con 4 tiers. Flujo principal: `python-docx` (más portable que `docx-js`/npm). Critical rules adaptadas. Tracked changes y comentarios requieren `lxml` (tier 2). PDF/imagen vía `libreoffice` + `pdftoppm` (tier 4). ~230 líneas.
+- **`skills/xlsx/SKILL.md`** — adaptación completa desde `anthropics/skills/skills/xlsx/`. Tool detection (openpyxl / pandas / libreoffice / csvkit) con 4 tiers. Financial-model color standards preservadas (azul=input, negro=formula, etc.). Recalc con `soffice --headless`. CSV/TSV via pandas o csvkit. ~180 líneas.
+
+### Lo que NO se portó (decisión deliberada)
+
+- ❌ `docx/scripts/{unpack,pack,validate,soffice,accept_changes,comment}.py` — requiere `defusedxml`, `lxml`, y workflow unpack/repack XML. Sustituido por `python-docx` + `lxml` directo, más portable y menos deps.
+- ❌ `docx/scripts/office/validators/{base,docx,pptx,redlining}.py` — submódulo completo, requiere base classes no portables.
+- ❌ `docx/scripts/office/{schemas,helpers}/` — schemas XML de docx/pptx, fuera de scope (sólo Word docs básico).
+- ❌ `xlsx/scripts/recalc.py` original — reemplazado por snippet inline (`subprocess.run(['soffice', '--headless', ...])`) ya que la lógica es 5 líneas.
+- ❌ `LICENSE.txt` originales — mismos motivos que en v1.12/v1.13 (methodology es cherry-pick legítimo, documentado en `## Provenance`).
+
+### Validación y conteos
+
+- **`validate.sh`** — `Required skills` extendida a 21; `Skill count` esperado 19 → 21.
+- **`install.sh`** — banner 1.13.0 → 1.14.0; mensaje "21 artefactos + opcional Playwright".
+- **`VERSION`** — 1.13.0 → 1.14.0.
+- **`agents/manifest.json`** — `docx` y `xlsx` añadidos con `source.upstream: anthropics/skills`, `cherry_pick: true`, `adapted: true`.
+- **`.gitignore`** — añadidos `__pycache__/`, `*.pyc`, `*.pyo`, `.pytest_cache/` (cleanup pendiente de v1.13.0).
+
+### Validado
+
+- `bash validate.sh`: 21 skills, 14 commands, 9 profiles, 11 agents, v1.14.0
+- `bash tests/run.sh`: 14/14 pass
+- `python3 -c 'import docx'`: 1.2.0 (apt-installed)
+- `python3 -c 'import openpyxl'`: 3.1.5 (apt-installed)
+
+### Estado del cherry-pick anthropics/skills
+
+- **4 de 17 skills adoptadas:** `pdf` (v1.12), `skill-creator` (v1.13), `docx` (v1.14), `xlsx` (v1.14).
+- **13 descartadas explícitamente:** algorithmic-art, brand-guidelines, canvas-design, claude-api, frontend-design, internal-comms, mcp-builder, pptx, slack-gif-creator, theme-factory, web-artifacts-builder, webapp-testing (sólo `with_server.py` cherry-picked a `web-verify/scripts/` en v1.12).
+
+---
+
 ## [1.13.0] - 2026-06-28
 
 ### anthropics/skills cherry-pick Fase 2: skill-creator (adapted)

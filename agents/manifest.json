@@ -241,6 +241,28 @@
         "cherry_pick": true,
         "adapted": true
       }
+    },
+    {
+      "id": "docx",
+      "path": "skills/docx/",
+      "description": "Create, read, edit, and analyze Word documents (.docx files). Triggers: any mention of 'Word doc', 'word document', '.docx', or requests to produce professional documents with tables of contents, headings, page numbers, or letterheads. Adapted from anthropics/skills for opencode (uses python-docx, runtime-detection with graceful degradation).",
+      "source": {
+        "upstream": "anthropics/skills",
+        "upstream_path": "skills/docx/SKILL.md",
+        "cherry_pick": true,
+        "adapted": true
+      }
+    },
+    {
+      "id": "xlsx",
+      "path": "skills/xlsx/",
+      "description": "Create, read, edit, and analyze Excel spreadsheets (.xlsx, .xlsm, .csv, .tsv). Triggers: any task involving a spreadsheet file as primary input or output (open, read, edit, fix .xlsx; add columns, compute formulas, format, chart, clean messy data); create a new spreadsheet from scratch; convert between tabular formats. Adapted from anthropics/skills for opencode (uses openpyxl + optional pandas, runtime-detection with graceful degradation).",
+      "source": {
+        "upstream": "anthropics/skills",
+        "upstream_path": "skills/xlsx/SKILL.md",
+        "cherry_pick": true,
+        "adapted": true
+      }
     }
   ],
   "workflows": [

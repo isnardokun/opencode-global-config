@@ -47,12 +47,12 @@ Inspirado en análisis de Claude Code (VILA-Lab/Dive-into-Claude-Code) y directr
 
 Este repositorio contiene una configuración avanzada para [OpenCode CLI](https://opencode.ai) inspirada en Claude Code y proyectos de código abierto.
 
-### Características Principales (v1.13.0)
+### Características Principales (v1.14.0)
 
 - **11 agentes especializados** — sin modelo hardcodeado, usan el modelo que selecciones en OpenCode
 - **14 slash commands oficiales** — `/analyze`, `/review`, `/secure`, `/feature`, `/bug-hunt`, `/docs`, `/devops`, `/oncall`, `/office-hours`, `/investigate`, `/plan-eng-review`, `/qa-web`, `/web-verify`, `/setup-deploy`
 - **9 perfiles con enforcement por prompt** — reglas como `requireTests`, `checkpointBeforeChanges` se inyectan como instrucciones explícitas al LLM en cada llamada no interactiva de `occo`
-- **19 skills** para análisis, implementación, validación, memoria, documentación, debugging, alignment, comunicación, design.md, revisión de planes de ingeniería, framing de producto, investigación de causa raíz, QA web sistemático, verificación web runtime-agnóstica, detección de plataforma de deploy, procesamiento de PDF y creación de skills (8 adaptadas de upstream: 6 de garrytan/gstack + 2 de anthropics/skills)
+- **21 skills** para análisis, implementación, validación, memoria, documentación, debugging, alignment, comunicación, design.md, revisión de planes de ingeniería, framing de producto, investigación de causa raíz, QA web sistemático, verificación web runtime-agnóstica, detección de plataforma de deploy, procesamiento de PDF, creación de skills, documentos Word y hojas de cálculo Excel (10 adaptadas de upstream: 6 de garrytan/gstack + 4 de anthropics/skills)
 - **4 rubrics de revisión** para code review, security review, plan y gates de diseño
 - **1 plugin de seguridad** con regex hardening (whitespace-normalized matching)
 - **Sistema de Memory Bank** con 3-layer retrieval (search/timeline/get)
