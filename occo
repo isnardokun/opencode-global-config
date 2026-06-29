@@ -2880,6 +2880,53 @@ Output as plain markdown. This will be saved to resume the session later."; then
             echo -e "${BLUE}ℹ️${NC}  Audit log not yet created (safety-guard.jsonl)"
         fi
 
+        # Check MCP servers registered in opencode.json. Added in v1.20.0 —
+        # without this, a user that --with-codebase-memory-installed CBM but
+        # the MCP entry was lost (e.g., opencode.json regenerated manually)
+        # would not know. The audit must distinguish "no MCP servers (info)"
+        # from "CBM binary present but MCP server missing (warn)".
+        if [ -f "${_idir}/opencode.json" ] && command -v jq >/dev/null 2>&1; then
+            _mcp_count=$(jq -r '.mcp // {} | keys | length' "${_idir}/opencode.json" 2>/dev/null || echo 0)
+            if [ "$_mcp_count" = "0" ]; then
+                echo -e "${BLUE}ℹ️${NC}  No MCP servers registered"
+            else
+                _mcp_names=$(jq -r '.mcp | keys | join(", ")' "${_idir}/opencode.json" 2>/dev/null)
+                echo -e "${GREEN}✅${NC} MCP servers: ${_mcp_count} (${_mcp_names})"
+                # Heuristic: if CBM is on PATH but MCP missing, warn.
+                if command -v codebase-memory-mcp >/dev/null 2>&1; then
+                    if ! jq -e '.mcp["codebase-memory-mcp"]' "${_idir}/opencode.json" >/dev/null 2>&1; then
+                        warn "codebase-memory-mcp binary present but NOT registered in opencode.json. Run: codebase-memory-mcp install -y"
+                        _doc_ok=0
+                    fi
+                fi
+            fi
+        fi
+
+        # Check hooks are executable (the repo copies them but they may have
+        # lost +x). Added in v1.20.0 because chmod drift is silent.
+        for _hook in "${_idir}/hooks/pre-commit" "${_idir}/hooks/pre-push"; do
+            if [ -f "$_hook" ]; then
+                if [ -x "$_hook" ]; then
+                    echo -e "${GREEN}✅${NC} $(basename "$(dirname "$_hook")")/$(basename "$_hook") is executable"
+                else
+                    warn "Missing +x: $_hook (run: chmod +x \"$_hook\")"
+                    _doc_ok=0
+                fi
+            else
+                echo -e "${BLUE}ℹ️${NC}  ${_hook} not present (oc --init installs hooks per-project, not globally)"
+            fi
+        done
+
+        # Check optional binaries (graphify, codebase-memory-mcp).
+        # Not failures — informational only. --with-* flags install them.
+        for _opt in graphify codebase-memory-mcp; do
+            if command -v "$_opt" >/dev/null 2>&1; then
+                echo -e "${GREEN}✅${NC} Optional: ${_opt}: $(command -v "$_opt")"
+            else
+                echo -e "${BLUE}ℹ️${NC}  Optional: ${_opt} not installed (use --with-${_opt} at install time)"
+            fi
+        done
+
         echo ""
         if [ "$_doc_ok" -eq 1 ]; then
             success "All checks passed."

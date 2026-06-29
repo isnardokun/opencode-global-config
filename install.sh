@@ -223,6 +223,13 @@ for dir in agents skills profiles plugins hooks memory souls commands rubrics; d
         fi
         # cp -r src/. dst/ (with /. copies contents; without /. copies src inside dst)
         cp -r "$INSTALL_DIR/$dir/." "$CONFIG_DIR/$dir/"
+        # Ensure hooks are executable when installing them globally. Without
+        # this, hooks copied to ~/.config/opencode/hooks/ lack +x and the
+        # user has to chmod manually before oc --init can copy them into
+        # a project's .git/hooks/. Caught by occo --doctor in v1.20.0.
+        if [ "$dir" = "hooks" ]; then
+            find "$CONFIG_DIR/hooks" -type f -name 'pre-*' -exec chmod +x {} +
+        fi
         success "Instalado: $dir/"
     fi
 done
