@@ -460,4 +460,17 @@ result="$(run_oc --capture 2>&1)"
 [[ "$result" == *"Session"* ]] || fail "occ --capture should print session info (got: ${result:0:200})"
 pass "occ --capture marks session start"
 
+# --save-all: persists outcomes to memory/outcomes/*.json and creates
+# an observation. Capture the count before and after to assert at
+# least one new JSON appears after the run.
+outcomes_dir="$TMPDIR/home/.config/opencode/memory/outcomes"
+mkdir -p "$outcomes_dir"
+before=$(ls "$outcomes_dir"/*.json 2>/dev/null | wc -l | tr -d ' ')
+result="$(run_oc --save-all 2>&1 || true)"
+[[ "$result" == *"Estado guardado"* || "$result" == *"saved"* || "$result" == *"Guardando"* ]] \
+    || fail "occ --save-all should report saving (got: ${result:0:200})"
+after=$(ls "$outcomes_dir"/*.json 2>/dev/null | wc -l | tr -d ' ')
+[[ "$after" -gt "$before" ]] || fail "occ --save-all should write at least one new JSON to outcomes/"
+pass "occ --save-all writes a new outcome JSON to memory/outcomes/"
+
 printf 'All tests passed\n'
