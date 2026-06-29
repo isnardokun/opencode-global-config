@@ -1384,6 +1384,15 @@ EOF
 
     if [ -d "${target_dir}/.git" ]; then
         mkdir -p "${target_dir}/.git/hooks"
+        # Backup existing hooks before overwriting. v1.20.0 — previously
+        # 'oc --init' silently overwrote any pre-existing pre-commit/pre-push
+        # the user might have had. Now we keep a timestamped .bak.<ts> copy.
+        for _h in pre-commit pre-push; do
+            if [ -f "${target_dir}/.git/hooks/${_h}" ]; then
+                cp "${target_dir}/.git/hooks/${_h}" "${target_dir}/.git/hooks/${_h}.bak.$(date +%Y%m%d-%H%M%S)"
+                info "Backed up existing ${_h} to ${_h}.bak.<ts>"
+            fi
+        done
         cat > "${target_dir}/.git/hooks/pre-commit" << 'HOOK'
 #!/bin/bash
 
@@ -1483,6 +1492,9 @@ echo "✅ Pre-commit aprobado"
 HOOK
         chmod +x "${target_dir}/.git/hooks/pre-commit"
         success "Git hook configurado en ${target_dir}/.git/hooks/pre-commit"
+        # Backup existing pre-push (handled by the loop above; second iteration
+        # would re-backup the file we just wrote, so the loop runs only once
+        # before each overwrite). The for-loop above is sufficient.
         cat > "${target_dir}/.git/hooks/pre-push" << 'HOOK'
 #!/bin/bash
 
