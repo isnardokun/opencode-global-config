@@ -497,6 +497,18 @@ if [ "$WITH_CODEBASE_MEMORY" -eq 1 ]; then
     info "Flag --with-codebase-memory detectado. Verificando instalación..."
     if command -v codebase-memory-mcp >/dev/null 2>&1; then
         success "codebase-memory-mcp ya está instalado: $(command -v codebase-memory-mcp)"
+        # BUGFIX (v1.18.0 → v1.18.1): when binary pre-exists, the download+extract
+        # branch is skipped, so the MCP server is never registered in opencode.json.
+        # Always run the installer's internal 'install' command to ensure the MCP
+        # entry + AGENTS.md hook are present, even on re-run.
+        if [ -t 0 ] && ! grep -qF 'codebase-memory-mcp' "$CONFIG_DIR/opencode.json" 2>/dev/null; then
+            warn "MCP server no registrado en opencode.json. Ejecutando registrador interno..."
+            if codebase-memory-mcp install -y 2>&1 | tail -3; then
+                success "MCP server registrado por el instalador interno"
+            else
+                warn "Falló el registro. Reintentá manualmente: codebase-memory-mcp install"
+            fi
+        fi
     else
         warn "codebase-memory-mcp no está instalado. Habilita análisis estructural de código (call graphs, dead code, type-aware) via MCP."
         echo ""
