@@ -79,7 +79,7 @@ done
 echo ""
 
 echo "Required skills:"
-for skill in project-map safe-implementation test-first precommit-review memory-retrieval docs-writer ai-coding-rules caveman diagnose grill-with-docs design-md plan-eng-review office-hours investigate qa-web web-verify setup-deploy; do
+for skill in project-map safe-implementation test-first precommit-review memory-retrieval docs-writer ai-coding-rules caveman diagnose grill-with-docs design-md plan-eng-review office-hours investigate qa-web web-verify setup-deploy pdf; do
     if [ -d "${ROOT}/skills/${skill}" ]; then
         pass "skills/${skill}/"
     else
@@ -234,7 +234,7 @@ done < <(find "${ROOT}/agents" "${ROOT}/skills" -name '*.md' -print0 2>/dev/null
 _credential_patterns="(api[_-]?key|secret[_-]?key|password|token|aws[_-]?access|jwt[_-]?secret)[=:]"
 while IFS= read -r -d '' f; do
     fname="${f#${ROOT}/}"
-    if grep -iE "$_credential_patterns" "$f" | grep -v -E '(example|sample|mock|placeholder|SKIP|REMOVE|FIXME|allowEnvEdit|allow|deny|ask|summary|title|description)' >/dev/null 2>&1; then
+    if grep -iE "$_credential_patterns" "$f" | grep -v -E '(example|sample|mock|placeholder|SKIP|REMOVE|FIXME|allowEnvEdit|allow|deny|ask|summary|title|description|qpdf|gpg|openssl)' >/dev/null 2>&1; then
         fail "Possible hardcoded credential assignment: $fname (use env var or redact)"
         _linter_errors=$((_linter_errors + 1))
     fi
@@ -286,7 +286,7 @@ agent_count=$(find "${ROOT}/agents" -maxdepth 1 -name '*.md' | wc -l | tr -d ' '
 skill_count=$(find "${ROOT}/skills" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
 if [ "$profile_count" = "9" ]; then pass "Profile count: 9"; else fail "Expected 9 profiles, found $profile_count"; fi
 if [ "$agent_count" = "11" ]; then pass "Agent count: 11"; else fail "Expected 11 agents, found $agent_count"; fi
-if [ "$skill_count" = "17" ]; then pass "Skill count: 17"; else fail "Expected 17 skills, found $skill_count"; fi
+if [ "$skill_count" = "18" ]; then pass "Skill count: 18"; else fail "Expected 18 skills, found $skill_count"; fi
 
 if grep -q -- '--remember \[-p proyecto\] \[-t tipo\]' "${ROOT}/occo" \
     && grep -q -- 'occo --remember -p' "${ROOT}/README.md" \

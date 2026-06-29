@@ -181,6 +181,45 @@ For these, fall back to producing a manual checklist for the user to run:
 7. Open DevTools Network tab. Refresh. Report any 4xx/5xx.
 ```
 
+## Server lifecycle helper (`scripts/with_server.py`)
+
+When verifying a local webapp that is not already running, use the helper to manage the server lifecycle. Cherry-picked from `anthropics/skills/skills/webapp-testing/scripts/with_server.py`. Stdlib only — no third-party deps.
+
+### Single server
+
+```bash
+python skills/web-verify/scripts/with_server.py \
+    --server "npm run dev" --port 5173 -- \
+    python my_automation.py
+```
+
+### Multiple servers (backend + frontend)
+
+```bash
+python skills/web-verify/scripts/with_server.py \
+    --server "cd backend && python server.py" --port 3000 \
+    --server "cd frontend && npm run dev" --port 5173 \
+    -- python my_automation.py
+```
+
+### How it works
+
+1. Starts each server with `subprocess.Popen(shell=True)`.
+2. Polls the declared port with `socket.create_connection()` until the server responds.
+3. Runs your automation/verification script.
+4. On exit (success or failure), terminates all servers (SIGTERM, then SIGKILL after 5s).
+
+### Customization
+
+- `--timeout N`: per-server startup timeout (default 30s).
+- The command after `--` is run synchronously; its exit code is propagated.
+
+### When NOT to use it
+
+- The app is already running (use the regular `web-verify` flow).
+- The app requires a complex multi-process setup beyond start/wait/kill (use docker-compose or a real orchestrator).
+- You need to interact with the server while your script is running (the helper is fire-and-forget).
+
 ## Optional install (Playwright)
 
 If the user wants browser automation:

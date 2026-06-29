@@ -34,12 +34,12 @@ Inspired by [VILA-Lab/Dive-into-Claude-Code](https://github.com/VILA-Lab/Dive-in
 
 ## Features
 
-**v1.11.0 + gstack QA cherry-pick (qa-web, web-verify, setup-deploy) + optional Playwright install**
+**v1.12.0 + anthropic skills cherry-pick (pdf) + web-verify server lifecycle helper**
 
 - **11 specialized agents** — no hardcoded model; use whichever model you select in OpenCode's UI
 - **14 official slash commands** — `/analyze`, `/review`, `/secure`, `/feature`, `/bug-hunt`, `/docs`, `/devops`, `/oncall`, `/office-hours`, `/investigate`, `/plan-eng-review`, `/qa-web`, `/web-verify`, `/setup-deploy` — usable directly in OpenCode's TUI
 - **9 prompt-enforced profiles** — rules like `requireTests`, `checkpointBeforeChanges` injected as explicit LLM instructions; profile permissions validated against `ask|allow|deny`
-- **17 skills** for analysis, implementation, validation, memory, documentation, debugging, alignment, communication, design.md, plan engineering review, product framing, root-cause investigation, web QA, runtime-agnostic web verify, and deploy platform detection (6 adapted from garrytan/gstack)
+- **18 skills** for analysis, implementation, validation, memory, documentation, debugging, alignment, communication, design.md, plan engineering review, product framing, root-cause investigation, web QA, runtime-agnostic web verify, deploy platform detection, and PDF processing (7 adapted from upstream: 6 from garrytan/gstack + 1 from anthropics/skills)
 - **3 review rubrics** for code review, security review, and plan/design gates
 - **1 security plugin** with regex hardening, ESM metadata, redacted audit log, and restrictive log permissions
 - **Optional `occo ask` router** — natural-language intent routing with `--dry-run`, `--explain`, and `--clarify`

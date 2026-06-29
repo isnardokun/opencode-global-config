@@ -2,6 +2,40 @@
 
 Todos los cambios notables de este proyecto se documentarán en este archivo.
 
+## [1.12.0] - 2026-06-28
+
+### anthropics/skills cherry-pick (Fase 1: pdf + webapp-testing helper)
+
+Cherry-pick selectivo desde `https://github.com/anthropics/skills/tree/main/skills`. Evaluación completa de las 17 skills de Anthropic en el CHANGELOG/commit. Adoptadas: 1 skill completa + 1 helper script. 7 descartadas explícitamente en `docs/DECISIONS.md`-style rationale.
+
+- **`skills/pdf/SKILL.md`** — cherry-picked desde `anthropics/skills/skills/pdf/`. Frontmatter normalizado (drop del `license: Proprietary` de Anthropic — OpenCode strippea frontmatter y el original no shippeaba LICENSE.txt). Body idéntico: merge, split, rotate, watermark, create, fill forms, encrypt, OCR con pypdf/pdfplumber/reportlab (Python) o poppler-utils/qpdf (CLI). ~314 líneas.
+- **`skills/web-verify/scripts/with_server.py`** — cherry-picked desde `anthropics/skills/skills/webapp-testing/scripts/with_server.py`. Helper de lifecycle de servers (start, health-check por port-poll, kill). Stdlib only. Cero deps. Permite que `/web-verify` verifique apps locales que necesitan arrancar (`--server "npm run dev" --port 5173 -- python automation.py`).
+- **`skills/web-verify/SKILL.md`** — sección "Server lifecycle helper" agregada con ejemplos single-server y multi-server.
+
+### Validación y conteos
+
+- **`validate.sh`** — `Required skills` extendida a 18; `Skill count` esperado 17 → 18.
+- **`install.sh`** — banner 1.11.0 → 1.12.0; mensaje de verificación "18 artefactos + opcional Playwright".
+- **`VERSION`** — 1.11.0 → 1.12.0.
+- **`agents/manifest.json`** — `pdf` añadido con `source.upstream: anthropics/skills`, `cherry_pick: true` (sin `adapted: true` porque el contenido es verbatim, solo se normalizó el frontmatter).
+
+### Anti-criterios respetados (de 17 evaluadas, 7 descartadas explícitamente)
+
+- ❌ `mcp-builder` — descartado por anti-MCP (OpenCode no carga MCP servers Anthropic-style).
+- ❌ `claude-api` — descartado por dependencia de SDK Anthropic que no aplica.
+- ❌ `web-artifacts-builder` — descartado por overhead Node masivo (Vite + Tailwind + shadcn bundle).
+- ❌ `frontend-design` — descartado como skill; sus 3-4 principios anti-AI-slop se pueden cherry-pick a `design-md/` en una iteración futura si hay demanda.
+- ❌ `theme-factory` — descartado por dependencia de `themes/*.pdf` showcase no portable.
+- ❌ `internal-comms` — descartado por ser formato corporativo Anthropic.
+- ❌ `algorithmic-art`, `brand-guidelines`, `canvas-design`, `slack-gif-creator` — descartados por nicho (arte, branding, GIFs).
+
+### Pendientes próximos (Fase 2+3, opt-in)
+
+- **`skill-creator`** (Fase 2) — workflow methodology para crear/medir/optimizar skills. Valor alto: cualquier futura skill se beneficia. Sin deps nuevas.
+- **`docx`** y **`xlsx`** (Fase 3) — adaptación con runtime-detection estilo `web-verify` (degradación graceful sin LibreOffice/pandas). Opt-in hasta que haya demanda real.
+
+---
+
 ## [1.11.0] - 2026-06-28
 
 ### gstack QA cherry-pick (qa-web, web-verify, setup-deploy) + optional Playwright install

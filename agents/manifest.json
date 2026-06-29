@@ -220,6 +220,16 @@
         "upstream_path": "setup-deploy/SKILL.md",
         "adapted": true
       }
+    },
+    {
+      "id": "pdf",
+      "path": "skills/pdf/",
+      "description": "Read, extract, merge, split, rotate, watermark, create, fill forms, encrypt, and OCR PDF files. Use this skill whenever the user mentions a .pdf file or asks to produce one. Cherry-picked from anthropics/skills.",
+      "source": {
+        "upstream": "anthropics/skills",
+        "upstream_path": "skills/pdf/SKILL.md",
+        "cherry_pick": true
+      }
     }
   ],
   "workflows": [

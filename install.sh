@@ -143,7 +143,7 @@ fi
 
 echo -e "${BLUE}"
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║     OpenCode Global Config - Instalador v1.11.0            ║"
+echo "║     OpenCode Global Config - Instalador v1.12.0            ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
@@ -189,7 +189,13 @@ mkdir -p "$CONFIG_DIR"
 
 for dir in agents skills profiles plugins hooks memory souls commands rubrics; do
     if [ -d "$INSTALL_DIR/$dir" ]; then
-        cp -r "$INSTALL_DIR/$dir" "$CONFIG_DIR/"
+        # Remove existing target so cp -r picks up new files AND subdirs
+        # (without this, a previously-installed skill won't get new subdirs/scripts)
+        if [ -d "$CONFIG_DIR/$dir" ]; then
+            find "$CONFIG_DIR/$dir" -mindepth 1 -delete
+        fi
+        # cp -r src/. dst/ (with /. copies contents; without /. copies src inside dst)
+        cp -r "$INSTALL_DIR/$dir/." "$CONFIG_DIR/$dir/"
         success "Instalado: $dir/"
     fi
 done
@@ -331,7 +337,7 @@ for _rubric in code-review security-review plan-review; do
 done
 
 if [ "$_ok" -eq 1 ]; then
-    success "Instalación verificada (17 artefactos + opcional Playwright)"
+    success "Instalación verificada (18 artefactos + opcional Playwright)"
 else
     error "Instalación incompleta. Revisa los mensajes anteriores."
 fi
