@@ -29,8 +29,8 @@ jobs:
       - name: shellcheck — install.sh
         run: shellcheck --severity=error install.sh
 
-      - name: shellcheck — oc
-        run: shellcheck --severity=error --shell=bash oc
+      - name: shellcheck — occo
+        run: shellcheck --severity=error --shell=bash occo
 
       - name: shellcheck — hooks
         run: |
