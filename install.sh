@@ -150,7 +150,7 @@ fi
 
 echo -e "${BLUE}"
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║     OpenCode Global Config - Instalador v1.16.0            ║"
+echo "║     OpenCode Global Config - Instalador v1.17.0            ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
@@ -453,6 +453,17 @@ if [ "$WITH_GRAPHIFY" -eq 1 ]; then
                 success "Graph generado en $CONFIG_DIR/graphify-out/"
                 if [ -f "$CONFIG_DIR/graphify-out/GRAPH_REPORT.md" ]; then
                     info "Reporte: $CONFIG_DIR/graphify-out/GRAPH_REPORT.md"
+                fi
+                # Generate the HTML visualization (graph.html) using our local
+                # scripts/graphify_html.py. v8 graphify does not expose an
+                # "html" subcommand, so we use the API directly. Stdlib only.
+                if [ -f "$ROOT/skills/graphify/scripts/graphify_html.py" ]; then
+                    info "Generando visualización HTML interactiva (graph.html)..."
+                    if python3 "$ROOT/skills/graphify/scripts/graphify_html.py" "$CONFIG_DIR/graphify-out" 2>&1 | tail -2; then
+                        success "Visualización HTML: $CONFIG_DIR/graphify-out/graph.html"
+                    else
+                        warn "Falló la generación de graph.html. Reintentá manualmente: python3 skills/graphify/scripts/graphify_html.py"
+                    fi
                 fi
             else
                 warn "Falló la generación del graph. Reintentá manualmente: cd ~/.config/opencode && graphify ."

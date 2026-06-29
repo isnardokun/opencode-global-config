@@ -108,6 +108,31 @@ This is **opt-in** and **non-default** — the base install remains zero-deps. P
 
 The auto-graphify at install time is a **snapshot** of the installed config. Run `graphify .` manually when the config changes significantly (e.g., new skill added, major refactor).
 
+### Auto-rebuild + interactive viewer (v1.17.0+)
+
+`install.sh --with-graphify` also generates `graph.html` (interactive vis.js visualization) at install time via `scripts/graphify_html.py` (stdlib-only, no deps).
+
+For continuous auto-rebuild, run the HTTP server with watch:
+
+```bash
+# Default: port 8765, rebuild every 5 minutes
+python3 skills/graphify/scripts/graphify_serve.py
+
+# Custom port + interval
+python3 skills/graphify/scripts/graphify_serve.py --port 9000 --interval 60
+
+# Build once and exit (no server)
+python3 skills/graphify/scripts/graphify_serve.py --once
+```
+
+Endpoints:
+- `/graph.html` — interactive visualization (click, search, filter by community)
+- `/GRAPH_REPORT.md` — plain-language report (god nodes, surprising connections, suggested questions)
+- `/graph.json` — raw graph data
+- `/health` — JSON status with last build time and node counts
+
+The server runs as a background process and can be stopped with `pkill -f graphify_serve` or `kill <pid>`. To run on system boot, add a systemd unit or cron entry — the script is idempotent.
+
 ## Tool detection
 
 graphify's --platform flag detects which AI assistant you use. For opencode-global-config:

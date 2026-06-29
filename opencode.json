@@ -1,35 +1,27 @@
 {
   "$schema": "https://opencode.ai/config.json",
-
   "autoupdate": false,
-
   "instructions": [
     "~/.config/opencode/AGENTS.md",
     "~/.config/opencode/CLAUDE.md"
   ],
-
   "plugin": [
-    "~/.config/opencode/plugins/safety-guard.js"
+    "~/.config/opencode/plugins/safety-guard.js",
+    ".opencode/plugins/graphify.js"
   ],
-
   "permission": {
     "read": "allow",
     "list": "allow",
     "glob": "allow",
     "grep": "allow",
-
     "edit": "ask",
-
     "bash": "ask",
-
     "webfetch": "ask",
     "websearch": "ask",
-
     "skill": {
       "*": "allow"
     }
   },
-
   "watcher": {
     "ignore": [
       ".git/**",

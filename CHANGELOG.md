@@ -2,6 +2,85 @@
 
 Todos los cambios notables de este proyecto se documentarán en este archivo.
 
+## [1.17.0] - 2026-06-28
+
+### Graphify: auto-rebuild + interactive HTML viewer + CI fix
+
+Tres problemas resueltos en un solo release:
+
+1. **graphify v8 CLI no genera `graph.html`** — el subcomando no existe en v8;
+   el HTML se genera via el plugin de opencode o via el flow del skill instalado.
+   Para uso standalone, expongo la API `to_html()` de graphify via dos scripts
+   stdlib-only en `skills/graphify/scripts/`.
+
+2. **El usuario quería poder ver el visualizador en cualquier momento** —
+   añado `graphify_serve.py`, un HTTP server que sirve `graphify-out/` y
+   reconstruye el grafo periódicamente (default 5 min). Endpoints: `/graph.html`,
+   `/GRAPH_REPORT.md`, `/graph.json`, `/health`. Auto-rebuild en background thread.
+
+3. **El CI falló desde v1.16.0** — el rename `oc` → `occo` (v1.11.0) no se reflejó
+   en `.github/workflows/validate.yml`. El step `shellcheck — oc` buscaba un
+   archivo inexistente: `oc: openBinaryFile: does not exist`. Arreglado en
+   `fb56bf6` (commit previo, en este release).
+
+#### Added
+
+- **`skills/graphify/scripts/graphify_html.py`** (~125 líneas, stdlib-only) —
+  wrapper alrededor de `graphify.export.to_html()`. Lee `graph.json`,
+  construye `nx.Graph` + `communities` + `community_labels`, genera
+  `graph.html` con el visualizador interactivo vis.js. Maneja los 3 failure
+  modes: graph.json missing, malformed, graph too large. Exit codes
+  semánticos (1/2/3/4) para integración con install.sh.
+
+- **`skills/graphify/scripts/graphify_serve.py`** (~210 líneas, stdlib-only) —
+  HTTP server con auto-rebuild. Background thread que corre
+  `graphify update` + `graphify_html.py` cada N segundos. Thread-safe state
+  compartido con HTTP handler. Endpoints: `/graph.html`, `/GRAPH_REPORT.md`,
+  `/graph.json`, `/health` (JSON con last_build, next_build, nodes, edges).
+  Graceful shutdown via SIGTERM/SIGINT. Timeouts: 180s para graphify update,
+  30s para graphify_html.
+
+- **`install.sh --with-graphify`** ahora genera `graph.html` automáticamente
+  después de `graphify . --no-viz`. Si `scripts/graphify_html.py` no existe
+  o falla, warn pero no aborta el install.
+
+- **`skills/graphify/SKILL.md`** documenta el nuevo flow: `python3 scripts/graphify_serve.py`
+  para servidor siempre activo, `--once` para build único, endpoints,
+  cómo parar el proceso.
+
+#### Fixed
+
+- **CI fix** (`fb56bf6`, en este release): `shellcheck — oc` → `shellcheck — occo`.
+  El CI volvió a verde en run #68. Runs #65, #66, #67 (v1.16.0 y docs) estaban
+  rotos por el mismo error — el historial los registra como failed pero
+  el estado actual es verde.
+
+#### Validated
+
+- `bash validate.sh`: 23 skills, 14 commands, 9 profiles, 11 agents, v1.17.0
+- `bash tests/run.sh`: 14/14 pass
+- `python3 skills/graphify/scripts/graphify_html.py`: 34KB HTML, 35 nodes, 37 edges, 6 communities
+- `python3 skills/graphify/scripts/graphify_serve.py --once`: rebuild completed in 1s (incremental)
+- HTTP server (PID 191973, port 8765): serving 3 files (graph.html, GRAPH_REPORT.md, graph.json)
+- GitHub Actions run #68: success
+
+#### Cómo usar
+
+```bash
+# Una vez: rebuild + ver
+python3 skills/graphify/scripts/graphify_html.py
+xdg-open graphify-out/graph.html   # o tu browser
+
+# Continuo: server con auto-rebuild cada 5 min
+python3 skills/graphify/scripts/graphify_serve.py
+# Abre http://localhost:8765/graph.html en el browser
+
+# Custom: interval 60s, port 9000
+python3 skills/graphify/scripts/graphify_serve.py --port 9000 --interval 60
+```
+
+---
+
 ## [1.16.0] - 2026-06-28
 
 ### anthropics/skills cherry-pick Fase 4: pptx (skill nueva) + frontend-design (integrado)

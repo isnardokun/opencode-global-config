@@ -34,7 +34,7 @@ Inspired by [VILA-Lab/Dive-into-Claude-Code](https://github.com/VILA-Lab/Dive-in
 
 ## Features
 
-**v1.16.0 + pptx cherry-pick (python-pptx) + frontend-design philosophy integrated into design-md**
+**v1.17.0 + graphify auto-rebuild (graph.html generator + HTTP server with watch) + CI fix**
 
 - **11 specialized agents** — no hardcoded model; use whichever model you select in OpenCode's UI
 - **14 official slash commands** — `/analyze`, `/review`, `/secure`, `/feature`, `/bug-hunt`, `/docs`, `/devops`, `/oncall`, `/office-hours`, `/investigate`, `/plan-eng-review`, `/qa-web`, `/web-verify`, `/setup-deploy` — usable directly in OpenCode's TUI
