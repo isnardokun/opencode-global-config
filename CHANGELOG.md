@@ -2,6 +2,39 @@
 
 Todos los cambios notables de este proyecto se documentarán en este archivo.
 
+## [1.18.0] - 2026-06-29
+
+### Cherry-pick: codebase-memory-mcp (orientación + install flag)
+
+Cherry-pick selectivo (estándar, no profundo) del MCP server externo
+`DeusData/codebase-memory-mcp`:
+
+- **Skill nueva** `skills/codebase-memory-mcp/SKILL.md` (~140 líneas). Orientation
+  document: qué es, cuándo preferirlo sobre graphify, los 14 MCP tools,
+  instalación, anti-patterns. Sin código; sin binarios en el repo.
+- **install.sh** `--with-codebase-memory` flag opt-in (paralelo a
+  `--with-graphify` y `--with-playwright`). Detecta plataforma via `uname`,
+  descarga el static binary desde GitHub releases, ejecuta su `install.sh`
+  interno (que autoconfigura OpenCode), y verifica que el MCP server aparezca
+  en `opencode.json`.
+- **agents/manifest.json** entry nuevo declarando la skill y su upstream.
+- **validate.sh** skill_count bump 23 → 24.
+- **VERSION** 1.17.0 → 1.18.0.
+
+**Lo que NO hace este cherry-pick (decisión explícita):**
+
+- No descarga el binario en el repo ni lo vendorea. Zero deps base sigue vigente.
+- No integra `codebase-memory-mcp` con graphify (no hay hook compartido, no hay
+  skill "use A para X, B para Y"). La skill documenta la elección, no la fuerza.
+- No modifica `uninstall.sh` ni `tests/`. La desinstalación del MCP server se
+  hace con su propio comando: `codebase-memory-mcp uninstall`.
+- No escribe ADR formal en `docs/DECISIONS.md`. Es cherry-pick estándar, no
+  profundo.
+
+**Tradeoff documentado en la skill:** graphify (docs/Markdown/JSON+HTML) y
+codebase-memory-mcp (call graphs/SQLite/Hybrid LSP) son complementarios. La
+tabla "cuándo usar cada uno" está en la skill, no en código.
+
 ## [1.17.0] - 2026-06-28
 
 ### Graphify: auto-rebuild + interactive HTML viewer + CI fix

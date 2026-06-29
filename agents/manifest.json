@@ -338,6 +338,19 @@
         "cherry_pick": true,
         "adapted": true
       }
+    },
+    {
+      "id": "codebase-memory-mcp",
+      "path": "skills/codebase-memory-mcp/",
+      "description": "Structural code analysis via MCP — 158 languages (tree-sitter), Hybrid LSP type resolution for the top 11, persistent SQLite knowledge graph, 14 MCP tools (search_graph, trace_path, get_architecture, query_graph, dead-code, ADR). Complements graphify with function-level call chains, dead-code detection, and git diff impact mapping. Use when the user wants to trace call paths, find unused functions, get a codebase architecture summary, or run Cypher-like graph queries. Not a substitute for graphify (which is document-level and Markdown-friendly); pick per task.",
+      "source": {
+        "upstream": "DeusData/codebase-memory-mcp",
+        "license": "MIT",
+        "upstream_path": "README.md",
+        "cherry_pick": false,
+        "adapted": false,
+        "orientation_only": true
+      }
     }
   ],
   "workflows": [

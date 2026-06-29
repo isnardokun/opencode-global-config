@@ -7,13 +7,15 @@
 DRY_RUN=0
 WITH_PLAYWRIGHT=0
 WITH_GRAPHIFY=0
+WITH_CODEBASE_MEMORY=0
 for _arg in "$@"; do
     case "$_arg" in
         --dry-run) DRY_RUN=1 ;;
         --with-playwright) WITH_PLAYWRIGHT=1 ;;
         --with-graphify) WITH_GRAPHIFY=1 ;;
+        --with-codebase-memory) WITH_CODEBASE_MEMORY=1 ;;
         --help|-h)
-            echo "Usage: bash install.sh [--dry-run] [--with-playwright] [--with-graphify]"
+            echo "Usage: bash install.sh [--dry-run] [--with-playwright] [--with-graphify] [--with-codebase-memory]"
             echo ""
             echo "Options:"
             echo "  --dry-run             Print the plan without modifying anything"
@@ -23,6 +25,10 @@ for _arg in "$@"; do
             echo "  --with-graphify       After install, offer to install graphifyy via uv tool"
             echo "                        (~50 MB). Optional and non-default. Enables knowledge"
             echo "                        graph building and AGENTS.md query-first behavior."
+            echo "  --with-codebase-memory After install, download codebase-memory-mcp binary from"
+            echo "                        GitHub releases (~30 MB) and register it as an MCP"
+            echo "                        server for opencode. Complements graphify with"
+            echo "                        type-aware call-graph queries across 158 languages."
             exit 0
             ;;
     esac
@@ -150,7 +156,7 @@ fi
 
 echo -e "${BLUE}"
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║     OpenCode Global Config - Instalador v1.17.0            ║"
+echo "║     OpenCode Global Config - Instalador v1.18.0            ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
@@ -164,6 +170,19 @@ if [ "$DRY_RUN" -eq 1 ]; then
     echo "  - Instalar config en $CONFIG_DIR"
     echo "  - Instalar comando ${BIN_NAME} en ${BIN_DIR}/${BIN_NAME}"
     echo "  - Agregar $BIN_DIR al PATH si falta"
+    if [ "$WITH_PLAYWRIGHT" -eq 1 ]; then
+        echo "  - [--with-playwright] Ofrecer instalar Playwright + Chromium"
+    fi
+    if [ "$WITH_GRAPHIFY" -eq 1 ]; then
+        echo "  - [--with-graphify] Ofrecer instalar graphifyy via uv/pipx/pip"
+        echo "  - [--with-graphify] Registrar skill graphify en opencode"
+        echo "  - [--with-graphify] Generar knowledge graph de $CONFIG_DIR"
+    fi
+    if [ "$WITH_CODEBASE_MEMORY" -eq 1 ]; then
+        echo "  - [--with-codebase-memory] Descargar binary desde GitHub releases"
+        echo "  - [--with-codebase-memory] Ejecutar install.sh interno (auto-registra MCP)"
+        echo "  - [--with-codebase-memory] Verificar registro MCP en opencode.json"
+    fi
     echo ""
     success "Dry-run completado: ningún archivo fue modificado"
     exit 0
@@ -468,6 +487,71 @@ if [ "$WITH_GRAPHIFY" -eq 1 ]; then
             else
                 warn "Falló la generación del graph. Reintentá manualmente: cd ~/.config/opencode && graphify ."
             fi
+        fi
+    fi
+fi
+
+# 7c. Optional codebase-memory-mcp install (type-aware structural code analysis)
+if [ "$WITH_CODEBASE_MEMORY" -eq 1 ]; then
+    echo ""
+    info "Flag --with-codebase-memory detectado. Verificando instalación..."
+    if command -v codebase-memory-mcp >/dev/null 2>&1; then
+        success "codebase-memory-mcp ya está instalado: $(command -v codebase-memory-mcp)"
+    else
+        warn "codebase-memory-mcp no está instalado. Habilita análisis estructural de código (call graphs, dead code, type-aware) via MCP."
+        echo ""
+        echo "  Instalación (binary estático ~30 MB, zero deps):"
+        echo "    Descarga directa desde GitHub releases:"
+        echo "      OS=\$(uname -s | tr '[:upper:]' '[:lower:]')"
+        echo "      ARCH=\$(uname -m | sed 's/x86_64/amd64/')"
+        echo "      curl -fsSL \"https://github.com/DeusData/codebase-memory-mcp/releases/latest/download/codebase-memory-mcp-\${OS}-\${ARCH}.tar.gz\" | tar xz"
+        echo "      ./codebase-memory-mcp install"
+        echo ""
+        echo "    O vía el instalador one-liner:"
+        echo "      curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh | bash"
+        echo ""
+        if [ -t 0 ] && command -v curl >/dev/null 2>&1; then
+            printf "¿Descargar e instalar codebase-memory-mcp ahora? [y/N]: "
+            read -r _confirm
+            if [ "$_confirm" = "y" ] || [ "$_confirm" = "Y" ]; then
+                _cbm_os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+                _cbm_arch="$(uname -m | sed 's/x86_64/amd64/')"
+                _cbm_url="https://github.com/DeusData/codebase-memory-mcp/releases/latest/download/codebase-memory-mcp-${_cbm_os}-${_cbm_arch}.tar.gz"
+                info "Descargando desde $_cbm_url ..."
+                _cbm_tmp="$(mktemp -d)"
+                if curl -fsSL "$_cbm_url" | tar -xz -C "$_cbm_tmp" 2>&1 | tail -3; then
+                    info "Extrayendo y ejecutando install.sh interno..."
+                    if [ -f "$_cbm_tmp/install.sh" ]; then
+                        if bash "$_cbm_tmp/install.sh" 2>&1 | tail -5; then
+                            success "codebase-memory-mcp instalado"
+                        else
+                            warn "Falló el install.sh interno. Reintentá manualmente."
+                        fi
+                    else
+                        warn "No se encontró install.sh en el tarball. Reintentá manualmente."
+                    fi
+                else
+                    warn "Falló la descarga desde $_cbm_url"
+                    warn "Verifica tu conexión o arquitectura (${_cbm_os}-${_cbm_arch})."
+                fi
+                rm -rf "$_cbm_tmp"
+            else
+                info "Saltando instalación. Podés instalarlo después con el one-liner de arriba."
+            fi
+        else
+            info "Sin curl o sin TTY interactivo. Saltando instalación automática."
+        fi
+    fi
+
+    # Verify the MCP server is registered in opencode.json (auto-register happens
+    # inside the binary's install.sh). We only warn if opencode.json exists and
+    # does not mention codebase-memory-mcp — user may have disabled it on purpose.
+    if [ -f "$CONFIG_DIR/opencode.json" ] && command -v codebase-memory-mcp >/dev/null 2>&1; then
+        if grep -qF 'codebase-memory-mcp' "$CONFIG_DIR/opencode.json" 2>/dev/null; then
+            success "MCP server 'codebase-memory-mcp' registrado en opencode.json"
+        else
+            warn "MCP server no aparece en opencode.json. El install.sh interno debería"
+            warn "haberlo agregado. Reintentá: codebase-memory-mcp install (re-ejecuta)"
         fi
     fi
 fi
