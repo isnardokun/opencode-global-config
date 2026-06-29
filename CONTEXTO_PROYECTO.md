@@ -12,6 +12,8 @@ Esta bitácora documenta las decisiones tácticas, riesgos residuales, y notas d
 
 | # | Sesión | Versión | Resumen |
 |---|--------|---------|---------|
+| 19 | 2026-06-28 (pptx+frontend-design) | v1.16.0 | Cherry-pick F4: `pptx` (skill nueva, python-pptx) + `frontend-design` integrado a `design-md` (sin skill nueva). 23 skills total. |
+| 18 | 2026-06-28 (consolidación docs) | — | Sin bump de versión. DECISIONS.md lleno con 20+ decisiones, PROJECT_CONTEXT.md actualizado a v1.15.0, ARCHITECTURE.md reescrito, INDEX.md nuevo, docs/CHANGELOG.md duplicado eliminado. |
 | 17 | 2026-06-28 (consolidación) | v1.15.0 | Docs consolidation: DECISIONS.md lleno, PROJECT_CONTEXT.md actualizado, INDEX.md nuevo, docs/CHANGELOG.md duplicado eliminado. |
 | 16 | 2026-06-28 (graphify) | v1.15.0 | Cherry-pick de `safishamsi/graphify` con `install.sh --with-graphify` opt-in flag. SKILL.md lightweight (190 líneas) + registro en opencode + auto-graphify. |
 | 15 | 2026-06-28 (docx+xlsx) | v1.14.0 | Cherry-pick de `anthropics/skills` F3: `docx` (python-docx) y `xlsx` (openpyxl), con runtime-detection. Estrategia lightweight — scripts portados como inline snippets. |
@@ -26,12 +28,12 @@ Esta bitácora documenta las decisiones tácticas, riesgos residuales, y notas d
 
 ## Estado del proyecto al cierre de la sesión actual
 
-- **22 skills** instaladas, 11 originales + 11 cherry-picked
+- **23 skills** instaladas, 11 originales + 12 cherry-picked
 - **14 slash commands**, **11 agents**, **4 rubrics**, **9 profiles deny-first**
 - **14/14 smoke tests** verdes
 - **`bash validate.sh`** pasa (conteos, sintaxis, frontmatter, version match)
 - **`HEAD == origin/main`** sincronizado
-- **3 fuentes externas** integradas: garrytan/gstack, anthropics/skills, safishamsi/graphify
+- **3 fuentes externas** integradas: garrytan/gstack (6), anthropics/skills (5+1 integrada), safishamsi/graphify (1)
 - **2 flags opt-in** en install.sh: `--with-playwright` (~170 MB), `--with-graphify` (~50 MB)
 - **Base install sigue zero-deps**  
 **Directorio de trabajo en sesiones:** `/tmp/opencode-global-config` (clonar si no existe)
