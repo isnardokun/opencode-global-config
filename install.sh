@@ -111,7 +111,8 @@ print_requirements() {
     command_status shellcheck "lint shell en desarrollo/CI" || true
     command_status shfmt "formateo shell con make format" || true
     command_status playwright "browser automation para /qa-web y /web-verify (full mode)" || true
-    command_status lynx "text rendering fallback para /web-verify (tier 2)" || true
+    command_status lynx "text rendering para /web-verify (tier 2)" || true
+    command_status html2text "fallback text rendering para /web-verify (tier 2, Python)" || true
 
     if [ "$missing_required" -gt 0 ]; then
         echo ""

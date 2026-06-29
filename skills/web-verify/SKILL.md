@@ -23,6 +23,7 @@ Run this once at the start of a verification session:
 echo "TOOL_CURL=$(command -v curl >/dev/null 2>&1 && echo yes || echo no)"
 echo "TOOL_WGET=$(command -v wget >/dev/null 2>&1 && echo yes || echo no)"
 echo "TOOL_LYNX=$(command -v lynx >/dev/null 2>&1 && echo yes || echo no)"
+echo "TOOL_HTML2TEXT=$(command -v html2text >/dev/null 2>&1 && echo yes || echo no)"
 echo "TOOL_PLAYWRIGHT=$(command -v playwright >/dev/null 2>&1 && echo yes || echo no)"
 echo "TOOL_PW_CLI=$(npx --no-install playwright --version 2>/dev/null | head -1)"
 ```
@@ -32,9 +33,11 @@ Tier the verification by what is available:
 | Tools | Tier | What you can do |
 |-------|------|-----------------|
 | curl + wget | 1 (HTTP only) | Status, headers, HTML body, broken links |
-| + lynx | 2 (Text rendering) | Above + text-only render, link traversal |
+| + lynx OR html2text | 2 (Text rendering) | Above + text-only render, link extraction |
 | + playwright | 3 (Browser) | Above + click, fill, screenshot, console, accessibility tree |
 | All four | 4 (Full QA) | Above + multi-step interaction, network capture, responsive viewport |
+
+Note on tier 2: `lynx` is the canonical tool (~2 MB apt package). If `lynx` is not available, `html2text` is a drop-in fallback (Python-based, often preinstalled via pip in user space; ~0 MB if already present). Both produce text-rendered output suitable for verifying copy, structure, and link lists.
 
 If nothing is available, install instructions: see "Optional install" below.
 
@@ -93,11 +96,27 @@ lynx -listonly -dump URL
 lynx -dump URL > /tmp/page.txt
 ```
 
-Use this when the agent needs to verify that:
+### Tier 2 fallback — html2text (if lynx is not installed)
+
+`html2text` is a Python-based HTML-to-text converter. It is not a full text browser (no link traversal, no JavaScript), but it produces clean readable text from any HTML page. Often preinstalled via pip in user space.
+
+```bash
+# Convert HTML to plain text (curl pipe)
+curl -sL URL | html2text
+
+# With options for cleaner output
+curl -sL URL | html2text --ignore-links --no-wrap-links
+
+# Save to file for diff
+curl -sL URL | html2text > /tmp/page.txt
+```
+
+Use `lynx` when you need link extraction (`lynx -listonly`); use `html2text` when you just need text rendering. Both qualify as tier 2.
+
+Use this tier when the agent needs to verify that:
 
 - Copy renders correctly (no mojibake, no HTML entities leaking)
 - Headings form a logical document outline
-- All links are present and labeled
 - The page is not blank or shows a fallback
 
 ## Tier 3 — Browser automation (playwright)
