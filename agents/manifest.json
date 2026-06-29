@@ -141,9 +141,62 @@
       "description": "Goal-Driven Execution — verificar antes de implementar"
     },
     {
+      "id": "ai-coding-rules",
+      "path": "skills/ai-coding-rules/",
+      "description": "AI coding behavior guidelines"
+    },
+    {
+      "id": "project-map",
+      "path": "skills/project-map/",
+      "description": "Análisis de estructura de proyecto"
+    },
+    {
+      "id": "safe-implementation",
+      "path": "skills/safe-implementation/",
+      "description": "Cambios mínimos, verificables y reversibles"
+    },
+    {
+      "id": "test-first",
+      "path": "skills/test-first/",
+      "description": "Goal-Driven Execution — verificar antes de implementar"
+    },
+    {
       "id": "precommit-review",
       "path": "skills/precommit-review/",
       "description": "Revisión de diff antes de commit"
+    },
+    {
+      "id": "memory-retrieval",
+      "path": "skills/memory-retrieval/",
+      "description": "3-layer progressive disclosure (search/timeline/get)"
+    },
+    {
+      "id": "docs-writer",
+      "path": "skills/docs-writer/",
+      "description": "Documentación técnica"
+    },
+    {
+      "id": "design-md",
+      "path": "skills/design-md/",
+      "description": "Lint, diff, and suggest DESIGN.md files for visual consistency. As of v1.16.0, also includes 'Design Philosophy' section (anti-AI-slop principles) cherry-picked from anthropics/skills/frontend-design: ground in subject, typography carries personality, structure is information, avoid the 3 AI-defaults (cream+serif+terracotta / near-black+acid-green / broadsheet-zero-radius).",
+      "source": {
+        "upstream": "anthropics/skills",
+        "upstream_path": "skills/frontend-design/SKILL.md",
+        "cherry_pick": true,
+        "adapted": true,
+        "integrated_into": "design-md"
+      }
+    },
+    {
+      "id": "plan-eng-review",
+      "path": "skills/plan-eng-review/",
+      "description": "Engineering-manager mode plan review with forcing questions on data flow, edge cases, test matrix and security. Adapted from garrytan/gstack.",
+      "source": {
+        "upstream": "garrytan/gstack",
+        "license": "MIT",
+        "upstream_path": "plan-eng-review/SKILL.md",
+        "adapted": true
+      }
     },
     {
       "id": "memory-retrieval",
@@ -271,6 +324,17 @@
       "source": {
         "upstream": "safishamsi/graphify",
         "upstream_path": "skills/graphify/skill.md",
+        "cherry_pick": true,
+        "adapted": true
+      }
+    },
+    {
+      "id": "pptx",
+      "path": "skills/pptx/",
+      "description": "Create, read, edit, and analyze PowerPoint presentations (.pptx files). Triggers: any task involving a .pptx file as input or output (create slide decks, read or extract text, edit existing presentations, work with templates, layouts, speaker notes). Use whenever the user mentions 'deck', 'slides', 'presentation', or references a .pptx filename. Adapted from anthropics/skills for opencode-global-config (uses python-pptx, runtime-detection with graceful degradation). Includes the original 'Design Ideas' section verbatim (color palettes, typography, layout) because the methodology is genuinely useful guidance.",
+      "source": {
+        "upstream": "anthropics/skills",
+        "upstream_path": "skills/pptx/SKILL.md",
         "cherry_pick": true,
         "adapted": true
       }

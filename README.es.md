@@ -47,12 +47,12 @@ Inspirado en análisis de Claude Code (VILA-Lab/Dive-into-Claude-Code) y directr
 
 Este repositorio contiene una configuración avanzada para [OpenCode CLI](https://opencode.ai) inspirada en Claude Code y proyectos de código abierto.
 
-### Características Principales (v1.15.0)
+### Características Principales (v1.16.0)
 
 - **11 agentes especializados** — sin modelo hardcodeado, usan el modelo que selecciones en OpenCode
 - **14 slash commands oficiales** — `/analyze`, `/review`, `/secure`, `/feature`, `/bug-hunt`, `/docs`, `/devops`, `/oncall`, `/office-hours`, `/investigate`, `/plan-eng-review`, `/qa-web`, `/web-verify`, `/setup-deploy`
 - **9 perfiles con enforcement por prompt** — reglas como `requireTests`, `checkpointBeforeChanges` se inyectan como instrucciones explícitas al LLM en cada llamada no interactiva de `occo`
-- **22 skills** para análisis, implementación, validación, memoria, documentación, debugging, alignment, comunicación, design.md, revisión de planes de ingeniería, framing de producto, investigación de causa raíz, QA web sistemático, verificación web runtime-agnóstica, detección de plataforma de deploy, procesamiento de PDF, creación de skills, documentos Word, hojas de cálculo Excel y construcción de knowledge graphs (11 adaptadas de upstream: 6 de garrytan/gstack + 4 de anthropics/skills + 1 de safishamsi/graphify)
+- **23 skills** para análisis, implementación, validación, memoria, documentación, debugging, alignment, comunicación, design.md (con filosofía anti-AI-slop), revisión de planes de ingeniería, framing de producto, investigación de causa raíz, QA web sistemático, verificación web runtime-agnóstica, detección de plataforma de deploy, procesamiento de PDF, creación de skills, documentos Word, hojas de cálculo Excel, construcción de knowledge graphs y presentaciones PowerPoint (12 adaptadas de upstream: 6 de garrytan/gstack + 5 de anthropics/skills + 1 de safishamsi/graphify)
 - **4 rubrics de revisión** para code review, security review, plan y gates de diseño
 - **1 plugin de seguridad** con regex hardening (whitespace-normalized matching)
 - **Sistema de Memory Bank** con 3-layer retrieval (search/timeline/get)

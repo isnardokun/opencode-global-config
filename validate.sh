@@ -79,7 +79,7 @@ done
 echo ""
 
 echo "Required skills:"
-for skill in project-map safe-implementation test-first precommit-review memory-retrieval docs-writer ai-coding-rules caveman diagnose grill-with-docs design-md plan-eng-review office-hours investigate qa-web web-verify setup-deploy pdf skill-creator docx xlsx graphify; do
+for skill in project-map safe-implementation test-first precommit-review memory-retrieval docs-writer ai-coding-rules caveman diagnose grill-with-docs design-md plan-eng-review office-hours investigate qa-web web-verify setup-deploy pdf skill-creator docx xlsx graphify pptx; do
     if [ -d "${ROOT}/skills/${skill}" ]; then
         pass "skills/${skill}/"
     else
@@ -286,7 +286,7 @@ agent_count=$(find "${ROOT}/agents" -maxdepth 1 -name '*.md' | wc -l | tr -d ' '
 skill_count=$(find "${ROOT}/skills" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
 if [ "$profile_count" = "9" ]; then pass "Profile count: 9"; else fail "Expected 9 profiles, found $profile_count"; fi
 if [ "$agent_count" = "11" ]; then pass "Agent count: 11"; else fail "Expected 11 agents, found $agent_count"; fi
-if [ "$skill_count" = "22" ]; then pass "Skill count: 22"; else fail "Expected 22 skills, found $skill_count"; fi
+if [ "$skill_count" = "23" ]; then pass "Skill count: 23"; else fail "Expected 23 skills, found $skill_count"; fi
 
 if grep -q -- '--remember \[-p proyecto\] \[-t tipo\]' "${ROOT}/occo" \
     && grep -q -- 'occo --remember -p' "${ROOT}/README.md" \

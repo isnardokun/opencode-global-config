@@ -2,6 +2,77 @@
 
 Todos los cambios notables de este proyecto se documentarán en este archivo.
 
+## [1.16.0] - 2026-06-28
+
+### anthropics/skills cherry-pick Fase 4: pptx (skill nueva) + frontend-design (integrado)
+
+Dos cherry-picks de `anthropics/skills` completados en este turno, con estrategias diferentes:
+
+#### `pptx` — skill nueva (estrategia lightweight como docx/xlsx)
+
+Adaptación completa desde `anthropics/skills/skills/pptx/SKILL.md` (9 KB originales + 12 KB `pptxgenjs.md` + 7 KB `editing.md` + 4 scripts). Frontmatter mínimo. Tool detection (python-pptx / markitdown / libreoffice / poppler) con 4 tiers.
+
+- **`skills/pptx/SKILL.md`** — manual de uso. Flujo principal: `python-pptx` (más portable que `pptxgenjs`/npm). Critical rules adaptadas. Visual QA tier 3-4 (libreoffice + poppler).
+- **Sección `Design Ideas` portada verbatim** — 10 paletas de colores (Midnight Executive, Forest & Moss, Coral Energy, Warm Terracotta, Ocean Gradient, Charcoal Minimal, Teal Trust, Berry & Cream, Sage Calm, Cherry Bold), 7 font pairings, lista de "Avoid (Common Mistakes)" que incluye "NEVER use accent lines under titles" (AI-tell).
+- **Sección `QA (Required)` portada** — assume there are problems, content QA + visual QA, verification loop.
+
+#### `frontend-design` — cherry-pick integrado a `design-md` (sin skill nueva)
+
+La original es un manifiesto de design philosophy (8 KB) con un "you are the design lead at a small studio" framing. En lugar de crear skill separada, **integro como sección "Design Philosophy"** en `skills/design-md/SKILL.md` (~3 KB agregadas).
+
+Contenido integrado:
+- **"Ground it in the subject"** — pin the subject, audience, single job before designing
+- **Design principles** — typography carries personality, structure is information, leverage motion deliberately, match complexity to vision
+- **Restraint and self-critique** — spend your boldness in one place, build to a quality floor
+- **The three AI-generated design defaults (avoid them as defaults)** — warm cream + serif + terracotta / near-black + acid-green / broadsheet-zero-radius
+- **Process: brainstorm, plan, critique, build, critique again** — work in two passes
+
+**Por qué integrada, no cherry-pick verbatim:** el agente que invoca `design-md` ya carga el skill; crear otro activaría el mismo agente a leer dos archivos. La combinación `design-md` (lint/diff/suggest) + design philosophy (anti-AI-slop) es más potente junta.
+
+### Lo que NO se portó
+
+- ❌ `pptxgenjs.md` (12 KB de API JS) — sustituido por `python-pptx`
+- ❌ `editing.md` (7 KB) — duplica lo que está en el SKILL.md principal
+- ❌ `scripts/{add_slide,clean,thumbnail,office/unpack}.py` — sustituido por snippets Python puros
+- ❌ `LICENSE.txt` original "Proprietary" — mismo rationale (methodology es cherry-pick legítimo, documentado en `## Provenance`)
+
+### Validación y conteos
+
+- **`validate.sh`** — `Required skills` extendida a 23; `Skill count` esperado 22 → 23.
+- **`install.sh`** — banner 1.15.0 → 1.16.0; mensaje "23 artefactos + opcional Playwright/Graphify".
+- **`VERSION`** — 1.15.0 → 1.16.0.
+- **`agents/manifest.json`** — `pptx` añadido con `source.upstream: anthropics/skills`; `design-md` actualizado con `source.upstream: anthropics/skills` + `integrated_into: design-md`.
+
+### Estado del cherry-pick anthropics/skills (4 fases)
+
+| Versión | Adoptado | Total |
+|---------|----------|-------|
+| v1.12.0 | `pdf` + `webapp-testing/scripts/with_server.py` (parcial) | 1.5 |
+| v1.13.0 | `skill-creator` | 1 |
+| v1.14.0 | `docx`, `xlsx` | 2 |
+| v1.16.0 | `pptx` + `frontend-design` (integrado) | 1.5 |
+| **Total** | | **6 skills/partials** |
+
+De 17 skills evaluadas, 6 adoptadas (5 completas + 1 integrada), 11 descartadas explícitamente.
+
+### Estado total de cherry-picks (3 fuentes)
+
+| Fuente | Skills |
+|--------|--------|
+| garrytan/gstack | 6 (plan-eng-review, office-hours, investigate, qa-web, web-verify, setup-deploy) |
+| anthropics/skills | 5 completas (pdf, skill-creator, docx, xlsx, pptx) + 1 integrada (frontend-design → design-md) + 1 parcial (webapp-testing → with_server.py) |
+| safishamsi/graphify | 1 (graphify) |
+| **Total adaptados** | **12 skills + 1 helper + 1 integración** |
+
+### Validado
+
+- `bash validate.sh`: 23 skills, 14 commands, 9 profiles, 11 agents, v1.16.0
+- `bash tests/run.sh`: 14/14 pass
+- `python-pptx`: no instalado en este host (runtime detection funciona; SKILL.md degrada gracefully)
+- `markitdown`: no instalado (tier 2 no disponible)
+
+---
+
 ## [1.15.0] - 2026-06-28
 
 ### safishamsi/graphify cherry-pick (lightweight SKILL + opt-in install + auto-graphify)
