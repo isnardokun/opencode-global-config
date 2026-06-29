@@ -263,6 +263,17 @@
         "cherry_pick": true,
         "adapted": true
       }
+    },
+    {
+      "id": "graphify",
+      "path": "skills/graphify/",
+      "description": "Map any folder of code, docs, papers, images, or videos into a navigable knowledge graph with an interactive HTML viewer, a queryable JSON, and a plain-language GRAPH_REPORT.md. Use when the user wants to understand a codebase, visualize architecture, find surprising connections, or explore relationships between files. Adapted from safishamsi/graphify for opencode-global-config.",
+      "source": {
+        "upstream": "safishamsi/graphify",
+        "upstream_path": "skills/graphify/skill.md",
+        "cherry_pick": true,
+        "adapted": true
+      }
     }
   ],
   "workflows": [

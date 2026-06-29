@@ -6,18 +6,23 @@
 
 DRY_RUN=0
 WITH_PLAYWRIGHT=0
+WITH_GRAPHIFY=0
 for _arg in "$@"; do
     case "$_arg" in
         --dry-run) DRY_RUN=1 ;;
         --with-playwright) WITH_PLAYWRIGHT=1 ;;
+        --with-graphify) WITH_GRAPHIFY=1 ;;
         --help|-h)
-            echo "Usage: bash install.sh [--dry-run] [--with-playwright]"
+            echo "Usage: bash install.sh [--dry-run] [--with-playwright] [--with-graphify]"
             echo ""
             echo "Options:"
             echo "  --dry-run             Print the plan without modifying anything"
             echo "  --with-playwright     After install, offer to install Playwright + Chromium"
             echo "                        (~170 MB). Optional and non-default. Enables full"
             echo "                        browser automation for /qa-web and /web-verify."
+            echo "  --with-graphify       After install, offer to install graphifyy via uv tool"
+            echo "                        (~50 MB). Optional and non-default. Enables knowledge"
+            echo "                        graph building and AGENTS.md query-first behavior."
             exit 0
             ;;
     esac
@@ -113,6 +118,8 @@ print_requirements() {
     command_status playwright "browser automation para /qa-web y /web-verify (full mode)" || true
     command_status lynx "text rendering para /web-verify (tier 2)" || true
     command_status html2text "fallback text rendering para /web-verify (tier 2, Python)" || true
+    command_status uv "graphify installer (uv tool install graphifyy)" || true
+    command_status graphify "knowledge graph builder para mapear el codebase" || true
 
     if [ "$missing_required" -gt 0 ]; then
         echo ""
@@ -143,7 +150,7 @@ fi
 
 echo -e "${BLUE}"
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║     OpenCode Global Config - Instalador v1.14.0            ║"
+echo "║     OpenCode Global Config - Instalador v1.15.0            ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
@@ -337,7 +344,7 @@ for _rubric in code-review security-review plan-review; do
 done
 
 if [ "$_ok" -eq 1 ]; then
-    success "Instalación verificada (21 artefactos + opcional Playwright)"
+    success "Instalación verificada (22 artefactos + opcional Playwright/Graphify)"
 else
     error "Instalación incompleta. Revisa los mensajes anteriores."
 fi
@@ -381,6 +388,75 @@ if [ "$WITH_PLAYWRIGHT" -eq 1 ]; then
             fi
         else
             info "Sin npm o sin TTY interactivo. Saltando instalación automática. Reejecutá con --with-playwright cuando tengas npm."
+        fi
+    fi
+fi
+
+# 7b. Optional graphify install (knowledge graph builder)
+if [ "$WITH_GRAPHIFY" -eq 1 ]; then
+    echo ""
+    info "Flag --with-graphify detectado. Verificando instalación..."
+    if command -v graphify >/dev/null 2>&1; then
+        success "graphify ya está instalado: $(command -v graphify)"
+    else
+        warn "graphify no está instalado. Habilita knowledge graph building y AGENTS.md query-first."
+        echo ""
+        echo "  Instalación recomendada (requiere uv o pipx):"
+        echo "    uv tool install graphifyy            # ~50 MB"
+        echo "    # o: pipx install graphifyy"
+        echo "    # o: pip install --user graphifyy"
+        echo ""
+        echo "  Sin graphify, el resto del install funciona normalmente."
+        echo ""
+        if [ -t 0 ]; then
+            printf "¿Instalar graphify ahora? [y/N]: "
+            read -r _confirm
+            if [ "$_confirm" = "y" ] || [ "$_confirm" = "Y" ]; then
+                if command -v uv >/dev/null 2>&1; then
+                    info "Instalando graphifyy con uv..."
+                    if uv tool install graphifyy 2>&1 | tail -5; then
+                        success "graphifyy instalado vía uv"
+                    else
+                        warn "Falló uv tool install. Probá: pipx install graphifyy"
+                    fi
+                elif command -v pipx >/dev/null 2>&1; then
+                    info "Instalando graphifyy con pipx..."
+                    if pipx install graphifyy 2>&1 | tail -5; then
+                        success "graphifyy instalado vía pipx"
+                    else
+                        warn "Falló pipx install. Probá: pip install --user graphifyy"
+                    fi
+                else
+                    warn "Sin uv ni pipx. Instalá manualmente: pip install --user graphifyy"
+                fi
+            else
+                info "Saltando instalación de graphify. Podés instalarlo después con: uv tool install graphifyy"
+            fi
+        else
+            info "Sin TTY interactivo. Saltando instalación automática. Reejecutá con --with-graphify cuando tengas TTY."
+        fi
+    fi
+
+    # Register the opencode skill + AGENTS.md hook (only if graphify is now available)
+    if command -v graphify >/dev/null 2>&1; then
+        info "Registrando skill graphify en opencode..."
+        if graphify opencode install 2>&1 | tail -3; then
+            success "Skill graphify registrado en opencode"
+        else
+            warn "Falló el registro del skill. Reintentá manualmente: graphify opencode install"
+        fi
+
+        # Auto-graphify the installed config (snapshot of the current state)
+        if [ -d "$CONFIG_DIR" ]; then
+            info "Generando knowledge graph de la configuración instalada (~/.config/opencode)..."
+            if (cd "$CONFIG_DIR" && graphify . --no-viz 2>&1 | tail -3); then
+                success "Graph generado en $CONFIG_DIR/graphify-out/"
+                if [ -f "$CONFIG_DIR/graphify-out/GRAPH_REPORT.md" ]; then
+                    info "Reporte: $CONFIG_DIR/graphify-out/GRAPH_REPORT.md"
+                fi
+            else
+                warn "Falló la generación del graph. Reintentá manualmente: cd ~/.config/opencode && graphify ."
+            fi
         fi
     fi
 fi

@@ -2,6 +2,54 @@
 
 Todos los cambios notables de este proyecto se documentarán en este archivo.
 
+## [1.15.0] - 2026-06-28
+
+### safishamsi/graphify cherry-pick (lightweight SKILL + opt-in install + auto-graphify)
+
+Cherry-pick selectivo de `https://github.com/safishamsi/graphify` (v8, 1204 líneas originales). A diferencia de fases anteriores, esto **integra el flujo completo de graphify** (no solo cherry-pick de metodología) porque su output (HTML navegable, JSON queryable, Mermaid call-flow) complementa directamente el memory system de `occo`.
+
+- **`skills/graphify/SKILL.md`** — manual de uso lightweight (~190 líneas, vs 1204 originales). Frontmatter mínimo (solo `name` + `description`). Explica: cuándo usar, instalación, integración con `occo`, anti-patrones, honestidad, privacidad. El original es 1204 líneas de ejecución detallada; este es orientación. El skill completo de graphify se instala cuando el usuario corre `graphify opencode install`.
+
+### `install.sh --with-graphify` (opt-in, nivel 3)
+
+Nuevo flag que combina instalación + registro + auto-graphify en una sola operación:
+
+1. **Detección** — chequea `command -v uv` y `command -v graphify`. Si graphify está, skip instalación.
+2. **Instalación interactiva** — `uv tool install graphifyy` (~50 MB) si uv disponible, fallback a `pipx install graphifyy`, fallback a `pip install --user graphifyy`. Prompt interactivo solo con TTY.
+3. **Registro del skill** — `graphify opencode install` (escribe sección en `~/.config/opencode/AGENTS.md` con query-first behavior).
+4. **Auto-graphify de la config instalada** — `cd ~/.config/opencode && graphify . --no-viz` produce `graphify-out/{GRAPH_REPORT.md,graph.json,graph.html}` (HTML excluido en auto-build para evitar 50MB; user lo genera con `graphify .` después si quiere).
+
+- **`install.sh` también actualizado** — lista de opcionales extendida con `uv` y `graphify`. `--help` documenta los 3 flags disponibles.
+- **`validate.sh`** — `Required skills` extendida a 22; `Skill count` esperado 21 → 22.
+- **`agents/manifest.json`** — `graphify` añadido con `source.upstream: safishamsi/graphify`.
+
+### Estado del cherry-pick safishamsi/graphify
+
+- **Adoptado**: SKILL.md (orientación) + integracion completa en `install.sh --with-graphify`.
+- **No portado verbatim**: 1204 líneas originales (diseñadas para Claude Code con subagents paralelos, AST local con tree-sitter, MCP server, Neo4j push, etc.) — fuera de scope de un cherry-pick lightweight.
+- **Reemplazo de funcionalidad**: el usuario que quiera el skill completo corre `graphify opencode install` post-cherry-pick. El SKILL.md liviano apunta a esa URL.
+
+### Estado de los cherry-picks de la sesión (resumen)
+
+| Fuente | Skills adoptadas | Versión |
+|---|---|---|
+| garrytan/gstack | 6 (plan-eng-review, office-hours, investigate, qa-web, web-verify, setup-deploy) | v1.11.0 |
+| anthropics/skills | 4 (pdf, skill-creator, docx, xlsx) | v1.12.0 – v1.14.0 |
+| safishamsi/graphify | 1 (graphify) | v1.15.0 |
+| **Total** | **11 skills adaptadas** + 1 helper (`with_server.py`) | v1.11.0 – v1.15.0 |
+
+Skills originales: 11 (ai-coding-rules, caveman, design-md, diagnose, docs-writer, grill-with-docs, memory-retrieval, precommit-review, project-map, safe-implementation, test-first).
+
+### Validado
+
+- `bash validate.sh`: 22 skills, 14 commands, 9 profiles, 11 agents, v1.15.0
+- `bash tests/run.sh`: 14/14 pass
+- `bash install.sh --help`: lista los 3 flags (--dry-run, --with-playwright, --with-graphify)
+- `bash install.sh --dry-run --with-graphify`: muestra `uv` y `graphify` en opcionales
+- `command -v graphify` en este host: no instalado (correcto, base install es zero-deps)
+
+---
+
 ## [1.14.0] - 2026-06-28
 
 ### anthropics/skills cherry-pick Fase 3: docx + xlsx (adapted, runtime-detection)
