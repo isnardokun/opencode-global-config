@@ -388,4 +388,37 @@ grep -q 'install -y' "$CBM_INSTALL_LOG" \
     || fail "install --with-codebase-memory must call 'install -y' on the binary (the v1.18.0 regression guard)"
 pass "install --with-codebase-memory registers MCP server in opencode.json (E2E)"
 
+# --- v1.21.0 smoke coverage for previously untested subcommands ---
+
+# --wizard: should print the banner and exit non-zero or block on prompts.
+# We assert only the deterministic part: the wizard banner is printed.
+# (Interactive loops are not testable; we trust the gate-keeping if the
+# banner appears.)
+result="$(run_oc --wizard </dev/null 2>&1 || true)"
+[[ "$result" == *"OpenCode Wizard"* ]] || fail "occ --wizard should print the wizard banner"
+pass "occ --wizard prints the wizard banner"
+
+# --budget: prints session turn counter (may also create observation as
+# a side effect of occ's own track_turn; we assert on counter presence
+# because that's the user-visible behavior).
+result="$(run_oc --budget 2>&1 || true)"
+[[ "$result" == *"Session turns"* ]] || fail "occ --budget should print session turns (got: ${result:0:200})"
+pass "occ --budget prints session turn count"
+
+# --status: lists status, profile, hooks, last observation. Output may
+# also contain an "Observation created" line as a side effect; we only
+# assert the deterministic banner + section headers.
+result="$(run_oc --status 2>&1 || true)"
+[[ "$result" == *"OpenCode Status"* ]] || fail "occ --status should print status banner"
+[[ "$result" == *"Active profile"* ]] || fail "occ --status should print active profile"
+[[ "$result" == *"Hooks"* ]] || fail "occ --status should print hooks state"
+pass "occ --status prints status, profile and hooks"
+
+# --profile <name>: switches active profile, persists to .current_profile,
+# rejects unknown names. Profiles are pre-populated by tests/run.sh setup.
+run_oc --profile devops >/dev/null 2>&1 || fail "occ --profile devops should succeed (devops profile exists)"
+[[ "$(cat "$TMPDIR/home/.config/opencode/.current_profile" 2>/dev/null)" == "devops" ]] || fail "active profile should be persisted to .current_profile"
+if run_oc --profile does-not-exist >/dev/null 2>&1; then fail "invalid profile should fail"; fi
+pass "occ --profile switches and persists, rejects invalid"
+
 printf 'All tests passed\n'
