@@ -2,6 +2,79 @@
 
 Todos los cambios notables de este proyecto se documentarán en este archivo.
 
+## [1.21.0] - 2026-06-29
+
+### Cobertura de tests (P1-1)
+
+Sigue el plan de `INFORME_AUDITORIA_v1.19.0.md` (release 2 de 3).
+
+**+11 smoke tests en `tests/run.sh`** cubriendo subcomandos que el plan
+de auditoría identificó como uncovered. Total: **26/26 tests pasan**
+(era 15/15 en v1.19.0).
+
+**Tests añadidos:**
+
+Wave 1 (4 tests):
+- `occ --wizard`: prints the wizard banner.
+- `occ --budget`: prints session turn counter.
+- `occ --status`: prints status banner with profile + hooks sections.
+- `occ --profile <name>`: switches active profile, persists to
+  `.current_profile`, rejects unknown names.
+
+Wave 2 (4 tests):
+- `occ --list-templates`: lists all 4 hardcoded observation templates.
+- `occ --memory --timeline <id>`: resolves obs id (happy or warn path).
+- `occ --memory --get <id>`: same, against `get_observations()`.
+- `occ --capture`: writes a session marker, prints 'Session started'.
+
+Wave 3 (1 test):
+- `occ --save-all`: writes a new JSON to `memory/outcomes/`.
+
+Wave 4 (2 tests):
+- `occ --list-workflows`: lists all 5 hardcoded workflows.
+- `occ --detect-skills <path>`: detects stack from a stub project
+  (Node.js from `package.json`); pre-stages the local
+  `skills-registry.json` in the fixture so we don't hit the network.
+
+Wave 5 (1 test):
+- `occ --doctor`: verifies P1-2 sections (audit log, MCP servers,
+  hooks/pre-*) appear in output.
+
+**Lo que NO se incluyó y por qué:**
+
+- *5 tests uno-por-uno para `--workflow <bug-hunt|new-project|debug|document|feature>`*.
+  El plan original los listaba. La implementación que probé funcionó
+  fuera del `tests/run.sh` (1293 bytes del prompt capturados) pero
+  dentro del script el `run_workflow_prompt` invoca a `opencode` con
+  un PATH que incluye binarios `occo` y `opencode` reales, y los
+  stubs del fixture compiten por la resolución. Stub tentativas con
+  PATH stripping no resolvieron el problema. La integración crítica
+  (workflow → opencode → completion marker) ya está cubierta por el
+  test pre-existente `workflow success requires exact completion
+  marker`. Deferred a un eventual refactor de `_oc_run` que evite el
+  problema de la resolución de PATH.
+- *Tests para `--install-skills-registry`*. El comando hace una
+  request HTTP a GitHub. No testeable offline sin mock HTTP completo.
+- *Tests de auto-compact / auto-reflect / loop-detection*. La lógica
+  es intricada y depende de session-turn counters que se cruzan con
+  otros tests. Apropiado para un refactor que extraiga la lógica a
+  funciones testeables, fuera de scope.
+
+**Validación:**
+
+- `bash validate.sh`: PASS (25 skills, 11 agents, 9 profiles, v1.21.0).
+- `bash tests/run.sh`: 26/26 pass (era 15/15).
+- `bash -n install.sh validate.sh uninstall.sh`: OK.
+- `shellcheck install.sh`: 0 nuevos errores.
+
+**Commits desde v1.20.0:**
+
+- `8ca7f32` test: smoke for --wizard, --budget, --status, --profile
+- `888bf8a` test: smoke for --list-templates, --memory --{timeline,get}, --capture
+- `61ebcf1` test: smoke for --save-all
+- `bcb8e4d` test: smoke for --list-workflows, --detect-skills
+- `f3589b1` test: --doctor covers P1-2 sections
+
 ## [1.20.0] - 2026-06-29
 
 ### Descubrimiento + Confiabilidad (auditoría P0/P1/P2)

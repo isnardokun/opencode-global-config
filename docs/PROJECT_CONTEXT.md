@@ -50,7 +50,7 @@ Proyecto mantenido por @isnardokun. GitHub: <https://github.com/isnardokun/openc
 ```
 opencode-global-config/
 ├── occo                        # Wrapper CLI principal (~2965 líneas, canónico)
-├── VERSION                     # "1.20.0"
+├── VERSION                     # "1.21.0"
 ├── opencode.json               # Config nativo OpenCode (template; install genera absoluto)
 ├── opencode.strict.json        # Variante paranoia
 │
@@ -95,7 +95,7 @@ opencode-global-config/
 ├── agents/manifest.json        # Registry machine-readable
 ├── skills-registry.json        # Skills con atribución upstream
 │
-├── tests/run.sh                # 14 smoke tests funcionales (+ 1 nuevo E2E install en v1.20.0)
+├── tests/run.sh                # 26 smoke tests funcionales (+11 nuevos en v1.21.0)
 ├── validate.sh                 # Validador: frontmatter, sintaxis, conteos, versión
 ├── install.sh                  # Instalador con flags opt-in
 ├── uninstall.sh                # Desinstalador con backup automático
@@ -124,7 +124,7 @@ opencode-global-config/
     └── memory/                  # Observaciones de proyectos sincronizadas
 ```
 
-## Estado actual (v1.20.0)
+## Estado actual (v1.21.0)
 
 ### Skills: 25 totales
 
@@ -135,7 +135,7 @@ opencode-global-config/
 | safishamsi/graphify | 1 (graphify) + 1 script propio (graphify_html) + 1 server (graphify_serve) + 1 launcher (start_graphify_serve) | v1.15.0 / v1.17.0 |
 | DeusData/codebase-memory-mcp | 1 orientación (codebase-memory-mcp) | v1.18.0 |
 | Autoría interna | 1 script export (cbm-graph-export) | v1.19.0 |
-| **Total** | **25** | v1.11.0 – v1.20.0 |
+| **Total** | **25** | v1.11.0 – v1.21.0 |
 
 ### Última versión
 

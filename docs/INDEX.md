@@ -11,7 +11,7 @@ Esta carpeta `docs/` contiene la documentación estructurada. Sigue el patrón *
 |---------|-----------|--------|
 | [`INDEX.md`](INDEX.md) | Este archivo (índice de la documentación) | 3 KB |
 | [`DECISIONS.md`](DECISIONS.md) | Decisiones arquitectónicas (20+ decisiones, 11 anti-criterios explícitos) | 5 KB |
-| [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md) | Resumen ejecutivo del proyecto, estado actual v1.20.0, estructura | 9 KB |
+| [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md) | Resumen ejecutivo del proyecto, estado actual v1.21.0, estructura | 9 KB |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | Arquitectura técnica detallada: occo, agents, skills, profiles, hooks, memory, install | 8 KB |
 | [`BUSINESS_LOGIC.md`](BUSINESS_LOGIC.md) | Reglas de negocio (deny-first gradient, iron laws de las cherry-picks) | <1 KB |
 | [`DATA_STRUCTURE.md`](DATA_STRUCTURE.md) | Modelos de datos (memory JSONL, profiles, observations frontmatter) | <1 KB |
@@ -30,12 +30,12 @@ Esta carpeta `docs/` contiene la documentación estructurada. Sigue el patrón *
 | `../README.md` | English documentation, quick start, features, commands |
 | `../README.es.md` | Documentación en español |
 | `../INSTALL.md` | Guía de instalación paso a paso |
-| `../CHANGELOG.md` | Historial formal de releases (v1.0.0 a v1.20.0) |
+| `../CHANGELOG.md` | Historial formal de releases (v1.0.0 a v1.21.0) |
 | `../CONTEXTO_PROYECTO.md` | Bitácora viva de sesiones, decisiones tácticas, riesgos residuales |
 | `../AGENTS.md` | Reglas globales + intent mapping de los 11 agentes |
 | `../CLAUDE.md` | System prompt compacto para Claude Code (también funciona en opencode) |
 | `../ARCHITECTURE.md` | Architecture overview con diagramas (English) |
-| `../VERSION` | Versión actual (`1.20.0`) |
+| `../VERSION` | Versión actual (`1.21.0`) |
 
 ## Diferencia entre docs/ y raíz
 
@@ -64,7 +64,7 @@ Total: ~55 minutos para entender el proyecto end-to-end.
 
 | Estado | Archivos |
 |--------|----------|
-| ✅ Completo y actualizado a v1.20.0 | `DECISIONS.md`, `PROJECT_CONTEXT.md`, `ARCHITECTURE.md`, `INDEX.md` |
+| ✅ Completo y actualizado a v1.21.0 | `DECISIONS.md`, `PROJECT_CONTEXT.md`, `ARCHITECTURE.md`, `INDEX.md` |
 | 🟡 Esqueleto (10 líneas) | `BUSINESS_LOGIC.md`, `DATA_STRUCTURE.md`, `RISKS.md`, `TASKS.md`, `CONVERSATION.md`, `ONBOARDING.md` |
 
 Los esqueletos se llenan on-demand cuando haya cambios específicos que ameriten documentación. La fuente de verdad sigue siendo la raíz.

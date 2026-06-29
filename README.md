@@ -34,7 +34,7 @@ Inspired by [VILA-Lab/Dive-into-Claude-Code](https://github.com/VILA-Lab/Dive-in
 
 ## Features
 
-**v1.20.0 + audit findings (skill discoverability, install E2E test, doctor checks, init hook backup)**
+**v1.21.0 + test coverage wave (11 new smoke tests for previously untested subcommands; 26 total)**
 
 - **11 specialized agents** — no hardcoded model; use whichever model you select in OpenCode's UI
 - **14 official slash commands** — `/analyze`, `/review`, `/secure`, `/feature`, `/bug-hunt`, `/docs`, `/devops`, `/oncall`, `/office-hours`, `/investigate`, `/plan-eng-review`, `/qa-web`, `/web-verify`, `/setup-deploy` — usable directly in OpenCode's TUI
