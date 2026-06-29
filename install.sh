@@ -143,7 +143,7 @@ fi
 
 echo -e "${BLUE}"
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║     OpenCode Global Config - Instalador v1.12.0            ║"
+echo "║     OpenCode Global Config - Instalador v1.13.0            ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
@@ -337,7 +337,7 @@ for _rubric in code-review security-review plan-review; do
 done
 
 if [ "$_ok" -eq 1 ]; then
-    success "Instalación verificada (18 artefactos + opcional Playwright)"
+    success "Instalación verificada (19 artefactos + opcional Playwright)"
 else
     error "Instalación incompleta. Revisa los mensajes anteriores."
 fi

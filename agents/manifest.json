@@ -230,6 +230,17 @@
         "upstream_path": "skills/pdf/SKILL.md",
         "cherry_pick": true
       }
+    },
+    {
+      "id": "skill-creator",
+      "path": "skills/skill-creator/",
+      "description": "Create, edit, and improve skills for opencode-global-config. Use when a user wants to author a new skill from scratch, modify an existing skill, run evals to test a skill, or optimize a skill's description for better triggering accuracy. Adapted from anthropics/skills — no browser eval-viewer, no Claude-CLI subagents; uses occo + @builder + @reviewer + validate.sh.",
+      "source": {
+        "upstream": "anthropics/skills",
+        "upstream_path": "skills/skill-creator/SKILL.md",
+        "cherry_pick": true,
+        "adapted": true
+      }
     }
   ],
   "workflows": [

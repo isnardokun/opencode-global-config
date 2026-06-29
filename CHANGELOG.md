@@ -2,6 +2,48 @@
 
 Todos los cambios notables de este proyecto se documentarán en este archivo.
 
+## [1.13.0] - 2026-06-28
+
+### anthropics/skills cherry-pick Fase 2: skill-creator (adapted)
+
+Cherry-pick de la metodología formal de creación/mejora de skills desde `anthropics/skills/skills/skill-creator/`. Adaptado a opencode-global-config: browser eval-viewer y subagents estilo Claude-CLI reemplazados con `occo` + `@builder` + `@reviewer` + `validate.sh`.
+
+- **`skills/skill-creator/SKILL.md`** — workflow completo de 10 pasos: capture intent → interview → write SKILL.md → test cases → run with @builder → grade assertions → aggregate benchmark → user review → iterate → optimize description. Frontmatter mínimo (`name` + `description`); secciones explícitas sobre la incompatibilidad de opencode con `claude -p`, browser eval-viewer, y subagents paralelos. ~290 líneas.
+- **`skills/skill-creator/references/schemas.md`** — schemas JSON portados verbatim (evals, grading, benchmark, .skill package). ~430 líneas.
+- **`skills/skill-creator/scripts/aggregate_benchmark.py`** — stdlib-only, agregado de grading.json → benchmark.json + benchmark.md (con mean±stddev y delta). ~400 líneas.
+- **`skills/skill-creator/scripts/quick_validate.py`** — validador genérico de SKILL.md frontmatter (kebab-case name, max 64 chars, no angle brackets, etc.). ~120 líneas.
+- **`skills/skill-creator/scripts/package_skill.py`** — packager: skill folder → .skill file (ZIP con SKILL.md + bundled resources). Import refactored de `from scripts.quick_validate` a `from quick_validate` (no requiere package init).
+
+### Lo que NO se portó (incompatible con opencode)
+
+- ❌ `eval-viewer/generate_review.py` — browser-based HTML viewer. No portable.
+- ❌ `assets/eval_review.html` — browser-based.
+- ❌ `agents/grader.md`, `agents/comparator.md`, `agents/analyzer.md` — subagent definitions estilo Claude. Reemplazados por `@reviewer` agent de opencode.
+- ❌ `scripts/run_loop.py` y `scripts/run_eval.py` — usan `claude -p` via subprocess. Reemplazados por iteración manual.
+- ❌ `LICENSE.txt` original "Proprietary" — el contenido (methodology + schemas) es cherry-pick de uso legítimo; documento la proveniencia en `SKILL.md` sección Provenance.
+
+### Validación y conteos
+
+- **`validate.sh`** — `Required skills` extendida a 19; `Skill count` esperado 18 → 19.
+- **`install.sh`** — banner 1.12.0 → 1.13.0; mensaje "19 artefactos + opcional Playwright".
+- **`VERSION`** — 1.12.0 → 1.13.0.
+- **`agents/manifest.json`** — `skill-creator` añadido con `source.upstream: anthropics/skills`, `cherry_pick: true`, `adapted: true`.
+
+### Validado
+
+- `bash validate.sh`: 19 skills, 14 commands, 9 profiles, 11 agents, v1.13.0
+- `bash tests/run.sh`: 14/14 pass
+- `python3 skills/skill-creator/scripts/aggregate_benchmark.py --help`: works
+- `python3 skills/skill-creator/scripts/package_skill.py <path>`: produces .skill file (ZIP) — test passed on /tmp fixture
+- `python3 skills/skill-creator/scripts/quick_validate.py skills/skill-creator`: "Skill is valid!"
+- `bash install.sh --dry-run`: OK
+
+### Pendientes Fase 3 (opt-in)
+
+- **`docx`** y **`xlsx`** — adaptación con runtime-detection estilo `web-verify`. Opt-in hasta que haya demanda real.
+
+---
+
 ## [1.12.0] - 2026-06-28
 
 ### anthropics/skills cherry-pick (Fase 1: pdf + webapp-testing helper)
