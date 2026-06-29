@@ -497,4 +497,16 @@ result="$(cd "$detect_repo" && HOME="$TMPDIR/home" PATH="$TMPDIR/bin:$PATH" "$RO
 [[ "$result" == *"Skills disponibles"* ]] || fail "occ --detect-skills should print detected skills list (got: ${result:0:200})"
 pass "occ --detect-skills detects stack from project files"
 
+# --doctor: verify the new P1-2 checks appear in output. We rely on
+# the real occ binary in the install (PATH outside $TMPDIR/bin) so
+# occ can find codebase-memory-mcp on the host PATH for the
+# 'Optional: codebase-memory-mcp' check.
+doctor_out="$(HOME="$TMPDIR/home" PATH="$TMPDIR/bin:$PATH" "$ROOT/occo" --doctor 2>&1 || true)"
+[[ "$doctor_out" == *"OpenCode Global Config — Doctor"* ]] || fail "--doctor should print doctor banner"
+[[ "$doctor_out" == *"opencode.json"* ]] || fail "--doctor should print opencode.json check"
+[[ "$doctor_out" == *"Audit log"* ]] || fail "--doctor should print audit log check (P1-2)"
+[[ "$doctor_out" == *"MCP servers"* ]] || fail "--doctor should print MCP servers check (P1-2)"
+[[ "$doctor_out" == *"hooks/pre"* ]] || fail "--doctor should print hooks/pre-* check (P1-2)"
+pass "occ --doctor prints P1-2 sections: audit log, MCP servers, hooks"
+
 printf 'All tests passed\n'
