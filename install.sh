@@ -2,7 +2,12 @@
 # Install script for opencode-global-config
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/isnardokun/opencode-global-config/main/install.sh | bash
-#   bash install.sh [--dry-run] [--with-playwright]
+#   bash install.sh [--dry-run] [--with-playwright] [--with-graphify] [--with-codebase-memory]
+
+# Base repo location. Override with OPENCODE_GLOBAL_CONFIG_BASE_REPO_URL for
+# internal mirrors or forks; defaults to isnardokun/opencode-global-config.
+DEFAULT_BASE_REPO_URL="https://github.com/isnardokun/opencode-global-config"
+BASE_REPO_URL="${OPENCODE_GLOBAL_CONFIG_BASE_REPO_URL:-$DEFAULT_BASE_REPO_URL}"
 
 DRY_RUN=0
 WITH_PLAYWRIGHT=0
@@ -35,7 +40,7 @@ for _arg in "$@"; do
     esac
 done
 
-REPO_URL="https://github.com/isnardokun/opencode-global-config.git"
+REPO_URL="${BASE_REPO_URL}.git"
 INSTALL_DIR="$(mktemp -d "${TMPDIR:-/tmp}/opencode-config-install.XXXXXX")"
 CONFIG_DIR="${HOME}/.config/opencode"
 BIN_DIR="${HOME}/.local/bin"
@@ -157,7 +162,7 @@ fi
 
 echo -e "${BLUE}"
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║     OpenCode Global Config - Instalador v1.20.0            ║"
+echo "║     OpenCode Global Config - Instalador v1.21.0            ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
@@ -597,5 +602,5 @@ echo ""
 if [ -d "$BACKUP_DIR" ]; then
     echo "Backup guardado en: $BACKUP_DIR"
 fi
-echo "Documentación: https://github.com/isnardokun/opencode-global-config"
+echo "Documentación: ${BASE_REPO_URL}"
 echo ""
