@@ -69,8 +69,8 @@ o
 HOOK_REVIEW_RESULT=fail
 "
 
-if command -v oc >/dev/null 2>&1; then
-    "$timeout_cmd" "$hook_timeout_seconds" oc "$prompt" | tee "$tmp_output"
+if command -v occo >/dev/null 2>&1; then
+    "$timeout_cmd" "$hook_timeout_seconds" occo "$prompt" | tee "$tmp_output"
     status=${PIPESTATUS[0]}
 else
     "$timeout_cmd" "$hook_timeout_seconds" opencode run "$prompt" | tee "$tmp_output"

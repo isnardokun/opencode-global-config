@@ -34,12 +34,12 @@ Inspired by [VILA-Lab/Dive-into-Claude-Code](https://github.com/VILA-Lab/Dive-in
 
 ## Features
 
-**v1.9.7 + Self-Improvement Agent, Harness Engineering exit conditions, automatic context management, and pattern detection**
+**v1.11.0 + gstack QA cherry-pick (qa-web, web-verify, setup-deploy) + optional Playwright install**
 
 - **11 specialized agents** — no hardcoded model; use whichever model you select in OpenCode's UI
-- **8 official slash commands** — `/analyze`, `/review`, `/secure`, `/feature`, `/bug-hunt`, `/docs`, `/devops`, `/oncall` — usable directly in OpenCode's TUI
+- **14 official slash commands** — `/analyze`, `/review`, `/secure`, `/feature`, `/bug-hunt`, `/docs`, `/devops`, `/oncall`, `/office-hours`, `/investigate`, `/plan-eng-review`, `/qa-web`, `/web-verify`, `/setup-deploy` — usable directly in OpenCode's TUI
 - **9 prompt-enforced profiles** — rules like `requireTests`, `checkpointBeforeChanges` injected as explicit LLM instructions; profile permissions validated against `ask|allow|deny`
-- **11 skills** for analysis, implementation, validation, memory, documentation, debugging, alignment, communication, and dashboard design
+- **17 skills** for analysis, implementation, validation, memory, documentation, debugging, alignment, communication, design.md, plan engineering review, product framing, root-cause investigation, web QA, runtime-agnostic web verify, and deploy platform detection (6 adapted from garrytan/gstack)
 - **3 review rubrics** for code review, security review, and plan/design gates
 - **1 security plugin** with regex hardening, ESM metadata, redacted audit log, and restrictive log permissions
 - **Optional `occo ask` router** — natural-language intent routing with `--dry-run`, `--explain`, and `--clarify`
@@ -1105,7 +1105,7 @@ git diff --check
 - legacy OpenCode CLI calls (`opencode -p`, `opencode --profile`);
 - profile permission actions (`ask|allow|deny`);
 - model-free agents and language-artifact scan;
-- documentation consistency against `VERSION`, 9 profiles, 11 agents, 10 skills;
+- documentation consistency against `VERSION`, 9 profiles, 11 agents, 11 skills;
 
 Functional smoke tests are run separately with `make test` and in CI. They cover:
 
@@ -1292,7 +1292,7 @@ opencode-global-config/
 
 - **`tests/run.sh`**: expanded functional smoke tests for memory project/type filters, `--remember`, timeline, profiles, fail-closed hooks, `occo --init`, `--compact`, `--doctor`, `validate.sh --installed`, installer dry-run, and safety guard.
 - **`VERSION`**: added a simple version source checked by `validate.sh`.
-- **`validate.sh`**: documentation consistency checks for version, 9 profiles, 11 agents, 10 skills, and memory project flag support.
+- **`validate.sh`**: documentation consistency checks for version, 9 profiles, 11 agents, 11 skills, and memory project flag support.
 - **`rubrics/`**: added code review, security review, and plan review gates; validator checks required rubric files.
 - **`plugins/package.json`**: declares plugin JavaScript as ESM and removes Node's typeless-module warning.
 - **Hooks**: pass explicit diffs, require `BLOCKING_FINDINGS=false`, and run optional `gitleaks` when available.

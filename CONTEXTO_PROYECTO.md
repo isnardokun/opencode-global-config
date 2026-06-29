@@ -159,6 +159,157 @@ Este archivo es la **bitácora viva del proyecto**. Debe registrar:
 
 ## Bugs/decisiones importantes
 
+### gstack QA cherry-pick + Playwright opt-in — sesión 2026-06-28 (v1.11.0)
+
+Segunda iteración del cherry-pick desde `garrytan/gstack`. Esta vez, el usuario preguntó específicamente por `browse/` y `qa/`, que en la sesión anterior (v1.10.0) se consideraron "fuera de scope por ser Bun/Playwright/Chromium". Decisión revisada: integrar la **lógica de uso** (metodología) sin los binarios, ofreciendo instalación opcional de Playwright.
+
+#### Lo que se portó en v1.11.0
+
+| Artefacto | Fuente gstack | Adaptación |
+|---|---|---|
+| `skills/qa-web/SKILL.md` | gstack `qa/SKILL.md` (31954+ bytes) | Metodología de QA web en 4 fases (discover, test, categorize, fix-and-verify). 3 tiers (quick/standard/exhaustive). 7 categorías de testing. Iron laws: no fixes sin reproducción, no bypasses, one-bug-one-commit. ~150 líneas. |
+| `skills/web-verify/SKILL.md` | gstack `browse/SKILL.md` (sin el binario `browse/dist/browse`) | Auto-detección de herramientas (curl/wget/lynx/playwright) y tier-up de HTTP-only a browser automation. Tier 4 = manual checklist honesto. ~200 líneas. |
+| `skills/setup-deploy/SKILL.md` | gstack `setup-deploy/SKILL.md` (8042+ bytes) | Detección de 8 plataformas (Fly, Vercel, Render, Netlify, Railway, Heroku, GHA, Docker). Persistencia en `CLAUDE.md` con update-in-place del bloque `## Deploy Configuration`. ~120 líneas. |
+| `commands/qa-web.md`, `commands/web-verify.md`, `commands/setup-deploy.md` | Nuevos | Patrón `commands/analyze.md` |
+| `install.sh --with-playwright` | n/a | Flag opt-in (no default). Si npm + TTY disponibles, ofrece interactivamente instalar Playwright. Degradación graceful: si falla la instalación, sigue adelante. |
+
+#### Lo que NO se hizo (decisión explícita, no por limitación)
+
+- ❌ NO se portó el binario `browse/dist/browse` (60 archivos TS, daemon Bun, anti-bot stealth, ngrok tunnel, SOCKS5, xvfb, cookie picker UI). Pesaba ~450 MB y rompía la promesa zero-deps del install.sh.
+- ❌ NO se añadió Bun, ngrok, o gbrain como dependencias. La instalación base sigue siendo zero-deps.
+- ❌ NO se instaló Playwright por defecto. Sigue siendo opt-in via flag `--with-playwright`.
+- ❌ NO se modificó `occo`, `safety-guard.js`, ni `tests/run.sh`.
+
+#### Restricciones respetadas
+
+- Frontmatter mínimo en las 3 SKILL.md (solo `name` + `description`).
+- Cero referencias host-specific (grep por `gstack/|claude -p|--disallowedTools|Conductor|MCP variant|bun |~/.claude/skills|~/.gstack|gstack-update-check|gstack-slug|gstack-config|gbrain` → 0 matches).
+- `web-verify` degrada a tier 1/2 si Playwright no está disponible, con honest reporting via `WEB_VERIFY_RESULT=degraded`.
+- `install.sh --with-playwright` se ofrece solo con `npm` disponible Y TTY interactivo. En `--dry-run` se absorbe silenciosamente. En CI/scripted se omite.
+- `setup-deploy` no ejecuta deploys — solo detecta y documenta.
+
+#### Validaciones ejecutadas
+
+- `bash validate.sh` → ✅ Validation passed (17 skills, 14 commands, 9 profiles, 11 agents, version 1.11.0)
+- `bash tests/run.sh` → ✅ All 14 tests passed
+- `bash install.sh --dry-run` → ✅ muestra playwright/lynx en opcionales
+- `bash install.sh --help` → ✅ muestra usage con `--with-playwright` documentado
+- `bash -n install.sh` → syntax OK
+- `bash install.sh --dry-run --with-playwright` → ✅ flag absorbido correctamente
+- Reviewer final → APROBADO con 3 notas menores (todas corregidas en el mismo turno)
+
+#### Hallazgo del reviewer (corregido en este turno)
+
+1. `install.sh:333` decía "15 artefactos" pero ahora son 17. Corregido a "17 artefactos + opcional Playwright".
+2. CHANGELOG sección v1.11.0 también mencionaba "15 artefactos". Corregido.
+3. `web-verify/SKILL.md:112` tenía un subcomando inexistente (`npx playwright cr --help`). Eliminado.
+
+#### Detección de Playwright en runtime
+
+`web-verify` ahora detecta automáticamente qué hay disponible:
+
+```bash
+echo "TOOL_CURL=$(command -v curl >/dev/null 2>&1 && echo yes || echo no)"
+echo "TOOL_LYNX=$(command -v lynx >/dev/null 2>&1 && echo yes || echo no)"
+echo "TOOL_PLAYWRIGHT=$(command -v playwright >/dev/null 2>&1 && echo yes || echo no)"
+```
+
+Y adapta la verificación al tier máximo disponible. En este host (donde ya hay Playwright instalado), `web-verify` ofrece tier 4 (full multi-step interaction).
+
+---
+
+### Cherry-pick selectivo desde garrytan/gstack — sesión 2026-06-28 (v1.10.0)
+
+Evaluación de `https://github.com/garrytan/gstack` (23 skills para Claude Code, multi-host setup). **Decisión: cherry-pick selectivo de 3 skills + 1 rubric. No adopción completa.**
+
+#### Por qué no adopción completa
+
+gstack depende de infraestructura que no funciona en OpenCode:
+- `hooks.PreToolUse` (matcher `Bash`/`Edit`/`Write`) — OpenCode los strippea porque su host config usa `frontmatter.mode = 'allowlist'` con `keepFields: ['name','description']` solamente.
+- Binarios Bun + Playwright + Chromium (`browse/` skill) — añadiría ~400MB y rompe el install.sh zero-deps.
+- gbrain, Conductor, MCP variant de AskUserQuestion — tooling Anthropic-específico.
+- 325 commits, ~70 directorios top-level — superficie de mantenimiento excesiva vs nuestro wrapper de 106KB.
+
+Nuestro `plugins/safety-guard.js` (regex + audit log JSONL) ya cumple el rol de `careful`/`freeze`/`guard` con un modelo **más estricto** (gate LLM fail-closed en hooks git, no agent-side PreToolUse).
+
+#### Lo que sí se portó (adaptado, no copy-paste)
+
+| Artefacto | Fuente gstack | Adaptación |
+|---|---|---|
+| `skills/plan-eng-review/SKILL.md` | gstack `plan-eng-review/SKILL.md` (14360+ bytes) | Reescrito limpio: 8 forcing questions, cognitive patterns de eng managers, iron law con `PLAN_REVIEW_RESULT=approve\|revise\|block`. Sin preamble bash, sin gbrain, sin Conductor. ~190 líneas. |
+| `skills/office-hours/SKILL.md` | gstack `office-hours/SKILL.md` (46191+ bytes) | Reescrito: 6 forcing questions (demand reality, status quo, desperate specificity, narrowest wedge, observation, future-fit) + format de design doc. Iron law: NO implementación. ~140 líneas. |
+| `skills/investigate/SKILL.md` | gstack `investigate/SKILL.md` (8618+ bytes) | Reescrito: 4 fases (investigate, analyze, hypothesize, implement) + iron law "no fixes sin root cause" + stop-after-3-fixes rule. ~190 líneas. |
+| `rubrics/code-review.md` | gstack `review/checklist.md` | Extendido (no reemplazado): 5 Pass 1 CRITICAL checks (SQL & Data Safety, Race Conditions, LLM Output Trust Boundary, Shell Injection, Enum Completeness) + 7 Pass 2 INFORMATIONAL checks. Estructura original preservada. +92 líneas. |
+| `commands/office-hours.md`, `commands/investigate.md`, `commands/plan-eng-review.md` | (no existen en gstack como slash commands nativos — son gstack-only) | Nuevos, siguiendo patrón de `commands/analyze.md`. |
+| `agents/manifest.json` | n/a | Planner ahora carga `plan-eng-review`; oncall carga `investigate`. 3 skills añadidas con `source.upstream: garrytan/gstack`. |
+
+#### Restricciones respetadas
+
+- **Frontmatter mínimo:** cada SKILL.md nuevo tiene solo `name` + `description` (2 líneas YAML). Sin `hooks`, `allowed-tools`, `triggers`, `preamble-tier`, `gbrain`, `version` — todos serían strippeados por el host OpenCode.
+- **Cero referencias host-specific:** grep final por `gstack/|claude -p|--disallowedTools|Conductor|MCP variant|bun ` retornó 0 matches en skills/, commands/, agents/, profiles/, rubrics/.
+- **Patrón commands/*.md:** los 3 nuevos siguen exactamente el shape de `commands/analyze.md` (frontmatter `description`, body "Use @X skill" + bullets + "Do NOT").
+- **Modelo deny-first intacto:** no se modificó `occo`, no se cambió `safety-guard.js`, no se rompió la lógica de `validate.sh` más allá de extender las listas requeridas.
+- **Tests existentes:** 14/14 siguen verdes sin tocar `tests/run.sh`.
+- **Atribución:** `agents/manifest.json` declara `source.upstream: garrytan/gstack` y `license: MIT` en las 3 skills adaptadas.
+
+#### Validaciones ejecutadas
+
+- `bash validate.sh` → ✅ Validation passed
+- `bash tests/run.sh` → ✅ All 14 tests passed
+- `bash install.sh --dry-run` → ✅ Dry-run completado
+- `make check` → OK
+- `git diff --stat HEAD` (de este turno) → 6 archivos modificados, +171/-16 líneas, + 6 archivos nuevos (3 skills + 3 commands)
+
+#### Pendiente nuevo identificado
+
+- `skills/diagnose/SKILL.md:4`, `skills/grill-with-docs/SKILL.md:4`, `skills/caveman/SKILL.md:4` aún tienen `triggers:` en frontmatter (drift pre-existente, no introducido por este cherry-pick). El check de `validate.sh` solo valida presencia del fence `---`, no contenido. PR de limpieza futuro.
+- README `Features` bullets ya sincronizados con los nuevos conteos (11 commands, 14 skills).
+
+---
+
+### Drift fix y consolidación de rename `oc` → `occo` — sesión 2026-06-28
+
+El proyecto arrastraba un rename incompleto: el archivo en disco se llamaba `oc` pero `install.sh` lo instalaba como `occo`, y la mayoría de docs/strings internos usaban `occo`. Esto causaba drift masivo y varias regresiones funcionales.
+
+**Decisión del usuario:** `occo` es el nombre canónico. Se renombró el archivo y se alinearon todas las referencias funcionales.
+
+#### Cambios aplicados
+
+- `oc` → `occo` (rename vía `git mv`, similarity 99%)
+- `occo`: tres auto-referencias funcionales corregidas en línea 1455-1456, 1553-1554 y 2805-2809 (`command -v occo` + invocación `occo "$prompt"` + mensaje `--doctor`).
+- `install.sh:246`: `cp "$INSTALL_DIR/oc"` → `cp "$INSTALL_DIR/occo"`. Sin este fix `bash install.sh` abortaba con `error()`.
+- `hooks/pre-commit:72-73` y `hooks/pre-push:72-73`: misma pareja de auto-referencias corregidas. Los hooks versionados quedarían rotos al usar canónico.
+- `Makefile:8,22,37`: `bash -n oc`, `shfmt ... oc ...`, `oc --doctor` → `occo`. Sin esto `make check`, `make format` y `make doctor` fallaban.
+- `validate.sh:55,113,139,194,291-293`: cinco referencias a `oc` actualizadas a `occo` (check_file, for sh, legacy_cli grep, line count, --remember checks).
+- `tests/run.sh:12,103,117,131`: dos invocaciones del wrapper y dos setups de mock renombrados a `occo` para que el path canónico quede mockeado.
+- `ARCHITECTURE.md`: File Inventory actualizado (`oc` → `occo`); `VERSION` 1.9.6 → 1.9.7; sección "Skills (10 total)" → "Skills (11 total)"; "Rubrics (3 reusable gates)" → "Rubrics (4 reusable gates)"; árbol de skills en File Inventory ahora incluye `design-md/`.
+- `README.md`: dos menciones documentales corregidas de "11 agents, 10 skills" → "11 agents, 11 skills".
+- `README.es.md`: línea 53 `oc` → `occo`; "6 skills" → "11 skills"; "3 rubrics" → "4 rubrics".
+
+#### Validaciones ejecutadas
+
+- `bash validate.sh` → ✅ Validation passed
+- `bash tests/run.sh` → All 14 tests passed
+- `make check` → OK
+- `bash install.sh --dry-run` → OK, sin modificaciones
+- `git diff --stat HEAD` → 10 archivos, +43/-39 líneas, rename `oc→occo` con similarity 99%
+
+#### Proceso de revisión
+
+El `@reviewer` fue invocado dos veces en la misma sesión. La primera pasada detectó 3 bloqueantes funcionales (B1-B3) por auto-referencias incompletas en `occo`. Tras corregirlos, una segunda pasada detectó 4 bloqueantes adicionales (B4-B7) en `install.sh`, `hooks/*`, `Makefile` y un fix parcial en `occo:2807`. Esto subraya la importancia de revisar el rename de manera **exhaustiva en todos los call-sites funcionales**, no solo los archivos obvios.
+
+#### Drift cosmético residual (no bloqueante, fuera de scope)
+
+Quedan ~200 strings de ayuda/ejemplos en `occo`, `install.sh`, `README*.md`, `ARCHITECTURE.md` que aún dicen `oc` en mensajes al usuario. No rompen ejecución. Decidido: dejarlo para un PR de limpieza dedicado y no contaminar este diff surgical.
+
+#### Pendientes nuevos identificados
+
+1. **Drift cosmético en strings de ayuda de `occo`** — ~58 menciones en `echo`/`help`. No bloqueante. PR de limpieza futuro.
+2. **Drift cosmético en docs públicas** — ~140 menciones en README.md, README.es.md, ARCHITECTURE.md. Misma decisión.
+3. **Pendientes históricos siguen activos** — ver lista "Pendientes conocidos" al final del archivo.
+
+---
+
 ### Revisión integral y bug-hunt — sesión 2026-05-02
 
 El usuario definió explícitamente que `CONTEXTO_PROYECTO.md` debe usarse como registro de cambios, modificaciones y mejoras del proyecto. Se ejecutaron dos pasadas de bug-hunt con agentes especializados:

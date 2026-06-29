@@ -43,7 +43,7 @@ The core CLI entry point (~2490 lines of bash). Handles:
 
 **Entry point:** `~/.local/bin/occo` (installed by `install.sh`)
 
-### Agents (11 total)
+### Agents (11 total + manifest.json)
 
 Located in `agents/`. Each is a markdown file with YAML frontmatter:
 
@@ -79,7 +79,7 @@ deny → plan → review → default → work → research → auto → trusted 
 **Most restrictive:** `deny` (read-only, no edits, no bash)
 **Most permissive:** `trusted` (direct edits, bash allowed)
 
-### Skills (10 total)
+### Skills (11 total)
 
 Located in `skills/` as directories with `SKILL.md`:
 
@@ -95,6 +95,7 @@ Located in `skills/` as directories with `SKILL.md`:
 | `grill-with-docs` | Alignment session before building |
 | `caveman` | Compressed communication mode |
 | `ai-coding-rules` | AI coding behavior guidelines |
+| `design-md` | Design.md / project context scaffolding |
 
 ### Commands (8 slash commands)
 
@@ -111,13 +112,14 @@ Located in `commands/`. These are native OpenCode TUI commands — usable as `/a
 /oncall   → @oncall
 ```
 
-### Rubrics (3 reusable gates)
+### Rubrics (4 reusable gates)
 
 Located in `rubrics/`:
 
 - `code-review.md` — blocking criteria for code quality
 - `security-review.md` — severity levels and remediation gates
 - `plan-review.md` — verifiable planning and design criteria
+- `grilling.md` — alignment/grilling gates for design discussions
 
 ### Plugins
 
@@ -303,8 +305,8 @@ Node.js emits `MODULE_TYPELESS_PACKAGE_JSON` warning when loading `.js` files wi
 
 ```
 opencode-global-config/
-├── oc                          # Main wrapper script (~2490 lines)
-├── VERSION                     # "1.9.6"
+├── occo                        # Main wrapper script (~2490 lines)
+├── VERSION                     # "1.9.7"
 ├── opencode.json               # Native OpenCode config (permissions, plugins, instructions)
 ├── opencode.strict.json        # Paranoid mode: webfetch/websearch/external_dir: deny
 │
@@ -331,7 +333,7 @@ opencode-global-config/
 │   ├── devops.md
 │   └── oncall.md
 │
-├── skills/                     # 10 skills
+├── skills/                     # 11 skills
 │   ├── project-map/
 │   ├── safe-implementation/
 │   ├── test-first/
@@ -341,7 +343,8 @@ opencode-global-config/
 │   ├── diagnose/
 │   ├── grill-with-docs/
 │   ├── caveman/
-│   └── ai-coding-rules/
+│   ├── ai-coding-rules/
+│   └── design-md/
 │
 ├── profiles/                   # 9 deny-first profiles
 │   ├── deny.json
@@ -354,10 +357,11 @@ opencode-global-config/
 │   ├── trusted.json
 │   └── devops.json
 │
-├── rubrics/                    # 3 reusable review gates
+├── rubrics/                    # 4 reusable review gates
 │   ├── code-review.md
 │   ├── security-review.md
-│   └── plan-review.md
+│   ├── plan-review.md
+│   └── grilling.md
 │
 ├── plugins/
 │   ├── safety-guard.js         # ESM, blocks destructive commands, audit log

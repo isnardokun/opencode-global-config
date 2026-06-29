@@ -1452,8 +1452,8 @@ o
 HOOK_REVIEW_RESULT=fail
 "
 
-if command -v oc >/dev/null 2>&1; then
-    "$timeout_cmd" "$hook_timeout_seconds" oc "$prompt" | tee "$tmp_output"
+if command -v occo >/dev/null 2>&1; then
+    "$timeout_cmd" "$hook_timeout_seconds" occo "$prompt" | tee "$tmp_output"
     status=${PIPESTATUS[0]}
 else
     "$timeout_cmd" "$hook_timeout_seconds" opencode run "$prompt" | tee "$tmp_output"
@@ -1550,8 +1550,8 @@ o
 HOOK_REVIEW_RESULT=fail
 "
 
-if command -v oc >/dev/null 2>&1; then
-    "$timeout_cmd" "$hook_timeout_seconds" oc "$prompt" | tee "$tmp_output"
+if command -v occo >/dev/null 2>&1; then
+    "$timeout_cmd" "$hook_timeout_seconds" occo "$prompt" | tee "$tmp_output"
     status=${PIPESTATUS[0]}
 else
     "$timeout_cmd" "$hook_timeout_seconds" opencode run "$prompt" | tee "$tmp_output"
@@ -2802,11 +2802,11 @@ Output as plain markdown. This will be saved to resume the session later."; then
             _doc_ok=0
         fi
 
-        # Check oc
-        if command -v oc >/dev/null 2>&1; then
-            echo -e "${GREEN}✅${NC} oc: $(command -v oc)"
+        # Check occo
+        if command -v occo >/dev/null 2>&1; then
+            echo -e "${GREEN}✅${NC} occo: $(command -v occo)"
         else
-            echo -e "${YELLOW}⚠️${NC}  oc not in PATH — run: export PATH=\"\$HOME/.local/bin:\$PATH\""
+            echo -e "${YELLOW}⚠️${NC}  occo not in PATH — run: export PATH=\"\$HOME/.local/bin:\$PATH\""
             _doc_ok=0
         fi
 

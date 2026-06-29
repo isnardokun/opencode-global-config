@@ -19,10 +19,10 @@
       "description": "Divide tareas complejas en fases pequeñas y verificables.",
       "mode": "subagent",
       "permission": { "edit": "deny", "bash": "deny" },
-      "skills": [],
+      "skills": ["plan-eng-review"],
       "tags": ["planning", "phases", "success-criteria", "read-only"],
       "entrypoints": ["oc plan", "oc ask plan"],
-      "special": "Crea planes con criterios de éxito verificables. Divide en fases ordenadas por prioridad. Requiere que cada fase tenga condición de éxito medible."
+      "special": "Crea planes con criterios de éxito verificables. Divide en fases ordenadas por prioridad. Requiere que cada fase tenga condición de éxito medible. Aplica las forcing questions de plan-eng-review (data flow, edge cases, test matrix, security) antes de aprobar un plan."
     },
     {
       "id": "builder",
@@ -96,10 +96,10 @@
       "description": "Diagnostica y resuelve problemas de producción, logs y errores.",
       "mode": "subagent",
       "permission": { "edit": "deny", "bash": "ask" },
-      "skills": [],
+      "skills": ["investigate"],
       "tags": ["production", "debug", "incident", "logs", "diagnostics"],
       "entrypoints": ["oc oncall", "oc ask production", "/oncall"],
-      "special": "Reversibility-weighted risk: acciones reversibles requieren menos aprobación. Clasifica P1/P2/P3, identifica causa raíz, lista mitigaciones."
+      "special": "Reversibility-weighted risk: acciones reversibles requieren menos aprobación. Clasifica P1/P2/P3, identifica causa raíz, lista mitigaciones. Sigue el iron law de investigate: no fixes sin root cause, stop después de 3 fixes fallidos."
     },
     {
       "id": "migration-planner",
@@ -154,6 +154,72 @@
       "id": "docs-writer",
       "path": "skills/docs-writer/",
       "description": "Documentación técnica"
+    },
+    {
+      "id": "plan-eng-review",
+      "path": "skills/plan-eng-review/",
+      "description": "Engineering-manager mode plan review with forcing questions on data flow, edge cases, test matrix and security. Adapted from garrytan/gstack.",
+      "source": {
+        "upstream": "garrytan/gstack",
+        "license": "MIT",
+        "upstream_path": "plan-eng-review/SKILL.md",
+        "adapted": true
+      }
+    },
+    {
+      "id": "office-hours",
+      "path": "skills/office-hours/",
+      "description": "Reframe a product idea through six forcing questions before any code is written. Adapted from garrytan/gstack.",
+      "source": {
+        "upstream": "garrytan/gstack",
+        "license": "MIT",
+        "upstream_path": "office-hours/SKILL.md",
+        "adapted": true
+      }
+    },
+    {
+      "id": "investigate",
+      "path": "skills/investigate/",
+      "description": "Systematic debugging with iron law: no fixes without root cause. Four phases with stop-after-3-fixes rule. Adapted from garrytan/gstack.",
+      "source": {
+        "upstream": "garrytan/gstack",
+        "license": "MIT",
+        "upstream_path": "investigate/SKILL.md",
+        "adapted": true
+      }
+    },
+    {
+      "id": "qa-web",
+      "path": "skills/qa-web/",
+      "description": "Systematic web QA methodology. Find bugs, fix atomically, verify. Three tiers (quick/standard/exhaustive). Runtime-agnostic — works with or without Playwright. Adapted from garrytan/gstack.",
+      "source": {
+        "upstream": "garrytan/gstack",
+        "license": "MIT",
+        "upstream_path": "qa/SKILL.md",
+        "adapted": true
+      }
+    },
+    {
+      "id": "web-verify",
+      "path": "skills/web-verify/",
+      "description": "Runtime-agnostic web verification. Tiered: curl/wget (HTTP), lynx (text), playwright (browser). No binary deps by default. Adapted from garrytan/gstack browse/ methodology.",
+      "source": {
+        "upstream": "garrytan/gstack",
+        "license": "MIT",
+        "upstream_path": "browse/SKILL.md",
+        "adapted": true
+      }
+    },
+    {
+      "id": "setup-deploy",
+      "path": "skills/setup-deploy/",
+      "description": "Detect deployment platform (Fly, Vercel, Render, Netlify, Railway, Heroku, GHA, Docker) and persist config to CLAUDE.md. Zero deps. Adapted from garrytan/gstack.",
+      "source": {
+        "upstream": "garrytan/gstack",
+        "license": "MIT",
+        "upstream_path": "setup-deploy/SKILL.md",
+        "adapted": true
+      }
     }
   ],
   "workflows": [

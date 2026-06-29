@@ -2,6 +2,70 @@
 
 Todos los cambios notables de este proyecto se documentarán en este archivo.
 
+## [1.11.0] - 2026-06-28
+
+### gstack QA cherry-pick (qa-web, web-verify, setup-deploy) + optional Playwright install
+
+Tres skills nuevas adaptadas desde `garrytan/gstack`, todas runtime-agnósticas (funcionan sin binarios adicionales). El instalador ofrece opcionalmente instalar Playwright para habilitar browser automation completa.
+
+- **`skills/qa-web/`** — Metodología de QA web sistemático. Tres tiers (quick/standard/exhaustive), 7 categorías de testing (functional, navigation, auth, responsive, a11y, console, performance), fix-atomic-per-bug. Adaptado de `gstack/qa/SKILL.md`.
+- **`skills/web-verify/`** — Verificación web runtime-agnóstica. Auto-detecta herramientas disponibles (curl, wget, lynx, playwright) y tier-up de HTTP-only a browser automation. Adaptado de `gstack/browse/SKILL.md` (sin el binario).
+- **`skills/setup-deploy/`** — Detecta plataforma de deploy (Fly, Vercel, Render, Netlify, Railway, Heroku, GH Actions, Docker) y persiste config en `CLAUDE.md`. Cero deps. Adaptado de `gstack/setup-deploy/SKILL.md`.
+- **`commands/qa-web.md`**, **`commands/web-verify.md`**, **`commands/setup-deploy.md`** — slash commands nativos.
+
+### Optional Playwright install via `--with-playwright`
+
+- **`install.sh --with-playwright`** — flag opcional y no-default. Si se pasa, después de instalar la base, ofrece interactivamente instalar Playwright + Chromium (~170 MB). Si el usuario declina, la instalación base sigue funcionando (modo degradado para `web-verify` y `qa-web`).
+- **`install.sh --help`** — nuevo flag documentado.
+- **Detección runtime** — `playwright` añadido a la lista de opcionales de `print_requirements`. `lynx` también añadido como tier-2 fallback opcional.
+- **Modo degradado sin Playwright** — `web-verify` automáticamente degrada a tier 1 (curl/wget) + tier 2 (lynx si está). El usuario ve `WEB_VERIFY_RESULT=degraded` y una explicación de qué no se pudo verificar.
+
+### Validación y conteos
+
+- **`validate.sh`** — listas de `Required commands` (14) y `Required skills` (17) extendidas; `Skill count` esperado 14 → 17.
+- **`install.sh`** — banner 1.10.0 → 1.11.0; mensaje de verificación "17 artefactos + opcional Playwright".
+- **`VERSION`** — 1.10.0 → 1.11.0.
+- **`agents/manifest.json`** — 3 skills añadidas con `source.upstream: garrytan/gstack`.
+
+### Lo que NO se hizo (intencional)
+
+- ❌ No se portó el binario `browse/dist/browse` de gstack (60 archivos TS, Bun runtime, daemon persistente, ~450 MB con Playwright+Chromium).
+- ❌ No se añadió Bun, ngrok, o gbrain como dependencias.
+- ❌ No se añadió Playwright como dependencia por defecto — sigue siendo opcional, opt-in via flag.
+- ❌ No se modificó `occo` (2965 líneas intactas), `safety-guard.js`, ni `tests/run.sh`.
+
+---
+
+## [1.10.0] - 2026-06-28
+
+### gstack cherry-pick (adapted from garrytan/gstack)
+
+Tres skills nuevas adaptadas desde https://github.com/garrytan/gstack, reescritas sin dependencias de Claude Code / Anthropic / Bun / gbrain / Conductor. Frontmatter mínimo (solo `name` + `description`, compatible con `keepFields` de OpenCode host).
+
+- **`skills/plan-eng-review/`** — Engineering-manager mode plan review con 8 forcing questions (data flow, state machine, edge cases, test matrix, failure modes, security, performance, rollout/rollback). Iron law: `PLAN_REVIEW_RESULT=approve` antes de implementar.
+- **`skills/office-hours/`** — Reframe de idea de producto con 6 forcing questions (demand reality, status quo, desperate specificity, narrowest wedge, observation, future-fit). Iron law: NO implementación, solo design doc.
+- **`skills/investigate/`** — Debugging sistemático en 4 fases (investigate, analyze, hypothesize, implement) con iron law "no fixes sin root cause" y stop-after-3-fixes rule.
+- **`commands/office-hours.md`**, **`commands/investigate.md`**, **`commands/plan-eng-review.md`** — slash commands nativos para invocar las skills desde el TUI de OpenCode.
+- **`agents/manifest.json`** — `planner` ahora carga `plan-eng-review`; `oncall` ahora carga `investigate`. Las 3 skills aparecen en la sección `skills` con atribución `upstream: garrytan/gstack`.
+
+### Code Review Rubric extendido
+
+- **`rubrics/code-review.md`** — añadidos los 5 checks de Pass 1 CRITICAL (SQL & Data Safety, Race Conditions, LLM Output Trust Boundary, Shell Injection, Enum Completeness) y 7 checks de Pass 2 INFORMATIONAL (Async/Sync, Column/Field Name Safety, LLM Prompt Issues, Completeness Gaps, Time Window Safety, Type Coercion, Distribution & CI/CD). Adaptado del `review/checklist.md` de gstack. Sin `hooks.PreToolUse` ni dependencias de tooling externas.
+
+### Validación y conteos
+
+- **`validate.sh`** — lista de `Required commands` extendida a 11; lista de `Required skills` extendida a 14; `Skill count` esperado actualizado de 11 a 14.
+- **`install.sh`** — mensaje de instalación verificada actualizado a 15 artefactos.
+- **`VERSION`** — bump 1.9.7 → 1.10.0.
+
+### Anti-criterios respetados
+
+- ❌ NO se añadió Bun, no se ejecutó `gstack/setup --host opencode`, no se portaron `browse/`, `careful/`, `freeze/`, `codex/`, `qa-visual`, `ship/`, `retro/`, `learn/`.
+- ❌ NO se modificaron `occo`, `validate.sh` (lógica de validación), ni los 14 smoke tests existentes.
+- ❌ NO se rompió el modelo deny-first ni se cambió `safety-guard.js`.
+
+---
+
 ## [1.9.7] - 2026-05-21
 
 ### Windows Support

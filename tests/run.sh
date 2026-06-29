@@ -9,7 +9,7 @@ pass() { printf 'ok - %s\n' "$1"; }
 fail() { printf 'not ok - %s\n' "$1" >&2; exit 1; }
 
 run_oc() {
-    (cd "$TMPDIR" && HOME="$TMPDIR/home" PATH="$TMPDIR/bin:$PATH" "$ROOT/oc" "$@")
+    (cd "$TMPDIR" && HOME="$TMPDIR/home" PATH="$TMPDIR/bin:$PATH" "$ROOT/occo" "$@")
 }
 
 mkdir -p "$TMPDIR/bin"
@@ -100,7 +100,7 @@ success_marker_outcomes=$(find "$TMPDIR/home/.config/opencode/memory/outcomes" -
 pass "workflow success requires exact completion marker"
 
 rm -rf "$TMPDIR/clean-home"
-HOME="$TMPDIR/clean-home" PATH="$TMPDIR/bin:$PATH" "$ROOT/oc" ask --dry-run "analiza el proyecto" >/dev/null
+HOME="$TMPDIR/clean-home" PATH="$TMPDIR/bin:$PATH" "$ROOT/occo" ask --dry-run "analiza el proyecto" >/dev/null
 [[ -f "$TMPDIR/clean-home/.config/opencode/.session" ]] || fail "oc should create session file in clean HOME"
 printf 'not-a-number' > "$TMPDIR/home/.config/opencode/.session"
 run_oc ask --dry-run "analiza el proyecto" >/dev/null
@@ -114,7 +114,7 @@ cp "$ROOT/hooks/pre-commit" "$hook_dir/pre-commit"
 cp "$ROOT/hooks/pre-push" "$hook_dir/pre-push"
 chmod +x "$hook_dir/pre-commit" "$hook_dir/pre-push"
 
-cat > "$bin_dir/oc" <<'EOF'
+cat > "$bin_dir/occo" <<'EOF'
 #!/usr/bin/env bash
 if [ -n "${OC_CAPTURE:-}" ]; then
   printf '%s\n' "$@" > "$OC_CAPTURE"
@@ -128,7 +128,7 @@ case "${OC_TEST_MARKER:-false}" in
   *) echo 'HOOK_REVIEW_RESULT=pass' ;;
 esac
 EOF
-chmod +x "$bin_dir/oc"
+chmod +x "$bin_dir/occo"
 
 hook_path="$bin_dir:/usr/bin:/bin"
 PATH="$hook_path" "$hook_dir/pre-commit" >/dev/null || fail "pre-commit should pass with default deterministic checks"

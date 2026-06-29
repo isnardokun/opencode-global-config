@@ -52,7 +52,7 @@ check_file "CLAUDE.md"
 check_file "install.sh"
 check_file "validate.sh"
 check_file "uninstall.sh"
-check_file "oc"
+check_file "occo"
 check_file "VERSION"
 check_dir  "agents"
 check_dir  "skills"
@@ -73,13 +73,13 @@ done
 echo ""
 
 echo "Required commands:"
-for cmd in analyze review secure feature bug-hunt docs devops oncall; do
+for cmd in analyze review secure feature bug-hunt docs devops oncall office-hours investigate plan-eng-review qa-web web-verify setup-deploy; do
     check_file "commands/${cmd}.md"
 done
 echo ""
 
 echo "Required skills:"
-for skill in project-map safe-implementation test-first precommit-review memory-retrieval docs-writer ai-coding-rules caveman diagnose grill-with-docs design-md; do
+for skill in project-map safe-implementation test-first precommit-review memory-retrieval docs-writer ai-coding-rules caveman diagnose grill-with-docs design-md plan-eng-review office-hours investigate qa-web web-verify setup-deploy; do
     if [ -d "${ROOT}/skills/${skill}" ]; then
         pass "skills/${skill}/"
     else
@@ -110,7 +110,7 @@ fi
 echo ""
 
 echo "Shell syntax:"
-for sh in install.sh uninstall.sh oc hooks/pre-commit hooks/pre-push; do
+for sh in install.sh uninstall.sh occo hooks/pre-commit hooks/pre-push; do
     if [ -f "${ROOT}/${sh}" ]; then
         if bash -n "${ROOT}/${sh}" 2>/dev/null; then
             pass "$sh"
@@ -136,7 +136,7 @@ fi
 echo ""
 
 echo "OpenCode CLI compatibility:"
-legacy_cli=$(grep -RIn "opencode -p\|opencode --profile" "${ROOT}/oc" "${ROOT}/hooks" 2>/dev/null || true)
+legacy_cli=$(grep -RIn "opencode -p\|opencode --profile" "${ROOT}/occo" "${ROOT}/hooks" 2>/dev/null || true)
 if [ -z "$legacy_cli" ]; then
     pass "No legacy opencode -p/--profile calls"
 else
@@ -191,7 +191,7 @@ fi
 echo ""
 
 echo "Line count sanity check:"
-for f in install.sh oc validate.sh uninstall.sh Makefile; do
+for f in install.sh occo validate.sh uninstall.sh Makefile; do
     if [ -f "${ROOT}/${f}" ]; then
         lines=$(wc -l < "${ROOT}/${f}" | tr -d ' ')
         if [ "$lines" -lt 5 ]; then
@@ -286,9 +286,9 @@ agent_count=$(find "${ROOT}/agents" -maxdepth 1 -name '*.md' | wc -l | tr -d ' '
 skill_count=$(find "${ROOT}/skills" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
 if [ "$profile_count" = "9" ]; then pass "Profile count: 9"; else fail "Expected 9 profiles, found $profile_count"; fi
 if [ "$agent_count" = "11" ]; then pass "Agent count: 11"; else fail "Expected 11 agents, found $agent_count"; fi
-if [ "$skill_count" = "11" ]; then pass "Skill count: 11"; else fail "Expected 11 skills, found $skill_count"; fi
+if [ "$skill_count" = "17" ]; then pass "Skill count: 17"; else fail "Expected 17 skills, found $skill_count"; fi
 
-if grep -q -- '--remember \[-p proyecto\] \[-t tipo\]' "${ROOT}/oc" \
+if grep -q -- '--remember \[-p proyecto\] \[-t tipo\]' "${ROOT}/occo" \
     && grep -q -- 'occo --remember -p' "${ROOT}/README.md" \
     && grep -q -- 'occo --remember -p' "${ROOT}/CONTEXTO_PROYECTO.md"; then
     pass "Documented memory project flag is present"

@@ -2,12 +2,24 @@
 # Install script for opencode-global-config
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/isnardokun/opencode-global-config/main/install.sh | bash
-#   bash install.sh [--dry-run]
+#   bash install.sh [--dry-run] [--with-playwright]
 
 DRY_RUN=0
+WITH_PLAYWRIGHT=0
 for _arg in "$@"; do
     case "$_arg" in
         --dry-run) DRY_RUN=1 ;;
+        --with-playwright) WITH_PLAYWRIGHT=1 ;;
+        --help|-h)
+            echo "Usage: bash install.sh [--dry-run] [--with-playwright]"
+            echo ""
+            echo "Options:"
+            echo "  --dry-run             Print the plan without modifying anything"
+            echo "  --with-playwright     After install, offer to install Playwright + Chromium"
+            echo "                        (~170 MB). Optional and non-default. Enables full"
+            echo "                        browser automation for /qa-web and /web-verify."
+            exit 0
+            ;;
     esac
 done
 
@@ -98,6 +110,8 @@ print_requirements() {
     command_status gitleaks "escaneo de secretos en hooks" || true
     command_status shellcheck "lint shell en desarrollo/CI" || true
     command_status shfmt "formateo shell con make format" || true
+    command_status playwright "browser automation para /qa-web y /web-verify (full mode)" || true
+    command_status lynx "text rendering fallback para /web-verify (tier 2)" || true
 
     if [ "$missing_required" -gt 0 ]; then
         echo ""
@@ -128,7 +142,7 @@ fi
 
 echo -e "${BLUE}"
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║     OpenCode Global Config - Instalador v1.9.7             ║"
+echo "║     OpenCode Global Config - Instalador v1.11.0            ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
@@ -243,7 +257,7 @@ success "Instalado: opencode.json"
 # 5. Install oc command
 info "Instalando comando oc..."
 mkdir -p "$BIN_DIR"
-if ! cp "$INSTALL_DIR/oc" "$BIN_DIR/${BIN_NAME}"; then
+if ! cp "$INSTALL_DIR/occo" "$BIN_DIR/${BIN_NAME}"; then
     error "No se pudo instalar el comando oc en $BIN_DIR"
 fi
 chmod +x "$BIN_DIR/${BIN_NAME}"
@@ -316,9 +330,52 @@ for _rubric in code-review security-review plan-review; do
 done
 
 if [ "$_ok" -eq 1 ]; then
-    success "Instalación verificada (12 artefactos)"
+    success "Instalación verificada (17 artefactos + opcional Playwright)"
 else
     error "Instalación incompleta. Revisa los mensajes anteriores."
+fi
+
+# 8. Optional Playwright install (browser automation for /qa-web and /web-verify)
+if [ "$WITH_PLAYWRIGHT" -eq 1 ]; then
+    echo ""
+    info "Flag --with-playwright detectado. Verificando instalación..."
+    if command -v playwright >/dev/null 2>&1; then
+        success "Playwright ya está instalado: $(command -v playwright)"
+    else
+        warn "Playwright no está instalado. Habilita browser automation para /qa-web y /web-verify."
+        echo ""
+        echo "  Instalación recomendada (requiere node + npm):"
+        echo "    npm install -g playwright"
+        echo "    npx playwright install chromium   # ~170 MB de descarga"
+        echo ""
+        echo "  Sin Playwright, /web-verify funciona en modo degradado:"
+        echo "    - tier 1: curl + wget (HTTP only)"
+        echo "    - tier 2: + lynx (text rendering)"
+        echo "    - tier 3+: requiere Playwright"
+        echo ""
+        if command -v npm >/dev/null 2>&1 && [ -t 0 ]; then
+            printf "¿Instalar Playwright ahora? [y/N]: "
+            read -r _confirm
+            if [ "$_confirm" = "y" ] || [ "$_confirm" = "Y" ]; then
+                info "Instalando Playwright..."
+                if npm install -g playwright 2>&1 | tail -5; then
+                    success "Playwright instalado"
+                    info "Descargando Chromium (~170 MB)..."
+                    if npx playwright install chromium 2>&1 | tail -3; then
+                        success "Chromium descargado"
+                    else
+                        warn "Falló la descarga de Chromium. Reintentá manualmente con: npx playwright install chromium"
+                    fi
+                else
+                    warn "Falló la instalación de Playwright. Instalá manualmente: npm install -g playwright"
+                fi
+            else
+                info "Saltando instalación de Playwright. Podés instalarlo después con: npm install -g playwright"
+            fi
+        else
+            info "Sin npm o sin TTY interactivo. Saltando instalación automática. Reejecutá con --with-playwright cuando tengas npm."
+        fi
+    fi
 fi
 
 # 8. Print summary

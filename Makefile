@@ -5,7 +5,7 @@ validate:
 
 check:
 	bash -n install.sh
-	bash -n oc
+	bash -n occo
 	bash -n hooks/pre-commit
 	bash -n hooks/pre-push
 	bash -n uninstall.sh
@@ -19,7 +19,7 @@ test:
 	bash tests/run.sh
 
 format:
-	@command -v shfmt >/dev/null 2>&1 && shfmt -w -i 2 -ci install.sh oc validate.sh uninstall.sh hooks/pre-commit hooks/pre-push || echo "shfmt not installed — skipping shell format"
+	@command -v shfmt >/dev/null 2>&1 && shfmt -w -i 2 -ci install.sh occo validate.sh uninstall.sh hooks/pre-commit hooks/pre-push || echo "shfmt not installed — skipping shell format"
 	jq . opencode.json > /tmp/_oc_fmt.json && mv /tmp/_oc_fmt.json opencode.json
 	jq . opencode.strict.json > /tmp/_oc_fmt.json && mv /tmp/_oc_fmt.json opencode.strict.json
 	@for f in profiles/*.json; do jq . "$$f" > /tmp/_oc_fmt.json && mv /tmp/_oc_fmt.json "$$f"; done
@@ -34,4 +34,4 @@ uninstall:
 	bash uninstall.sh
 
 doctor:
-	oc --doctor
+	occo --doctor
