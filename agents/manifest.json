@@ -351,6 +351,19 @@
         "adapted": false,
         "orientation_only": true
       }
+    },
+    {
+      "id": "cbm-graph-export",
+      "path": "skills/cbm-graph-export/",
+      "description": "Export the codebase-memory-mcp knowledge graph from its SQLite store into a self-contained, offline HTML viewer (vis.js) and a machine-readable graph.json. Use when the user wants to visualize the CBM graph without opening an MCP client, share it with someone who can't run CBM, or commit a snapshot for diffing over time. Reads CBM's SQLite read-only — does not modify the index, configs, or the opencode MCP registration. Stdlib-only Python (no dependencies).",
+      "source": {
+        "upstream": "opencode-global-config",
+        "license": "MIT",
+        "authored": "2026-06-29",
+        "upstream_path": "skills/cbm-graph-export/SKILL.md",
+        "cherry_pick": false,
+        "adapted": false
+      }
     }
   ],
   "workflows": [

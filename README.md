@@ -34,12 +34,12 @@ Inspired by [VILA-Lab/Dive-into-Claude-Code](https://github.com/VILA-Lab/Dive-in
 
 ## Features
 
-**v1.18.0 + codebase-memory-mcp cherry-pick (orientación + `--with-codebase-memory` install flag)**
+**v1.19.0 + cbm-graph-export (offline viewer for the CBM SQLite graph; stdlib only)**
 
 - **11 specialized agents** — no hardcoded model; use whichever model you select in OpenCode's UI
 - **14 official slash commands** — `/analyze`, `/review`, `/secure`, `/feature`, `/bug-hunt`, `/docs`, `/devops`, `/oncall`, `/office-hours`, `/investigate`, `/plan-eng-review`, `/qa-web`, `/web-verify`, `/setup-deploy` — usable directly in OpenCode's TUI
 - **9 prompt-enforced profiles** — rules like `requireTests`, `checkpointBeforeChanges` injected as explicit LLM instructions; profile permissions validated against `ask|allow|deny`
-- **24 skills** for analysis, implementation, validation, memory, documentation, debugging, alignment, communication, design.md (with anti-AI-slop philosophy), plan engineering review, product framing, root-cause investigation, web QA, runtime-agnostic web verify, deploy platform detection, PDF processing, skill authoring, Word documents, Excel spreadsheets, knowledge graph building, structural code analysis (codebase-memory-mcp), and PowerPoint presentations (12 adapted from upstream: 6 from garrytan/gstack + 5 from anthropics/skills + 1 from safishamsi/graphify)
+- **25 skills** for analysis, implementation, validation, memory, documentation, debugging, alignment, communication, design.md (with anti-AI-slop philosophy), plan engineering review, product framing, root-cause investigation, web QA, runtime-agnostic web verify, deploy platform detection, PDF processing, skill authoring, Word documents, Excel spreadsheets, knowledge graph building, structural code analysis (codebase-memory-mcp), offline CBM graph export, and PowerPoint presentations (12 adapted from upstream: 6 from garrytan/gstack + 5 from anthropics/skills + 1 from safishamsi/graphify)
 - **3 review rubrics** for code review, security review, and plan/design gates
 - **1 security plugin** with regex hardening, ESM metadata, redacted audit log, and restrictive log permissions
 - **Optional `occo ask` router** — natural-language intent routing with `--dry-run`, `--explain`, and `--clarify`

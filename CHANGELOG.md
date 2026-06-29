@@ -2,6 +2,62 @@
 
 Todos los cambios notables de este proyecto se documentarán en este archivo.
 
+## [1.19.0] - 2026-06-29
+
+### cbm-graph-export: offline viewer for the CBM SQLite graph
+
+Local motivation, not a cherry-pick: after validating that
+`codebase-memory-mcp v0.6.0` `--ui=true --port=9749` HTTP server only spins
+up when an MCP client is connected, there was no way to inspect a graph
+index offline. This release adds a stdlib-only Python tool that reads the
+same SQLite backend and produces a self-contained HTML viewer.
+
+**Adds:**
+
+- `skills/cbm-graph-export/scripts/export_graph.py` (~210 lines, stdlib only).
+  Reads `~/.cache/codebase-memory-mcp/*.db` in read-only mode. Emits:
+  - `graph.json` — same shape graphify produces (tooling compat)
+  - `graph.html` — vis.js viewer, ~600 KB with data inlined; pan/zoom,
+    label filter, search by name, click-for-detail panel.
+- `skills/cbm-graph-export/SKILL.md` (~140 lines). Orientation: when to use
+  it (share, commit snapshot, diff across revisions, remote box); schema;
+  caveats (Section/Variable noise in v0.6.0); coexistence with graphify
+  and CBM live queries.
+- `agents/manifest.json` entry declaring the new skill (no upstream —
+  authored for this repo).
+- Bumps: VERSION 1.18.0 → 1.19.0; `validate.sh` skill_count 24 → 25;
+  README/INSTALL/refs to v1.19.0.
+
+**Design decisions:**
+
+- **Separate skill from `codebase-memory-mcp`**. That skill is orientation
+  about CBM the binary; this one is about exporting its output. Different
+  triggering keywords, different authorial history, different scope.
+- **Stdlib only**. SQLite ships with Python; no `pip install` required. The
+  vis.js library is loaded from a CDN at view time, so no packaging needed.
+- **Idempotent**. Running the script twice on the same DB produces byte-identical
+  `graph.json` (modulo ordering from SQLite, which is deterministic for our
+  queries).
+- **Read-only SQLite connection**. `?mode=ro` URI — physically cannot write to
+  the DB even if a bug wanted to.
+
+**What this is NOT:**
+
+- Not a fork or replacement for CBM. The script only dumps what's already in
+  the SQLite; it cannot add nodes, run Hybrid LSP, or trigger auto-index.
+- Not a port of the official `--ui=true` HTTP viewer. The official viewer (in
+  newer CBM releases) is a 3D interactive UI; this is a 2D vis.js snapshot.
+- Not in `install.sh`. No installer flag, no `--with-cbm-graph-export` —
+  it's a script the user invokes manually when they need a snapshot.
+
+**Validation:**
+
+- `python3 -m py_compile export_graph.py` → OK
+- `bash export_graph.py /real/db /tmp/out` → 1818 nodes / 1935 edges
+  (matches manual session inspection earlier today)
+- `bash validate.sh` → PASS (25 skills, 11 agents, 9 profiles, v1.19.0)
+- `bash tests/run.sh` → 14/14 still pass (no shell logic touched)
+
 ## [1.18.0] - 2026-06-29
 
 ### Cherry-pick: codebase-memory-mcp (orientación + install flag)

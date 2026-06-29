@@ -36,3 +36,7 @@ __pycache__/
 # OS
 .DS_Store
 Thumbs.db
+
+# Knowledge graph exports (regenerable; commit the source skill, not the render)
+graphify-out/cost.json
+cbm-graph-out/
