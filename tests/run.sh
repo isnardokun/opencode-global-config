@@ -473,4 +473,28 @@ after=$(ls "$outcomes_dir"/*.json 2>/dev/null | wc -l | tr -d ' ')
 [[ "$after" -gt "$before" ]] || fail "occ --save-all should write at least one new JSON to outcomes/"
 pass "occ --save-all writes a new outcome JSON to memory/outcomes/"
 
+# --list-workflows: lists the 5 hardcoded workflow names. Static
+# metadata, no I/O. Asserts on names that appear in occo's
+# show_help output.
+list_wf="$(run_oc --list-workflows 2>&1 || true)"
+[[ "$list_wf" == *"bug-hunt"* ]] || fail "--list-workflows should include bug-hunt"
+[[ "$list_wf" == *"new-project"* ]] || fail "--list-workflows should include new-project"
+[[ "$list_wf" == *"debug"* ]] || fail "--list-workflows should include debug"
+[[ "$list_wf" == *"feature"* ]] || fail "--list-workflows should include feature"
+[[ "$list_wf" == *"document"* ]] || fail "--list-workflows should include document"
+pass "occ --list-workflows lists all 5 workflows"
+
+# --detect-skills <path>: scans a directory for stack fingerprints
+# (package.json, go.mod, etc.) and reports which language-specific
+# skills apply. Pre-stage a Node project so the test prints something
+# deterministic; copy the local skills-registry so we don't hit the
+# network.
+detect_repo="$TMPDIR/detect-repo"
+mkdir -p "$detect_repo"
+printf '{"name":"t","version":"0.0.1"}\n' > "$detect_repo/package.json"
+cp "$ROOT/skills-registry.json" "$TMPDIR/home/.config/opencode/skills-registry.json"
+result="$(cd "$detect_repo" && HOME="$TMPDIR/home" PATH="$TMPDIR/bin:$PATH" "$ROOT/occo" --detect-skills . 2>&1 || true)"
+[[ "$result" == *"Skills disponibles"* ]] || fail "occ --detect-skills should print detected skills list (got: ${result:0:200})"
+pass "occ --detect-skills detects stack from project files"
+
 printf 'All tests passed\n'
