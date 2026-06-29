@@ -1,192 +1,202 @@
 # Arquitectura — opencode-global-config
 
+> **Nota:** Este archivo documenta la arquitectura técnica. Para decisiones, contexto, y bitácora, ver `DECISIONS.md`, `PROJECT_CONTEXT.md`, y `CONTEXTO_PROYECTO.md` (raíz).
+
 ## Visión general
 
-opencode-global-config es un **paquete de configuración** que se superpone a OpenCode CLI. No hace fork ni modifica OpenCode — funciona enteramente a través de archivos de configuración, definiciones de agentes y un script wrapper (`oc`).
+opencode-global-config es un **paquete de configuración** que se superpone a OpenCode CLI. No hace fork ni modifica OpenCode — funciona enteramente a través de archivos de configuración, definiciones de agentes, un script wrapper (`occo`), y un sistema de memoria persistente.
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│  User                                                    │
-│    │                                                     │
-│    ▼                                                     │
-│  oc (wrapper script ~2490 líneas)                        │
-│    │                                                     │
-│    ├── Profile enforcement (prompt injection)            │
-│    ├── Memory operations (3-layer retrieval)              │
-│    ├── Workflow orchestration (single-pass)              │
-│    ├── Natural language router (oc ask)                  │
-│    └── Self-Improvement (auto-compact, auto-reflect)    │
-│    │                                                     │
-│    ▼                                                     │
-│  opencode (CLI)                                          │
-│    │                                                     │
-│    ├── loads ~/.config/opencode/opencode.json           │
-│    ├── loads AGENTS.md + CLAUDE.md as instructions      │
-│    └── runs agents/skills/profiles                      │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│  User                                                        │
+│    │                                                         │
+│    ▼                                                         │
+│  occo (wrapper bash, ~106 KB / 2965 líneas)                   │
+│    │                                                         │
+│    ├── Profile enforcement (prompt injection, 9 perfiles)    │
+│    ├── Memory operations (3-layer retrieval, JSONL)          │
+│    ├── Workflow orchestration (5 single-pass workflows)       │
+│    ├── Natural language router (occo ask)                    │
+│    ├── Self-Improvement (auto-compact, auto-reflect)         │
+│    ├── Hooks management (occo --init)                       │
+│    └── Slash command runner (occo <command>)                 │
+│    │                                                         │
+│    ▼                                                         │
+│  opencode (CLI)                                              │
+│    │                                                         │
+│    ├── loads ~/.config/opencode/opencode.json               │
+│    ├── loads AGENTS.md + CLAUDE.md as instructions          │
+│    ├── loads skills/ (22), commands/ (14), agents/ (11)     │
+│    ├── loads plugins/safety-guard.js (ESM)                  │
+│    └── runs agents, executes slash commands                  │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ## Componentes principales
 
-### `oc` — Wrapper Script
+### `occo` — Wrapper Script
 
-Script bash principal (~2490 líneas) que actúa como CLI unificada. Maneja:
+Script bash principal (~106 KB, 2965 líneas) instalado en `~/.local/bin/occo`. Funciones principales:
 
 | Función | Descripción |
 |---------|-------------|
-| `track_turn()` | Contador de sesiones con auto-tracking cada 5 turns |
-| `auto_compact_if_needed()` | Auto-compact cuando turns > 20 |
+| `track_turn()` | Contador de sesiones con persistencia en `~/.config/opencode/.session` |
+| `auto_compact_if_needed()` | Auto-compact cuando turns > 20 (configurable) |
 | `detect_project()` | Auto-detecta proyecto desde PWD o git remote |
-| `create_observation()` | Crea observaciones con frontmatter YAML |
+| `create_observation()` | Crea observaciones con frontmatter YAML quoting |
 | `search_memory()` | Búsqueda de 3 capas (search/timeline/get) |
-| `get_profile_rules()` | Lee JSON y genera instrucciones LLM |
-| `_oc_run()` | Ejecuta OpenCode con rules injectadas |
-| `run_workflow()` | Orchestrates single-pass workflows |
-| `ask_route()` | Natural language intent mapping |
+| `get_profile_rules()` | Lee JSON y genera instrucciones LLM en inglés |
+| `run_workflow_prompt()` | Orchestrates single-pass workflows (bug-hunt, new-project, etc.) |
+| `ask_route()` | Natural language intent mapping a agentes/workflows |
+| `safety_guard_validate()` | Verifica el plugin safety-guard.js antes de cargar |
+| `doctor` | Diagnóstico completo del sistema |
+
+Entry points:
+- `occo` (sin args) — menú interactivo fzf o help
+- `occo <command>` — comando explícito (analyze, review, secure, etc.)
+- `occo ask "<prompt>"` — natural language router
+- `occo --workflow <name>` — single-pass workflow
+- `occo --remember "..."` — crear observación de memoria
+- `occo --memory "query"` — buscar en memoria
+- `occo --init [path]` — inicializar proyecto con `.opencode/`
+- `occo --doctor` — diagnóstico
+- `occo --compact` — forzar compactación
 
 ### Agentes (11)
 
-| Agente | Archivo | Permisos | Rol |
-|--------|---------|----------|-----|
-| `@architect` | `agents/architect.md` | read-only | Análisis arquitectura y riesgos |
-| `@planner` | `agents/planner.md` | read-only | Planificación en fases verificables |
-| `@builder` | `agents/builder.md` | edit + bash(ask) | Implementación con Karpathy principles |
-| `@builder-safe` | `agents/builder-safe.md` | edit: ask, bash: ask | Implementación conservadora |
-| `@reviewer` | `agents/reviewer.md` | read-only | Code review con precommit-review |
-| `@security-auditor` | `agents/security-auditor.md` | read-only | Detección de vulnerabilidades |
-| `@docs-writer` | `agents/docs-writer.md` | edit | Documentación técnica |
-| `@devops` | `agents/devops.md` | edit + bash | Infraestructura, CI/CD, Docker |
-| `@oncall` | `agents/oncall.md` | bash(ask) | Respuesta a incidentes con riesgo reversible |
-| `@migration-planner` | `agents/migration-planner.md` | read-only | Migraciones incrementales reversibles |
-| `@performance-profiler` | `agents/performance-profiler.md` | read-only | N+1, O(n²), I/O bloqueante |
+| Agente | Permisos | Skills cargadas | Rol |
+|--------|----------|-----------------|-----|
+| `@architect` | read-only | project-map | Análisis, stack, riesgos |
+| `@planner` | read-only | plan-eng-review | Planes con criterios de éxito verificables |
+| `@builder` | edit + bash(ask) | safe-implementation, test-first | Implementación con principios Karpathy |
+| `@builder-safe` | edit: ask, bash: ask | safe-implementation | Implementación conservadora |
+| `@reviewer` | read-only | precommit-review | Code review con precommit-review |
+| `@security-auditor` | read-only | — | Auditoría de seguridad OWASP |
+| `@docs-writer` | edit | docs-writer | Documentación técnica |
+| `@devops` | edit + bash | — | Docker, CI/CD, infra |
+| `@oncall` | bash(ask) | investigate | Producción, debug, logs |
+| `@migration-planner` | read-only | — | Migraciones reversibles |
+| `@performance-profiler` | read-only | — | N+1, O(n²), I/O bloqueante |
 
-### Profiles (9)
+### Slash Commands (14)
 
-Gradiente deny-first: `deny → plan → review → default → work → research → auto → trusted → devops`
+| Comando | Skill | Agente |
+|---------|-------|--------|
+| `/analyze` | project-map | @architect |
+| `/review` | precommit-review | @reviewer |
+| `/secure` | — | @security-auditor |
+| `/feature` | workflow: architect → planner → builder → reviewer | multi |
+| `/bug-hunt` | workflow: architect → security-auditor → planner → builder → reviewer | multi |
+| `/docs` | docs-writer | @docs-writer |
+| `/devops` | — | @devops |
+| `/oncall` | — | @oncall |
+| `/office-hours` | office-hours | @planner |
+| `/investigate` | investigate | @oncall |
+| `/plan-eng-review` | plan-eng-review | @planner |
+| `/qa-web` | qa-web | @builder + @reviewer |
+| `/web-verify` | web-verify | runtime-agnostic |
+| `/setup-deploy` | setup-deploy | detect-only |
 
-Cada perfil tiene:
-- `opencode.permission` — matriz declarativa (validada por el repo)
-- `policy` — reglas inyectadas como instrucciones LLM via `get_profile_rules()`
+### Skills (22)
 
-### Skills (10)
+**Originales (11):** ai-coding-rules, caveman, design-md, diagnose, docs-writer, grill-with-docs, memory-retrieval, precommit-review, project-map, safe-implementation, test-first.
 
-| Skill | Propósito |
-|-------|-----------|
-| `project-map` | Análisis de estructura de proyecto |
-| `safe-implementation` | Cambios mínimos, verificables, reversibles |
-| `test-first` | Goal-Driven Execution |
-| `precommit-review` | Revisión de diff antes de commit |
-| `memory-retrieval` | 3-layer progressive disclosure |
-| `docs-writer` | Generación de documentación técnica |
-| `diagnose` | Loop disciplinado de debugging |
-| `grill-with-docs` | Alineación con docs antes de construir |
-| `caveman` | Modo de comunicación comprimida |
-| `ai-coding-rules` | Reglas de comportamiento para AI coding |
+**Cherry-pick de garrytan/gstack (6):** plan-eng-review, office-hours, investigate, qa-web, web-verify, setup-deploy. (v1.11.0)
 
-### Commands (8 slash commands)
+**Cherry-pick de anthropics/skills (4):** pdf, skill-creator, docx, xlsx. (v1.12.0 – v1.14.0)
 
-`/analyze`, `/review`, `/secure`, `/feature`, `/bug-hunt`, `/docs`, `/devops`, `/oncall` — cargados automáticamente en el TUI de OpenCode.
+**Cherry-pick de safishamsi/graphify (1):** graphify. (v1.15.0)
 
-### Plugins
-
-`plugins/safety-guard.js` — Plugin ESM que:
-- Bloquea comandos destructivos vía regex hardening
-- Audit log a `~/.config/opencode/logs/safety-guard.jsonl`
-- Redacción de secretos comunes (tokens, API keys, passwords)
-
-## Flujos de datos
-
-### Profile Enforcement
+### Perfiles (9 — deny-first gradient)
 
 ```
-oc --profile trusted build "add feature"
-  → switch_profile("trusted")
-  → get_profile_rules() → genera instrucciones en inglés
-  → _oc_run("-p", prompt + rules)
-  → opencode run "Use @builder... [Active profile rules: ...]"
+deny → plan → review → default → work → research → auto → trusted → devops
 ```
 
-### Memory Lifecycle
+| Perfil | Permisos | Cuándo usar |
+|--------|----------|-------------|
+| `deny` | Solo lectura estática | Análisis pasivo, no ediciones |
+| `plan` | Lectura + planning, no edición | Diseñar antes de tocar código |
+| `review` | Lectura + revisión | Code review, auditoría |
+| `default` | Desarrollo general con aprobación | Uso cotidiano |
+| `work` | Trabajo profesional conservador | Implementación con gates |
+| `research` | Investigación con web habilitada | Búsquedas online |
+| `auto` | Modo asistido con tracking | Decisiones autónomas |
+| `trusted` | Direct edits, bash permitido | Desarrollador avanzado |
+| `devops` | Infraestructura con rollback | Deploy, CI/CD |
 
-```
-oc --remember -p my-api -t bugfix "JWT fails on DST"
-  → create_observation()
-  → genera obs_id con timestamp + urandom
-  → escribe markdown en memory/projects/my-api/
-  → append a index.jsonl (python3 + json.dumps)
-  → sync_to_project_docs() → copia a docs/memory/ del proyecto
-```
+### Rubrics (4)
 
-### Workflow Single-Pass
+- `code-review.md` — blocking criteria, required evidence, output shape, Pass 1 CRITICAL (5 checks), Pass 2 INFORMATIONAL (7 checks), Fix-First Heuristic
+- `security-review.md` — severity levels, remediation gates
+- `plan-review.md` — verifiable planning and design criteria
+- `grilling.md` — alignment/grilling gates para design discussions
 
-```
-oc --workflow bug-hunt ~/project
-  → run_workflow("bug-hunt", "~/project")
-  → _oc_run() con TODAS las fases en UN solo prompt
-  → opencode ejecuta secuencialmente manteniendo contexto
-  → run_workflow_prompt() exige status 0 y línea exacta WORKFLOW_COMPLETE=true
-  → auto_reflect() post-workflow
-  → track_outcome() registra resultado
-  → analyze_outcomes() detecta patterns
-```
+### Plugin: `safety-guard.js` (ESM)
 
-Si falta el marcador exacto `WORKFLOW_COMPLETE=true` o `opencode` termina con status distinto de cero, el workflow falla y no registra outcome exitoso.
+Localizado en `plugins/safety-guard.js`. Función:
+- Bloquea comandos destructivos via regex (con hardened variants)
+- Audita cada bash call a `~/.config/opencode/logs/safety-guard.jsonl`
+- Redacta secretos conocidos (GITHUB_TOKEN, OPENAI_API_KEY, NPM_TOKEN, etc.)
+- Lock permissions: log dir 0700, log file 0600
 
-## Decisiones técnicas
+### Hooks git: `pre-commit` + `pre-push`
 
-### ¿Por qué prompt injection para perfiles?
+Fail-closed. Lógica:
+1. Lee el diff (staged o contra upstream)
+2. Pasa al LLM via `occo` o fallback `opencode run`
+3. LLM responde con `HOOK_REVIEW_RESULT=pass|fail`
+4. El hook permite o bloquea según la última línea exacta
+5. Opcionalmente corre `gitleaks` si está instalado
+6. Exit 0 = allow, exit !=0 = block
 
-OpenCode no tiene sistema de perfiles nativo. Las reglas se injectan como instrucciones LLM explícitas:
-- No requiere fork de OpenCode
-- Funciona con cualquier modelo
-- Es transparente (reglas visibles en prompt)
+### Memory System
 
-### ¿Por qué single-pass workflows?
+- `~/.config/opencode/memory/INDEX.md` — índice markdown para humanos
+- `~/.config/opencode/memory/index.jsonl` — índice JSONL para queries
+- `~/.config/opencode/memory/projects/<name>/*.md` — observaciones por proyecto
+- `~/.config/opencode/memory/outcomes/*.json` — outcomes de workflows
+- 3-layer retrieval: search (resúmenes), timeline (cronología), get (contenido completo)
 
-Sistemas multi-agente tradicionales llaman a OpenCode múltiples veces con gaps de timeout. Single-pass envía todas las fases en una llamada `opencode run`, manteniendo contexto completo.
+### `install.sh` — Instalador
 
-### ¿Por qué memoria basada en archivos?
+Flags disponibles:
+- `--dry-run` — print plan sin modificar nada
+- `--with-playwright` — opt-in: instala Playwright + Chromium (~170 MB), registra skill, sin auto-build
+- `--with-graphify` — opt-in: instala graphifyy via uv/pipx/pip (~50 MB), registra skill en opencode, auto-graphify de `~/.config/opencode/`
+- `--help` / `-h` — usage documentado
 
-- Compatible con control de versiones
-- Editable directamente por humanos
-- No requiere servicio externo
-- Funciona offline
+El base install es zero-deps (solo `cp -r` de archivos). Playwright y graphify son opt-in explícitos.
 
-### ¿Por qué ESM para safety-guard?
+## Validación
 
-Node.js emite `MODULE_TYPELESS_PACKAGE_JSON` cuando carga `.js` sin `package.json` hermano. Declarar `type: module` elimina este warning.
+`validate.sh` corre:
 
-## Self-Improvement Agent
+1. Required files/directories existen
+2. Required agents (11), commands (14), skills (22), rubrics (4)
+3. JSON syntax (perfiles, opencode.json, plugins/package.json)
+4. Shell syntax (install.sh, uninstall.sh, hooks, occo)
+5. Plugin JavaScript syntax (`node --check`)
+6. Custom linter:
+   - No hardcoded secrets/credentials (con whitelist para `qpdf|gpg|openssl`)
+   - TODOs requieren issue ref
+7. Frontmatter check (presence of `---` fences)
+8. Documentation consistency (version match, profile/agent/skill counts)
+9. Memory project flag support
+10. Legacy CLI calls (no `opencode -p` o `opencode --profile`)
 
-### Funciones automáticas
-
-| Función | Trigger | Comportamiento |
-|---------|---------|----------------|
-| `detect_project()` | Siempre | Auto-detecta proyecto desde PWD o git remote |
-| `auto_compact_if_needed()` | Cada `_oc_run()` si turns > 20 | Compacta sesión silenciosamente con guard `OC_AUTO_COMPACT_RUNNING` para evitar recursión |
-| `auto_reflect()` | Post-workflow | Crea observación en proyecto correcto |
-| `track_outcome()` | Post-workflow | Registra resultado en memory/outcomes/ |
-| `analyze_outcomes()` | Post-workflow | Detecta patterns de failures (3+ = warning) |
-
-### Automation Flow
-
-```
-oc --workflow bug-hunt ~/project
-  → run_workflow() ejecuta con todas las fases
-  → detect_project("~/project") → "project"
-  → Workflow completa → auto_reflect("bug-hunt", "~/project")
-  → track_outcome("bug-hunt", "success", "project")
-  → analyze_outcomes() → si 3+ failures en 7 días, warn
-  → auto_compact_if_needed() → si turns > 20, summary + reset
-```
-
-## Tecnologías y dependencias
-
-| Componente | Tecnología | Propósito |
-|------------|------------|-----------|
-| Wrapper CLI | Bash | `oc` script principal |
-| Plugin seguridad | JavaScript ESM | safety-guard.js |
-| Generación config | Python 3 | JSON/YAML en memoria |
-| Validación | Shell + Python | validate.sh, tests/ |
-| CI/CD | GitHub Actions | validate.yml |
-| Install/ uninstall | Bash | install.sh, uninstall.sh |
+`tests/run.sh` corre 14 smoke tests:
+- Memory search/parse/filter
+- `--remember` creation con JSONL válido
+- Timeline lookup
+- Profile switching (clean names, reject invalid)
+- Hooks fail-closed behavior
+- `occo --init` genera hooks fail-closed
+- `occo --compact` resetea counter
+- Workflow success requiere `WORKFLOW_COMPLETE=true`
+- Session tracking handles clean and corrupt state
+- `occo ask` dry-run routes natural language
+- `occo --doctor`/`--installed` validation
+- `occo dashboard --apply` parameter order
+- Installer dry-run y uninstaller con temp paths
+- Safety guard blocks critical rm variants, redacts secrets, locks log permissions

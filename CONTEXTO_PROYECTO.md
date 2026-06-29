@@ -1,8 +1,39 @@
 # opencode-global-config — Contexto del Proyecto
 
 **Repo GitHub:** https://github.com/isnardokun/opencode-global-config  
-**Versión actual:** 1.9.6
-**Última sesión:** 2026-05-12  
+**Versión actual:** 1.15.0
+**Última sesión:** 2026-06-28 (consolidación)
+
+---
+
+## Índice de la bitácora
+
+Esta bitácora documenta las decisiones tácticas, riesgos residuales, y notas de cada sesión. Para decisiones arquitectónicas formales y anti-criterios explícitos, ver `docs/DECISIONS.md`. Para el contexto actual, ver `docs/PROJECT_CONTEXT.md`.
+
+| # | Sesión | Versión | Resumen |
+|---|--------|---------|---------|
+| 17 | 2026-06-28 (consolidación) | v1.15.0 | Docs consolidation: DECISIONS.md lleno, PROJECT_CONTEXT.md actualizado, INDEX.md nuevo, docs/CHANGELOG.md duplicado eliminado. |
+| 16 | 2026-06-28 (graphify) | v1.15.0 | Cherry-pick de `safishamsi/graphify` con `install.sh --with-graphify` opt-in flag. SKILL.md lightweight (190 líneas) + registro en opencode + auto-graphify. |
+| 15 | 2026-06-28 (docx+xlsx) | v1.14.0 | Cherry-pick de `anthropics/skills` F3: `docx` (python-docx) y `xlsx` (openpyxl), con runtime-detection. Estrategia lightweight — scripts portados como inline snippets. |
+| 14 | 2026-06-28 (skill-creator) | v1.13.0 | Cherry-pick de `anthropics/skills` F2: `skill-creator` (methodology + 2 scripts). SKILL.md adaptado para opencode (sin subagents Claude-CLI). |
+| 13 | 2026-06-28 (consolidación v1.12) | v1.12.0 | Fix: contador "15→17 artefactos" en install.sh, subcomando inexistente en web-verify, install.sh cp -r fix. CHANGELOG honesto. |
+| 12 | 2026-06-28 (pdf+helper) | v1.12.0 | Cherry-pick de `anthropics/skills` F1: `pdf` (SKILL.md completo) + `web-verify/scripts/with_server.py` (server lifecycle helper). |
+| 11 | 2026-06-28 (v1.11.x) | v1.11.0+1 | Fix html2text tier-2 fallback para web-verify (cuando lynx no está instalado). |
+| 10 | 2026-06-28 (QA+playwright) | v1.11.0 | Cherry-pick F2: `qa-web`, `web-verify`, `setup-deploy` + flag `--with-playwright` en install.sh. Modo degradado para web-verify. |
+| 9 | 2026-06-28 (rename+gstack) | v1.11.0 | Rename `oc` → `occo` (canónico) + cherry-pick F1 desde `garrytan/gstack`: `plan-eng-review`, `office-hours`, `investigate` + rubric extendida. |
+| 8 | 2026-05-02 | — | Revisión integral y bug-hunt masivo. |
+| 7-1 | 2026-05-01 a 2026-05-02 | v1.9.6 | Auto-Improvement Agent, harness engineering, memory bank, self-improvement. |
+
+## Estado del proyecto al cierre de la sesión actual
+
+- **22 skills** instaladas, 11 originales + 11 cherry-picked
+- **14 slash commands**, **11 agents**, **4 rubrics**, **9 profiles deny-first**
+- **14/14 smoke tests** verdes
+- **`bash validate.sh`** pasa (conteos, sintaxis, frontmatter, version match)
+- **`HEAD == origin/main`** sincronizado
+- **3 fuentes externas** integradas: garrytan/gstack, anthropics/skills, safishamsi/graphify
+- **2 flags opt-in** en install.sh: `--with-playwright` (~170 MB), `--with-graphify` (~50 MB)
+- **Base install sigue zero-deps**  
 **Directorio de trabajo en sesiones:** `/tmp/opencode-global-config` (clonar si no existe)
 
 ---
