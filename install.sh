@@ -497,16 +497,19 @@ if [ "$WITH_CODEBASE_MEMORY" -eq 1 ]; then
     info "Flag --with-codebase-memory detectado. Verificando instalación..."
     if command -v codebase-memory-mcp >/dev/null 2>&1; then
         success "codebase-memory-mcp ya está instalado: $(command -v codebase-memory-mcp)"
-        # BUGFIX (v1.18.0 → v1.18.1): when binary pre-exists, the download+extract
-        # branch is skipped, so the MCP server is never registered in opencode.json.
-        # Always run the installer's internal 'install' command to ensure the MCP
-        # entry + AGENTS.md hook are present, even on re-run.
-        if [ -t 0 ] && ! grep -qF 'codebase-memory-mcp' "$CONFIG_DIR/opencode.json" 2>/dev/null; then
+        # BUGFIX (v1.18.0 → v1.18.1, hardened in v1.19.1): when binary pre-exists,
+        # the download+extract branch is skipped, so the MCP server is never
+        # registered in opencode.json. Always run the installer's internal 'install'
+        # command to ensure the MCP entry + AGENTS.md hook are present, even on re-run.
+        # v1.19.1 fix: the [ -t 0 ] check was skipping the remediation in non-TTY
+        # environments (e.g., this sandbox), even though 'install -y' is itself
+        # non-interactive. Removed the TTY gate; 'install -y' handles stdin via -y.
+        if ! grep -qF 'codebase-memory-mcp' "$CONFIG_DIR/opencode.json" 2>/dev/null; then
             warn "MCP server no registrado en opencode.json. Ejecutando registrador interno..."
             if codebase-memory-mcp install -y 2>&1 | tail -3; then
                 success "MCP server registrado por el instalador interno"
             else
-                warn "Falló el registro. Reintentá manualmente: codebase-memory-mcp install"
+                warn "Falló el registro. Reintentá manualmente: codebase-memory-mcp install -y"
             fi
         fi
     else
