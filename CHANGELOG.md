@@ -2,6 +2,83 @@
 
 Todos los cambios notables de este proyecto se documentarán en este archivo.
 
+## [1.20.0] - 2026-06-29
+
+### Descubrimiento + Confiabilidad (auditoría P0/P1/P2)
+
+Este release sale de las recomendaciones de `INFORME_AUDITORIA_v1.19.0.md`.
+Cubre los 5 P0 y 2 de los 6 P1/P2 que tenían mejor retorno. Los demás
+quedan en el plan release-2 (v1.21.0) y release-3 (v1.22.0).
+
+**Resuelve:**
+
+- **discoverability**: `skills/design-md/SKILL.md` recupera YAML
+  frontmatter válido. La integración v1.16.0 de `frontend-design` había
+  borrado el frontmatter sin querer. Sin él, opencode no lista
+  `design-md` en autocomplete. (P0-1)
+
+- **CI gap**: `validate.sh` ahora chequea frontmatter en
+  `skills/*/SKILL.md` además de agents/ y commands/. Atrapa drift
+  futuro. (P0-3)
+
+- **install-path fragility**: nuevo E2E test (`tests/run.sh`)
+  ejercita `install.sh --with-codebase-memory` contra un stub del
+  binario en un fixture offline, y verifica que el MCP entry aterriza
+  en `opencode.json`. Cubre la regresión que requirió 3 commits
+  (v1.18.0 → v1.18.1 → v1.19.1). (P0-4)
+
+- **install.sh**: ya no miente sobre el tamaño de graphify. El
+  package varía con extras opcionales; --help dice "base ~50 MB +
+  extras opcionales". (P0-5)
+
+- **install.sh**: chmod +x for `hooks/pre-{commit,push}` cuando se
+  instalan en `~/.config/opencode/hooks/`. Antes quedaban sin +x y
+  el doctor warn-eaba. (P1-2 parcial)
+
+- **occo --doctor**: ahora reporta MCP servers registrados (count +
+  nombres), warn si `codebase-memory-mcp` binario está pero no en el
+  registry, valida +x en hooks, opcional binary check para
+  `graphify` y `codebase-memory-mcp`. (P1-2)
+
+- **occo --init**: backup timestamped de `pre-commit`/`pre-push`
+  pre-existentes (`*.bak.YYYYMMDD-HHMMSS`) antes de sobreescribir.
+  Antes los pisaba silenciosamente. (P2-6)
+
+- **occo**: warn de session-turns threshold 20 → 40, downgrade de
+  WARN a info. Era ruido en sesiones normales. (P2-2)
+
+- **docs regenerados**: `docs/PROJECT_CONTEXT.md` reescrito (estaba
+  4 versiones atrás), `docs/INDEX.md` y `docs/ARCHITECTURE.md`
+  bumpeados. Antes mencionaban v1.15.0 / 22 skills; ahora v1.20.0 /
+  25 skills. (P0-2)
+
+- **install.sh help**: help message refresh del banner.
+
+**Lo que NO entra (queda para v1.21.0/v1.22.0):**
+
+- Tests adicionales para los 30 subcomandos de occ (~20 tests nuevos).
+- Refactor de `--with-codebase-memory` para usar `opencode mcp add`.
+- Extraer prompts de workflow a archivos separados.
+- ADR sobre la decisión de memory JSONL vs opencode SQLite.
+- P2-7: CHANGELOG auto-generado.
+- P2-5: `--safety-warn-only`.
+
+**Validación:**
+
+- `bash validate.sh`: PASS (25 skills, 11 agents, 9 profiles, v1.20.0)
+- `bash tests/run.sh`: 15/15 pass (incl. nuevo E2E install path)
+- `bash -n install.sh uninstall.sh occo validate.sh`: OK
+- `shellcheck install.sh occo`: 0 nuevos errores
+- `occo --doctor` en local: muestra nuevos checks
+- Frontmatter check extendidos a `skills/*/SKILL.md`
+
+**Commits desde v1.19.1:**
+
+- `5d72b72` chore: pre-release cleanup before v1.20.0 — 5 quick wins
+- `d5c9a00` test(install): E2E for --with-codebase-memory
+- `b1e8a89` feat(doctor) + fix(install): hook +x + optional binary checks
+- `2b4570f` fix(init): backup pre-existing git hooks before overwriting
+
 ## [1.19.0] - 2026-06-29
 
 ### cbm-graph-export: offline viewer for the CBM SQLite graph

@@ -34,7 +34,7 @@ Inspired by [VILA-Lab/Dive-into-Claude-Code](https://github.com/VILA-Lab/Dive-in
 
 ## Features
 
-**v1.19.0 + cbm-graph-export (offline viewer for the CBM SQLite graph; stdlib only)**
+**v1.20.0 + audit findings (skill discoverability, install E2E test, doctor checks, init hook backup)**
 
 - **11 specialized agents** — no hardcoded model; use whichever model you select in OpenCode's UI
 - **14 official slash commands** — `/analyze`, `/review`, `/secure`, `/feature`, `/bug-hunt`, `/docs`, `/devops`, `/oncall`, `/office-hours`, `/investigate`, `/plan-eng-review`, `/qa-web`, `/web-verify`, `/setup-deploy` — usable directly in OpenCode's TUI

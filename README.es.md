@@ -47,7 +47,7 @@ Inspirado en análisis de Claude Code (VILA-Lab/Dive-into-Claude-Code) y directr
 
 Este repositorio contiene una configuración avanzada para [OpenCode CLI](https://opencode.ai) inspirada en Claude Code y proyectos de código abierto.
 
-### Características Principales (v1.19.0)
+### Características Principales (v1.20.0)
 
 - **11 agentes especializados** — sin modelo hardcodeado, usan el modelo que selecciones en OpenCode
 - **14 slash commands oficiales** — `/analyze`, `/review`, `/secure`, `/feature`, `/bug-hunt`, `/docs`, `/devops`, `/oncall`, `/office-hours`, `/investigate`, `/plan-eng-review`, `/qa-web`, `/web-verify`, `/setup-deploy`
